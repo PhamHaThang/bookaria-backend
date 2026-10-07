@@ -1,0 +1,2 @@
+#!/bin/sh
+npx biome check --staged --no-errors-on-unmatched
