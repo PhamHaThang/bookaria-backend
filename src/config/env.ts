@@ -10,6 +10,10 @@ const envSchema = z.object({
     SMTP_URL: z.string().default('smtp://localhost:1025'),
     MAIL_FROM: z.string().default('no-reply@bookaria.local'),
     RUN_WORKER_IN_PROCESS: z.stringbool().default(false),
+    // Chỉ dùng cho `pnpm db:seed`.
+    SEED_ADMIN_EMAIL: z.email().default('admin@gmail.com'),
+    SEED_ADMIN_PASSWORD: z.string().min(8).max(72).optional(),
+    BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
 });
 const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {

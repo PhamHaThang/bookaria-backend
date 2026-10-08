@@ -18,6 +18,7 @@
         "db:migrate": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js up --migrations-dir migrations --migration-file-language sql",
         "db:rollback": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js down --migrations-dir migrations --migration-file-language sql",
         "db:new": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js create --migrations-dir migrations --migration-file-language sql",
+        "db:seed": "tsx --env-file-if-exists=.env src/scripts/seed.ts",
         "start:api": "node --env-file-if-exists=.env dist/main.js",
         "start:worker": "node --env-file-if-exists=.env dist/worker/main.js",
         "docker:up": "docker compose -f docker/docker-compose.yml up -d",
@@ -41,7 +42,6 @@
     },
     "devDependencies": {
         "@biomejs/biome": "^2.5.15",
-        "@types/bcryptjs": "^2.4.6",
         "@types/cookie-parser": "^1.4.10",
         "@types/cors": "^2.8.19",
         "@types/express": "^5.0.6",
