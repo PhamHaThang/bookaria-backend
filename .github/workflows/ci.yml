@@ -7,6 +7,23 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://bookaria:bookaria@localhost:5432/bookaria
+      SEED_ADMIN_PASSWORD: ci-admin-password
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bookaria
+          POSTGRES_PASSWORD: bookaria
+          POSTGRES_DB: bookaria
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bookaria -d bookaria"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v5
       - uses: pnpm/action-setup@v4
@@ -19,3 +36,8 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm test
       - run: pnpm run build
+      - run: pnpm db:migrate
+      - run: pnpm db:rollback 0
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - run: pnpm db:seed
