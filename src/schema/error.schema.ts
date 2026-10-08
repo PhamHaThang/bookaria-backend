@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { AssetUsageSchema } from './asset.schema';
+import { BytesSchema, IdSchema, IsoDateTimeSchema } from './common.schema';
 /**
  * Error codes used in the API responses.
  */
@@ -111,6 +113,27 @@ export const ApiErrorSchema = z.object({
     }),
 });
 export type ApiError = z.infer<typeof ApiErrorSchema>;
+
+// --- Typed `details` for the codes that carry data ---------------------------------------------
+export const RevisionConflictDetailsSchema = z.object({
+    currentRevision: z.int().min(0),
+    scene: z.unknown().optional(),
+});
+export const AssetInUseDetailsSchema = z.object({ usages: z.array(AssetUsageSchema) });
+
+export const QuotaExceededDetailsSchema = z.object({
+    usedBytes: BytesSchema,
+    quotaBytes: BytesSchema,
+});
+
+export const JobInProgressDetailsSchema = z.object({ jobId: IdSchema });
+
+export const AccountLockedDetailsSchema = z.object({
+    lockedUntil: IsoDateTimeSchema.optional(),
+    byAdmin: z.boolean().optional(),
+});
+
+export const RateLimitedDetailsSchema = z.object({ retryAfterSeconds: z.int().min(1) });
 
 // ---------------------------------------------------------------------------
 // Helpers
