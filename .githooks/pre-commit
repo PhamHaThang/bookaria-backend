@@ -1,2 +1,2 @@
 #!/bin/sh
-npx biome check --staged --no-errors-on-unmatched
+pnpm exec biome check --staged --no-errors-on-unmatched

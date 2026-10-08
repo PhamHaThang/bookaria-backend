@@ -4,7 +4,6 @@ const envSchema = z.object({
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
     PORT: z.coerce.number().default(4000),
     DATABASE_URL: z.string().default('postgresql://postgres:postgres@localhost:5432/bookaria'),
-    REDIS_URL: z.string().default('redis://localhost:6379'),
     DATABASE_SSL: z.stringbool().default(false),
     JWT_SECRET: z.string().min(32).default('dev-only-secret-change-me-32-characters'),
     CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174'),
