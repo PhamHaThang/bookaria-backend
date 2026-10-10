@@ -45,16 +45,20 @@ export type LoginBody = z.infer<typeof LoginBodySchema>;
 export const GoogleLoginBodySchema = z.object({
     idToken: z.string().min(1),
 });
+export type GoogleLoginBody = z.infer<typeof GoogleLoginBodySchema>;
 export const VerifyEmailBodySchema = z.object({
     token: z.string().min(1).max(200),
 });
+export type VerifyEmailBody = z.infer<typeof VerifyEmailBodySchema>;
 export const ForgotPasswordBodySchema = z.object({
     email: EmailSchema,
 });
+export type ForgotPasswordBody = z.infer<typeof ForgotPasswordBodySchema>;
 export const ResetPasswordBodySchema = z.object({
     token: z.string().min(1).max(200),
     newPassword: NewPasswordSchema,
 });
+export type ResetPasswordBody = z.infer<typeof ResetPasswordBodySchema>;
 
 export const AuthUserSchema = z.object({
     id: IdSchema,
