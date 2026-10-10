@@ -1,3 +1,4 @@
+export * from './api/auth.schema';
 export * from './asset.schema';
 export * from './common.schema';
 export * from './dto.schema';
