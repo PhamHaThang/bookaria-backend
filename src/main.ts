@@ -2,6 +2,7 @@ import type { Server } from 'node:http';
 import { createApp } from './app';
 import { env, logger } from './config';
 import { connectDatabase, disconnectDatabase } from './db';
+import { warmUpPasswordCheck } from './lib';
 import { startWorker, stopWorker } from './worker';
 
 let server: Server | undefined;
@@ -36,6 +37,7 @@ process.once('SIGINT', () => void shutdown('SIGINT'));
 
 async function main(): Promise<void> {
     await connectDatabase();
+    await warmUpPasswordCheck();
 
     if (env.RUN_WORKER_IN_PROCESS) {
         await startWorker();

@@ -9,6 +9,9 @@ export const pool = new pg.Pool({
     connectionTimeoutMillis: 5_000,
 });
 
+/** Anything that can run a query: the pool, or one client inside a transaction. */
+export type Queryable = pg.Pool | pg.PoolClient;
+
 // Lỗi từ idle client: chỉ log, pool sẽ tự loại client hỏng và tạo kết nối mới.
 pool.on('error', (err) => {
     logger.error({ err }, 'Lỗi kết nối cơ sở dữ liệu (idle client)');
