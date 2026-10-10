@@ -93,7 +93,8 @@ export const authService = {
         );
         if (sinceLast !== null && sinceLast < RESEND_COOLDOWN_SECONDS)
             throw new AppError('RATE_LIMITED', 'Vui lòng đợi trước khi gửi lại email xác thực', {
-                retryAfterSeconds: RESEND_COOLDOWN_SECONDS - sinceLast,
+                // Làm tròn lên: hợp đồng quy định số nguyên giây (RateLimitedDetailsSchema).
+                retryAfterSeconds: Math.max(1, Math.ceil(RESEND_COOLDOWN_SECONDS - sinceLast)),
             });
 
         const verifyToken = newToken();

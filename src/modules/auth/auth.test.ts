@@ -152,7 +152,9 @@ suite('auth (tích hợp)', () => {
                 .set('Authorization', `Bearer ${res.body.data.accessToken}`);
             expect(again.status).toBe(429);
             expect(again.body.error.code).toBe('RATE_LIMITED');
-            expect(again.body.error.details.retryAfterSeconds).toBeGreaterThan(0);
+            const { retryAfterSeconds } = again.body.error.details;
+            expect(Number.isInteger(retryAfterSeconds)).toBe(true);
+            expect(retryAfterSeconds).toBeGreaterThan(0);
         });
 
         it('hết thời gian chờ thì gửi lại được và token cũ mất hiệu lực', async () => {
