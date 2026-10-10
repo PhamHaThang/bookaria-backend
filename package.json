@@ -19,6 +19,7 @@
         "db:rollback": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js down --migrations-dir migrations --migration-file-language sql",
         "db:new": "node --env-file-if-exists=.env node_modules/node-pg-migrate/bin/node-pg-migrate.js create --migrations-dir migrations --migration-file-language sql",
         "db:seed": "tsx --env-file-if-exists=.env src/scripts/seed.ts",
+        "docs:openapi": "tsx src/scripts/build-openapi.ts && biome format --write postman/specs",
         "start:api": "node --env-file-if-exists=.env dist/main.js",
         "start:worker": "node --env-file-if-exists=.env dist/worker/main.js",
         "docker:up": "docker compose -f docker/docker-compose.yml up -d",

@@ -35,6 +35,26 @@ pnpm check               # biome + typecheck + test
 ```
 CI chạy lint, typecheck, test và build (`.github/workflows/ci.yml`).
 
+## Tài liệu API
+Hợp đồng API nằm ở `src/schema/routes.schema.ts` (nguồn sự thật). Từ đó sinh ra file OpenAPI 3.1:
+
+```
+postman/specs/bookaria-api.openapi.json
+```
+- **Cập nhật** sau khi sửa `routes.schema.ts`: `pnpm docs:openapi` (không sửa file JSON bằng tay).
+- **Dùng thử bằng Postman:** `Import` > chọn file trên > nhập thành *Postman Collection*. Request đã trỏ sẵn
+  `http://localhost:4000/api/v1` (đổi biến `baseUrl` của collection nếu API chạy cổng khác).
+- Dùng được cả với Insomnia, Swagger UI, hoặc sinh client bằng các công cụ OpenAPI.
+- **Kiểm tra cú pháp spec:** `npx postman-cli spec lint postman/specs/bookaria-api.openapi.json --issueType syntax`.
+
+Lưu ý khi thử qua `http://localhost`:
+- Đặt `COOKIE_SECURE=false` và `COOKIE_SAMESITE=lax` trong `.env`, nếu không cookie refresh token (`Secure`) sẽ
+  không được gửi lại cho `/auth/refresh` và `/auth/logout`.
+- Link xác minh email và đặt lại mật khẩu hiện in ra log của server (mailer ghi log): sao chép phần sau `token=`
+  vào body của `/auth/verify-email` hoặc `/auth/reset-password`.
+- Sau khi `register` hoặc `login`, copy `accessToken` vào **Authorization > Bearer Token** cho các route cần
+  đăng nhập (ví dụ `/auth/resend-verification`).
+
 ## Quy ước
 - Định dạng và lint do **Biome** quản lý (`biome.json`), không dùng Prettier/ESLint.
 - Xuống dòng LF, thụt lề 4 space (`.editorconfig`, `.gitattributes`).

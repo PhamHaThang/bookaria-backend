@@ -8,7 +8,7 @@ import {
     ResetPasswordBodySchema,
     VerifyEmailBodySchema,
 } from './api/auth.schema';
-import { dataResponse } from './common.schema';
+import { dataResponse, HealthResponseSchema } from './common.schema';
 import type { ErrorCode } from './error.schema';
 
 export type Access = 'public' | 'cookie' | 'author' | 'admin';
@@ -33,6 +33,16 @@ export interface Route {
  */
 export const routes: Route[] = [
     {
+        id: 'getHealth',
+        method: 'GET',
+        path: '/health',
+        access: 'public',
+        summary: 'Kiểm tra API còn hoạt động',
+        responses: {
+            200: HealthResponseSchema,
+        },
+    },
+    {
         id: 'postAuthRegister',
         method: 'POST',
         path: '/auth/register',
@@ -43,7 +53,7 @@ export const routes: Route[] = [
         responses: {
             201: dataResponse(AuthResponseSchema),
         },
-        errors: ['EMAIL_TAKEN'],
+        errors: ['EMAIL_TAKEN', 'RATE_LIMITED'],
     },
     {
         id: 'postAuthVerifyEmail',
@@ -55,7 +65,7 @@ export const routes: Route[] = [
         responses: {
             200: dataResponse(z.object({ emailVerified: z.literal(true) })),
         },
-        errors: ['TOKEN_INVALID'],
+        errors: ['TOKEN_INVALID', 'RATE_LIMITED'],
     },
     {
         id: 'postAuthResendVerification',
@@ -66,6 +76,7 @@ export const routes: Route[] = [
         responses: {
             204: null,
         },
+        errors: ['UNAUTHENTICATED', 'RATE_LIMITED'],
     },
     {
         id: 'postAuthLogin',
@@ -78,7 +89,7 @@ export const routes: Route[] = [
         responses: {
             200: dataResponse(AuthResponseSchema),
         },
-        errors: ['INVALID_CREDENTIALS', 'ACCOUNT_LOCKED'],
+        errors: ['INVALID_CREDENTIALS', 'ACCOUNT_LOCKED', 'RATE_LIMITED'],
     },
     {
         id: 'postAuthRefresh',
@@ -90,7 +101,7 @@ export const routes: Route[] = [
         responses: {
             200: dataResponse(RefreshTokenResultSchema),
         },
-        errors: ['UNAUTHENTICATED', 'ACCOUNT_LOCKED'],
+        errors: ['UNAUTHENTICATED', 'ACCOUNT_LOCKED', 'FORBIDDEN', 'RATE_LIMITED'],
     },
     {
         id: 'postAuthLogout',
@@ -101,6 +112,7 @@ export const routes: Route[] = [
         responses: {
             204: null,
         },
+        errors: ['FORBIDDEN'],
     },
     {
         id: 'postAuthForgotPassword',
@@ -110,6 +122,7 @@ export const routes: Route[] = [
         summary: 'Gửi email đặt lại mật khẩu cho người dùng',
         body: ForgotPasswordBodySchema,
         responses: { 200: dataResponse(z.object({ sent: z.literal(true) })) },
+        errors: ['RATE_LIMITED'],
     },
     {
         id: 'postAuthResetPassword',
@@ -119,6 +132,6 @@ export const routes: Route[] = [
         summary: 'Đặt mật khẩu mới bằng mã',
         body: ResetPasswordBodySchema,
         responses: { 200: dataResponse(z.object({ reset: z.literal(true) })) },
-        errors: ['TOKEN_INVALID'],
+        errors: ['TOKEN_INVALID', 'RATE_LIMITED'],
     },
 ];
