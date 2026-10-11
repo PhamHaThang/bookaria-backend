@@ -1,3 +1,4 @@
+import { ZodError } from 'zod';
 import { type ErrorCode, HTTP_STATUS } from '../schema';
 
 export class AppError extends Error {
@@ -12,3 +13,6 @@ export class AppError extends Error {
         Error.captureStackTrace(this, this.constructor);
     }
 }
+
+export const fieldError = (path: string, message: string) =>
+    new ZodError([{ code: 'custom', path: [path], message }]);

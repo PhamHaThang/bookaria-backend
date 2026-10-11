@@ -164,6 +164,29 @@ export const authRepository = {
         );
     },
 
+    /** Đăng xuất mọi thiết bị trừ phiên đang dùng (khi đổi mật khẩu). */
+    async revokeAllAuthSessionsForUserExcept(
+        db: Queryable,
+        userId: string,
+        exceptAuthSessionId: string,
+    ): Promise<void> {
+        await db.query(
+            `UPDATE auth_sessions SET revoked_at = now()
+            WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL`,
+            [userId, exceptAuthSessionId],
+        );
+    },
+
+    /** Kiểm tra phiên còn sống không (chưa đăng xuất, chưa hết hạn)? Access token có thể sống lâu hơn phiên tới 15 phút. */
+    async isSessionActive(db: Queryable, userId: string, sessionId: string) {
+        const { rowCount } = await db.query(
+            `SELECT 1 FROM auth_sessions
+            WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL AND expires_at > now()`,
+            [sessionId, userId],
+        );
+        return rowCount === 1;
+    },
+
     // --- Auth tokens (link trong email) ---------------------------------------------------
     async insertAuthToken(
         db: Queryable,

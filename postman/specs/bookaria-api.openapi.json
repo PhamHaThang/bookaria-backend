@@ -1324,27 +1324,6 @@
                             }
                         }
                     },
-                    "404": {
-                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/ApiError"
-                                },
-                                "examples": {
-                                    "NOT_FOUND": {
-                                        "value": {
-                                            "error": {
-                                                "code": "NOT_FOUND",
-                                                "message": "Không tìm thấy nội dung được yêu cầu.",
-                                                "requestId": "req_9d5c4cac5a9d"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -1426,22 +1405,13 @@
                         }
                     },
                     "401": {
-                        "description": "`INVALID_CREDENTIALS`: Email hoặc mật khẩu không đúng.\n`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiError"
                                 },
                                 "examples": {
-                                    "INVALID_CREDENTIALS": {
-                                        "value": {
-                                            "error": {
-                                                "code": "INVALID_CREDENTIALS",
-                                                "message": "Email hoặc mật khẩu không đúng.",
-                                                "requestId": "req_9d5c4cac5a9d"
-                                            }
-                                        }
-                                    },
                                     "UNAUTHENTICATED": {
                                         "value": {
                                             "error": {
@@ -1456,6 +1426,48 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }

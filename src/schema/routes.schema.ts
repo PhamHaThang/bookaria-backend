@@ -284,7 +284,7 @@ export const routes: Route[] = [
         summary: 'Sửa tên, ảnh đại diện, đơn vị, giới thiệu',
         body: MeUpdateBodySchema,
         responses: { 200: dataResponse(MeSchema) },
-        errors: ['NOT_FOUND'],
+        errors: ['VALIDATION_ERROR', 'UNAUTHENTICATED'],
     },
     {
         id: 'putMePassword',
@@ -294,7 +294,7 @@ export const routes: Route[] = [
         summary: 'Đổi mật khẩu (hoặc đặt mật khẩu với tài khoản Google)',
         body: ChangePasswordBodySchema,
         responses: { 204: null },
-        errors: ['INVALID_CREDENTIALS'],
+        errors: ['VALIDATION_ERROR', 'UNAUTHENTICATED', 'ACCOUNT_LOCKED', 'RATE_LIMITED'],
     },
     {
         id: 'getMeNotifications',
