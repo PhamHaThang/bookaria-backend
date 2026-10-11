@@ -4,7 +4,7 @@ import { buildOpenApi } from '../schema/openapi';
 
 /**
  * Ghi tài liệu OpenAPI ra file. Logic dựng tài liệu nằm ở src/schema/openapi.ts.
- * Chạy: `pnpm docs:openapi`. Kết quả import được thẳng vào Postman.
+ * Chạy: `pnpm contract:sync`. Kết quả import được thẳng vào Postman.
  */
 const OUT = 'postman/specs/bookaria-api.openapi.json';
 

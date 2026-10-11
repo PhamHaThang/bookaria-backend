@@ -41,7 +41,7 @@ Hợp đồng API nằm ở `src/schema/routes.schema.ts` (nguồn sự thật).
 ```
 postman/specs/bookaria-api.openapi.json
 ```
-- **Cập nhật** sau khi sửa `routes.schema.ts`: `pnpm docs:openapi` (không sửa file JSON bằng tay).
+- **Cập nhật** sau khi sửa `routes.schema.ts`: `pnpm contract:sync` (không sửa file JSON bằng tay).
 - **Dùng thử bằng Postman:** `Import` > chọn file trên > nhập thành *Postman Collection*. Request đã trỏ sẵn
   `http://localhost:4000/api/v1` (đổi biến `baseUrl` của collection nếu API chạy cổng khác).
 - Dùng được cả với Insomnia, Swagger UI, hoặc sinh client bằng các công cụ OpenAPI.
