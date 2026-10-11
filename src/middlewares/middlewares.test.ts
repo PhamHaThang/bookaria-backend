@@ -114,3 +114,20 @@ describe('rateLimitMiddleware', () => {
         for (let i = 0; i < 4; i++) expect((await request(app).post('/x')).status).toBe(200);
     });
 });
+
+describe('errorMiddleware: lỗi từ body-parser', () => {
+    const app = makeApp((a) => {
+        a.post('/echo', (req, res) => {
+            res.json(req.body);
+        });
+    });
+
+    it('JSON sai cú pháp -> 400 VALIDATION_ERROR (không phải 500)', async () => {
+        const res = await request(app)
+            .post('/echo')
+            .set('Content-Type', 'application/json')
+            .send("'{email:an@example.com}");
+        expect(res.status).toBe(400);
+        expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    });
+});

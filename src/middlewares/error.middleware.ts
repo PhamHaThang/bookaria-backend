@@ -24,7 +24,10 @@ export const errorMiddleware: ErrorRequestHandler = (
         body = apiError('VALIDATION_ERROR', id, {
             details: formatZodError(err),
         });
-    } else if (isPayloadTooLarge(err)) {
+    } else if (hasBodyType(err, 'entity.parse.failed')) {
+        status = HTTP_STATUS.VALIDATION_ERROR;
+        body = apiError('VALIDATION_ERROR', id, { message: 'Body không phải JSON hợp lệ.' });
+    } else if (hasBodyType(err, 'entity.too.large')) {
         status = HTTP_STATUS.FILE_TOO_LARGE;
         body = apiError('FILE_TOO_LARGE', id);
     } else {
@@ -35,10 +38,6 @@ export const errorMiddleware: ErrorRequestHandler = (
     res.status(status).json(body);
 };
 
-/**
- * Check if the error is a payload too large error.
- */
-const isPayloadTooLarge = (err: unknown) =>
-    typeof err === 'object' &&
-    err !== null &&
-    (err as { type?: string }).type === 'entity.too.large';
+/** Lỗi do body-parser (JSON sai cú pháp, body quá lớn) mang `type` để phân biệt. */
+const hasBodyType = (err: unknown, type: string) =>
+    typeof err === 'object' && err !== null && (err as { type?: string }).type === type;
