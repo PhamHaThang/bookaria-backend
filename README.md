@@ -61,6 +61,9 @@ Lưu ý khi thử qua `http://localhost`:
 - Import tương đối, không đuôi `.js`, không `/index`.
 - Schema zod của API nằm ở `src/schema/*.schema.ts`, chỉ import `zod`; tên có hậu tố `Schema`.
 
+> Đọc [GUIDE.md](GUIDE.md) để hiểu cách viết code:
+- luồng một request, cấu trúc các lớp và cách thêm một endpoint từng bước.
+
 ## Cấu trúc
 ```
 src/
