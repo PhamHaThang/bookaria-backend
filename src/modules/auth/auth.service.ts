@@ -1,9 +1,8 @@
 import { env, logger } from '../../config';
 import { pool, withTransaction } from '../../db';
 import {
-    getMailer,
     hashPassword,
-    type Mail,
+    sendMailSafely,
     signAccessToken,
     spendPasswordCheckTime,
     verifyPassword,
@@ -229,13 +228,6 @@ export const authService = {
 };
 
 // --- Helpers ---------------------------------------------------------------------
-async function sendMailSafely(mail: Mail): Promise<void> {
-    try {
-        await getMailer().send(mail);
-    } catch (error) {
-        logger.error({ err: error, to: mail.to }, 'sending email failed');
-    }
-}
 function isUniqueViolation(err: unknown): boolean {
     return (err as { code?: string }).code === '23505';
 }

@@ -10,8 +10,13 @@ const envSchema = z
         DATABASE_SSL: z.stringbool().default(false),
         JWT_SECRET: z.string().min(32).default(DEV_JWT_SECRET),
         CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174'),
-        SMTP_URL: z.string().default('smtp://localhost:1025'),
-        MAIL_FROM: z.string().default('no-reply@bookaria.local'),
+        SMTP_URL: z
+            .string()
+            .regex(/^(smtps?:\/\/.+)?$/, {
+                error: 'SMTP_URL phải bắt đầu bằng smtp:// hoặc smtps://',
+            })
+            .default(''),
+        MAIL_FROM: z.string().min(3).default('Bookaria <no-reply@bookaria.local>'),
         RUN_WORKER_IN_PROCESS: z.stringbool().default(false),
         // Chỉ dùng cho `pnpm db:seed`.
         SEED_ADMIN_EMAIL: z.email().default('admin@gmail.com'),
@@ -30,6 +35,10 @@ const envSchema = z
     .refine((env) => env.COOKIE_SAMESITE !== 'none' || env.COOKIE_SECURE, {
         path: ['COOKIE_SECURE'],
         error: 'COOKIE_SAMESITE=none bắt buộc phải có COOKIE_SECURE=true',
+    })
+    .refine((env) => env.NODE_ENV !== 'production' || env.SMTP_URL !== '', {
+        path: ['SMTP_URL'],
+        error: 'Production cần SMTP_URL, nếu không sẽ không có email nào (xác minh, đặt lại mật khẩu) được gửi',
     })
     .refine((env) => env.NODE_ENV !== 'production' || env.JWT_SECRET !== DEV_JWT_SECRET, {
         path: ['JWT_SECRET'],
