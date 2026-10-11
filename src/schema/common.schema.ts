@@ -97,4 +97,5 @@ export const LIMITS = {
     /** Minimum and maximum password length. */
     passwordMinLength: 8,
     passwordMaxLength: 72,
+    eventsPerBatch: 50,
 } as const;

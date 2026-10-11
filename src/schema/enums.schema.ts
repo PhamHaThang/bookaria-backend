@@ -57,7 +57,7 @@ export type ReportStatus = z.infer<typeof ReportStatusSchema>;
 // Not database enums (columns are varchar), but the values are fixed in the design.
 
 /** Purpose of an upload signature */
-export const UploadPurposeSchema = z.enum(['ASSET', 'PAGE_IMAGE', 'PDF', 'AVATAR', 'MARKER_MIND']);
+export const UploadPurposeSchema = z.enum(['ASSET', 'PAGE_IMAGE', 'AVATAR', 'MARKER_MIND']);
 export type UploadPurpose = z.infer<typeof UploadPurposeSchema>;
 
 /** `notifications.type`; these are the values the backend emits. */
