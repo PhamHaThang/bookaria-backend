@@ -1,12 +1,12 @@
 import type { Request, Response } from 'express';
-import { getAuth, type ValidatedRequest } from '../../middlewares';
+import { getAuth } from '../../middlewares';
 import {
-    type ForgotPasswordBody,
-    type LoginBody,
+    ForgotPasswordBodySchema,
+    LoginBodySchema,
     RefreshTokenResultSchema,
-    type RegisterBody,
-    type ResetPasswordBody,
-    type VerifyEmailBody,
+    RegisterBodySchema,
+    ResetPasswordBodySchema,
+    VerifyEmailBodySchema,
 } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { REFRESH_TOKEN_COOKIE_NAME } from './auth.constants';
@@ -22,13 +22,15 @@ const COOKIE_CLEARING_CODES = new Set<string>([
 ]);
 
 export const authController = {
-    register: asyncHandler(async (req: ValidatedRequest<RegisterBody>, res: Response) => {
-        const data = await authService.register(req.body, { userAgent: req.get('user-agent') });
+    register: asyncHandler(async (req: Request, res: Response) => {
+        const body = RegisterBodySchema.parse(req.body);
+        const data = await authService.register(body, { userAgent: req.get('user-agent') });
         respondWithAuthResult(res, 201, data);
     }),
 
-    login: asyncHandler(async (req: ValidatedRequest<LoginBody>, res: Response) => {
-        const data = await authService.login(req.body, { userAgent: req.get('user-agent') });
+    login: asyncHandler(async (req: Request, res: Response) => {
+        const body = LoginBodySchema.parse(req.body);
+        const data = await authService.login(body, { userAgent: req.get('user-agent') });
         respondWithAuthResult(res, 200, data);
     }),
     refresh: asyncHandler(async (req: Request, res: Response) => {
@@ -54,22 +56,23 @@ export const authController = {
         clearRefreshCookie(res);
         res.status(204).end();
     }),
-    verifyEmail: asyncHandler(async (req: ValidatedRequest<VerifyEmailBody>, res: Response) => {
-        await authService.verifyEmail(req.body.token);
+    verifyEmail: asyncHandler(async (req: Request, res: Response) => {
+        const { token } = VerifyEmailBodySchema.parse(req.body);
+        await authService.verifyEmail(token);
         res.json({ data: { emailVerified: true } });
     }),
     resendVerifyEmail: asyncHandler(async (_req: Request, res: Response) => {
         await authService.resendVerifyEmail(getAuth(res).userId);
         res.status(204).end();
     }),
-    forgotPassword: asyncHandler(
-        async (req: ValidatedRequest<ForgotPasswordBody>, res: Response) => {
-            await authService.forgotPassword(req.body.email);
-            res.json({ data: { sent: true } });
-        },
-    ),
-    resetPassword: asyncHandler(async (req: ValidatedRequest<ResetPasswordBody>, res: Response) => {
-        await authService.resetPassword(req.body.token, req.body.newPassword);
+    forgotPassword: asyncHandler(async (req: Request, res: Response) => {
+        const { email } = ForgotPasswordBodySchema.parse(req.body);
+        await authService.forgotPassword(email);
+        res.json({ data: { sent: true } });
+    }),
+    resetPassword: asyncHandler(async (req: Request, res: Response) => {
+        const { token, newPassword } = ResetPasswordBodySchema.parse(req.body);
+        await authService.resetPassword(token, newPassword);
         res.json({ data: { reset: true } });
     }),
 };

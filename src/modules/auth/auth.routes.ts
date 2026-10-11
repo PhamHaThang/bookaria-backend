@@ -1,18 +1,5 @@
 import { Router } from 'express';
-import {
-    getAuth,
-    rateLimitMiddleware,
-    requireAuth,
-    requireTrustedOrigin,
-    validateMiddleware,
-} from '../../middlewares';
-import {
-    ForgotPasswordBodySchema,
-    LoginBodySchema,
-    RegisterBodySchema,
-    ResetPasswordBodySchema,
-    VerifyEmailBodySchema,
-} from '../../schema';
+import { getAuth, rateLimitMiddleware, requireAuth, requireTrustedOrigin } from '../../middlewares';
 import { HOUR, MINUTE } from './auth.constants';
 import { authController } from './auth.controller';
 
@@ -55,24 +42,10 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     });
 
     // [POST] /auth/register
-    router.post(
-        '/register',
-        registerLimit,
-        validateMiddleware({
-            body: RegisterBodySchema,
-        }),
-        authController.register,
-    );
+    router.post('/register', registerLimit, authController.register);
 
     // [POST] /auth/login
-    router.post(
-        '/login',
-        loginLimit,
-        validateMiddleware({
-            body: LoginBodySchema,
-        }),
-        authController.login,
-    );
+    router.post('/login', loginLimit, authController.login);
 
     // [POST] /auth/refresh
     router.post('/refresh', refreshLimit, requireTrustedOrigin, authController.refresh);
@@ -81,37 +54,16 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     router.post('/logout', requireTrustedOrigin, authController.logout);
 
     // [POST] /auth/verify-email
-    router.post(
-        '/verify-email',
-        tokenLimit,
-        validateMiddleware({
-            body: VerifyEmailBodySchema,
-        }),
-        authController.verifyEmail,
-    );
+    router.post('/verify-email', tokenLimit, authController.verifyEmail);
 
     // [POST] /auth/resend-verification
     router.post('/resend-verification', requireAuth, resendLimit, authController.resendVerifyEmail);
 
     // [POST] /auth/forgot-password
-    router.post(
-        '/forgot-password',
-        forgotLimit,
-        validateMiddleware({
-            body: ForgotPasswordBodySchema,
-        }),
-        authController.forgotPassword,
-    );
+    router.post('/forgot-password', forgotLimit, authController.forgotPassword);
 
     // [POST] /auth/reset-password
-    router.post(
-        '/reset-password',
-        tokenLimit,
-        validateMiddleware({
-            body: ResetPasswordBodySchema,
-        }),
-        authController.resetPassword,
-    );
+    router.post('/reset-password', tokenLimit, authController.resetPassword);
 
     return router;
 };

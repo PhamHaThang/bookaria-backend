@@ -56,7 +56,7 @@ src/
 ├─ db/                      pool, withTransaction, kiểu Queryable
 ├─ lib/                     nối ra thư viện hoặc dịch vụ ngoài: jwt, password, mailer
 ├─ utils/                   hàm thuần dùng chung: AppError, asyncHandler, response, pagination
-├─ middlewares/             auth, validate, rate limit, origin, error, request id
+├─ middlewares/             auth, rate limit, origin, error, request id
 ├─ modules/                 nghiệp vụ, mỗi tính năng một thư mục
 │  ├─ auth/                 module mẫu: đọc cái này trước
 │  └─ index.ts              createApiRouter(): gắn các module vào /api/v1
@@ -72,7 +72,7 @@ postman/specs/              OpenAPI sinh tự động (đừng sửa tay)
 
 | Lớp | Được làm | Không được làm |
 |---|---|---|
-| `*.routes.ts` | Khai báo đường dẫn, gắn middleware (rate limit, auth, validate) và controller | Chứa nghiệp vụ |
+| `*.routes.ts` | Khai báo đường dẫn, gắn middleware (rate limit, auth) và controller | Chứa nghiệp vụ |
 | `*.controller.ts` | Đọc `req`, gọi service, trả response (`ok`, `paginated`...) | Viết SQL, quyết định nghiệp vụ |
 | `*.service.ts` | Nghiệp vụ, điều phối repository, quản lý transaction, ném `AppError` | Biết về Express (`req`, `res`) |
 | `*.repository.ts` | Chỉ SQL, nhận `db` ở tham số đầu, trả về hàng dữ liệu | Quyết định nghiệp vụ, ném `AppError` |
@@ -102,7 +102,7 @@ requestId → pino-http (log, ẩn authorization/cookie) → helmet → cors
   → express.json → urlencoded → cookieParser
   │
   ▼  /api/v1  →  modules/index.ts  →  <module>.routes.ts
-[rateLimit] → [requireAuth] → [validateMiddleware] → controller
+[rateLimit] → [requireAuth] → controller (tự parse dữ liệu vào bằng schema)
   │
   ▼
 controller  →  service  →  repository  →  PostgreSQL
@@ -113,7 +113,7 @@ throw AppError / ZodError  →  errorMiddleware         (lỗi: luôn cùng mộ
 ```
 
 - Thứ tự middleware trong route quan trọng: **rate limit trước** (chặn sớm, đỡ tốn CPU bcrypt), rồi
-  xác thực, rồi validate.
+  xác thực; việc validate dữ liệu làm ngay đầu controller.
 - `asyncHandler` bọc controller để `throw` hoặc `reject` được chuyển cho `errorMiddleware`.
 - Mọi request có `requestId` (header `X-Request-Id`, có trong body lỗi): dùng nó để tra log.
 
@@ -309,27 +309,22 @@ export const bookService = {
 
 ```ts
 import type { Request, Response } from 'express';
-import { getAuth, type ValidatedRequest } from '../../middlewares';
-import type { ListBooksQuery } from '../../schema';
+import { getAuth } from '../../middlewares';
+import { ListBooksQuerySchema } from '../../schema';
 import { asyncHandler, buildPaginationMeta, paginated } from '../../utils';
 import { bookService } from './books.service';
 
 export const bookController = {
-    list: asyncHandler(
-        async (
-            req: ValidatedRequest<unknown, Request['params'], ListBooksQuery>,
-            res: Response,
-        ) => {
-            const { items, total } = await bookService.list(getAuth(res).userId, req.query);
-            paginated(res, items, buildPaginationMeta(req.query, total));
-        },
-    ),
+    list: asyncHandler(async (req: Request, res: Response) => {
+        const query = ListBooksQuerySchema.parse(req.query);
+        const { items, total } = await bookService.list(getAuth(res).userId, query);
+        paginated(res, items, buildPaginationMeta(query, total));
+    }),
 };
 ```
 
-- `ValidatedRequest<TBody, TParams, TQuery>` cho `req.body`, `req.params`, `req.query` có kiểu đúng
-  theo schema. Đây chỉ là **khai báo kiểu**: dữ liệu thật được đảm bảo bởi `validateMiddleware` ở route.
-  Hai nơi phải khớp nhau.
+- Dữ liệu vào được parse **ngay đầu controller** bằng schema (`Schema.parse(req.body)` hoặc
+  `req.query`). Sai thì `ZodError` tự thành `400 VALIDATION_ERROR`, không cần bắt.
 - `getAuth(res)` lấy người dùng hiện tại (do `requireAuth` gắn vào).
 - Controller **mỏng**: không có `if` nghiệp vụ.
 
@@ -339,18 +334,12 @@ export const bookController = {
 
 ```ts
 import { Router } from 'express';
-import { requireAuth, validateMiddleware } from '../../middlewares';
-import { ListBooksQuerySchema } from '../../schema';
+import { requireAuth } from '../../middlewares';
 import { bookController } from './books.controller';
 
 export const bookRouter = () => {
     const router = Router();
-    router.get(
-        '/',
-        requireAuth,
-        validateMiddleware({ query: ListBooksQuerySchema }),
-        bookController.list,
-    );
+    router.get('/', requireAuth, bookController.list);
     return router;
 };
 ```
@@ -464,7 +453,7 @@ Một số mã hay gặp (đầy đủ ở `src/schema/error.schema.ts`):
 
 | Mã | HTTP | Khi nào |
 |---|---|---|
-| `VALIDATION_ERROR` | 400 | Dữ liệu sai (tự động, do `validateMiddleware`) |
+| `VALIDATION_ERROR` | 400 | Dữ liệu sai (tự động, do `Schema.parse` trong controller) |
 | `UNAUTHENTICATED` | 401 | Thiếu hoặc sai access token |
 | `TOKEN_EXPIRED` | 401 | Access token hết hạn |
 | `FORBIDDEN` | 403 | Không đủ quyền |
@@ -532,18 +521,20 @@ request (xem mẫu `sendMailSafely` trong `auth.service.ts`).
 ### 6.5 Validate dữ liệu đầu vào
 
 ```ts
-validateMiddleware({ params: ..., query: ..., body: ... })
+const body = LoginBodySchema.parse(req.body);          // đầu controller
+const query = ListBooksQuerySchema.parse(req.query);
 ```
-- Hợp lệ: thay `req.params/query/body` bằng dữ liệu đã parse (ép kiểu, cắt khoảng trắng, thêm giá
-  trị mặc định, bỏ trường lạ).
-- Sai: gom lỗi của cả ba phần rồi trả `400 VALIDATION_ERROR` với `details` từng trường.
+- Hợp lệ: nhận về dữ liệu đã parse (ép kiểu, cắt khoảng trắng, thêm giá trị mặc định, bỏ trường lạ).
+  Luôn dùng giá trị trả về, **không** dùng lại `req.body` gốc.
+- Sai: `ZodError` được ném, `errorMiddleware` trả `400 VALIDATION_ERROR` với `details` từng trường.
+- Lỗi nghiệp vụ gắn vào một trường (ví dụ "mật khẩu hiện tại sai"): `throw fieldError('currentPassword', '...')`.
 - Cần quy tắc đặc biệt (ví dụ mật khẩu tính theo **byte**): viết trong schema (`.refine`), để FE
   cũng dùng được.
 
 ### 6.6 Giới hạn tần suất, email, cấu hình
 
 **Rate limit:** `rateLimitMiddleware({ windowMs, limit, enabled, skipSuccessfulRequests? })`. Đặt
-trước validate. Giới hạn theo từng địa chỉ email (chống spam thư) viết ở service và **âm thầm bỏ
+trước controller. Giới hạn theo từng địa chỉ email (chống spam thư) viết ở service và **âm thầm bỏ
 qua**, vì giới hạn công khai theo email cho phép người khác khóa bạn.
 
 **Gửi email:**
@@ -642,7 +633,6 @@ Thêm hoặc gỡ gói: `pnpm add <gói>`, `pnpm add -D <gói>`, `pnpm remove <g
 | `refresh` luôn 401 khi thử qua `http://localhost` | Cookie `Secure` không được gửi qua http: đặt `COOKIE_SECURE=false` và `COOKIE_SAMESITE=lax` trong `.env` |
 | Không thấy email xác minh | Mailer đang ghi log: tìm link trong terminal chạy `pnpm dev` |
 | `rollback` báo "function ... does not exist" | File migration đã bị sửa sau khi chạy. Xem mục 6.7 |
-| `tsc` báo `ValidatedRequest` không gán được vào `router.get` | Controller phải bọc bằng `asyncHandler(...)` (trả về `RequestHandler` thường) |
 | Lỗi 429 khi thử tay nhiều lần | Rate limit đang bật. Chờ hết cửa sổ hoặc đặt `RATE_LIMIT_ENABLED=false` ở máy dev |
 | Sau khi cài gói, CI hỏng ở bước test | Đảm bảo đã commit `pnpm-lock.yaml`; dùng `pnpm`, không `npm` |
 | `pnpm` lỗi ngoài thư mục dự án | `corepack install -g pnpm@10.34.6` (xem README) |
