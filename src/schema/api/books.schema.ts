@@ -81,6 +81,7 @@ export const CreateBookResultSchema = z.object({
         pageCount: true,
     }),
 });
+export type CreateBookResult = z.infer<typeof CreateBookResultSchema>;
 
 /** `PATCH /books/:bookId`. The slug cannot be changed. */
 export const UpdateBookBodySchema = z

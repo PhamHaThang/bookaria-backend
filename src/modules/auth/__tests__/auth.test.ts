@@ -3,7 +3,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { type Mail, setMailer } from '../../../lib';
-import { REFRESH_TOKEN_COOKIE_NAME } from '.././auth.constants';
+import { REFRESH_TOKEN_COOKIE_NAME } from '../auth.constants';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 

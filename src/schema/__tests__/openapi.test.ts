@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { HTTP_STATUS } from '.././error.schema';
-import { buildOpenApi } from '.././openapi';
-import { routes } from '.././routes.schema';
+import { HTTP_STATUS } from '../error.schema';
+import { buildOpenApi } from '../openapi';
+import { routes } from '../routes.schema';
 
 type Json = Record<string, unknown>;
 const doc = buildOpenApi() as {

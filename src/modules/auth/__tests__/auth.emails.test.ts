@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { env } from '../../../config';
-import { RESET_PASSWORD_TTL_MINUTES, VERIFY_EMAIL_TTL_HOURS } from '.././auth.constants';
+import { RESET_PASSWORD_TTL_MINUTES, VERIFY_EMAIL_TTL_HOURS } from '../auth.constants';
 import {
     escapeHtml,
     passwordChangedMail,
     resetPasswordMail,
     verifyEmailMail,
-} from '.././auth.emails';
+} from '../auth.emails';
 
 describe('escapeHtml', () => {
     it('thoát các ký tự đặc biệt của HTML', () => {

@@ -3,8 +3,8 @@ import type { PaginationMeta, PaginationQuery } from '../schema';
 /**
  * Convert a pagination query to an offset.
  */
-export function toOffset({ page, limit }: PaginationQuery): { limit: number; offset: number } {
-    return { limit, offset: (page - 1) * limit };
+export function toOffset({ page, limit }: PaginationQuery): number {
+    return (page - 1) * limit;
 }
 
 /**
