@@ -12,7 +12,7 @@ export interface Auth {
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
     const header = req.get('Authorization');
     if (!header?.startsWith('Bearer ')) {
-        throw new AppError('UNAUTHENTICATED', 'Bạn cần đăng nhập để tiếp tục');
+        throw new AppError('UNAUTHENTICATED');
     }
     const claims = verifyAccessToken(header.slice('Bearer '.length));
     res.locals.auth = {
@@ -26,7 +26,7 @@ export function requireRole(...role: UserRole[]): RequestHandler {
     return (_req: Request, res: Response, next: NextFunction) => {
         const userRole = getAuth(res).role;
         if (!role.includes(userRole)) {
-            throw new AppError('FORBIDDEN', 'Bạn không có quyền thực hiện thao tác này.');
+            throw new AppError('FORBIDDEN');
         }
         next();
     };
@@ -34,6 +34,6 @@ export function requireRole(...role: UserRole[]): RequestHandler {
 
 export function getAuth(res: Response): Auth {
     const auth = res.locals.auth as Auth | undefined;
-    if (!auth) throw new AppError('UNAUTHENTICATED', 'Bạn cần đăng nhập để tiếp tục');
+    if (!auth) throw new AppError('UNAUTHENTICATED');
     return auth;
 }

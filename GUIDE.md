@@ -439,9 +439,14 @@ Ném `AppError` với một `ErrorCode`. Mã quyết định HTTP status; thông
 ```ts
 import { AppError } from '../../utils';
 
-throw new AppError('NOT_FOUND', 'Không tìm thấy sách');
-throw new AppError('RATE_LIMITED', 'Vui lòng đợi', { retryAfterSeconds: 60 }); // details
+throw new AppError('UNAUTHENTICATED');                          // dùng thông báo mặc định
+throw new AppError('NOT_FOUND', 'Không tìm thấy sách');        // câu riêng cho tình huống này
+throw new AppError('RATE_LIMITED', undefined, { retryAfterSeconds: 60 }); // mặc định + details
 ```
+
+Chỉ truyền câu riêng khi nó thật sự cụ thể hơn câu mặc định. Lỗi dùng ở nhiều nơi và có `details`
+(khoá tài khoản...) thì đặt thành hàm dùng chung trong `utils/api-error.ts`
+(`lockedByAdminError`, `temporarilyLockedError`).
 
 Response lỗi luôn có dạng:
 

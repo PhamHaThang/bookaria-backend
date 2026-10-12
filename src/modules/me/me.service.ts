@@ -12,7 +12,7 @@ import {
     type NotificationsQuery,
     type PaginationMeta,
 } from '../../schema';
-import { AppError, fieldError } from '../../utils';
+import { AppError, fieldError, lockedByAdminError, temporarilyLockedError } from '../../utils';
 import { LOCK_MINUTES, MAX_FAILED_LOGINS } from '../auth/auth.constants';
 import { passwordChangedMail } from '../auth/auth.emails';
 import { authRepository } from '../auth/auth.repository';
@@ -22,7 +22,7 @@ import type { MeRow } from './me.types';
 export const meService = {
     async getMe(userId: string): Promise<Me> {
         const user = await meRepository.findMe(pool, userId);
-        if (!user) throw unauthenticated();
+        if (!user) throw new AppError('UNAUTHENTICATED');
         return toMe(user);
     },
     async updateMe(userId: string, body: MeUpdateBody): Promise<Me> {
@@ -38,17 +38,17 @@ export const meService = {
             );
         }
         const user = await meRepository.updateMe(pool, userId, changes);
-        if (!user) throw unauthenticated();
+        if (!user) throw new AppError('UNAUTHENTICATED');
         return toMe(user);
     },
     async changePassword(auth: Auth, body: ChangePasswordBody): Promise<void> {
         const user = await authRepository.findUserById(pool, auth.userId);
         if (!user || !(await authRepository.isSessionActive(pool, auth.userId, auth.sessionId))) {
-            throw unauthenticated();
+            throw new AppError('UNAUTHENTICATED');
         }
-        if (user.status === 'LOCKED') throw lockedByAdmin();
+        if (user.status === 'LOCKED') throw lockedByAdminError();
         if (user.locked_until && user.locked_until > new Date()) {
-            throw temporarilyLocked(user.locked_until);
+            throw temporarilyLockedError(user.locked_until);
         }
 
         // Tài khoản Google chưa có mật khẩu thì không cần mật khẩu hiện tại (đây là đặt mật khẩu lần đầu).
@@ -63,7 +63,7 @@ export const meService = {
                     MAX_FAILED_LOGINS,
                     LOCK_MINUTES,
                 );
-                if (result.locked_until) throw temporarilyLocked(result.locked_until);
+                if (result.locked_until) throw temporarilyLockedError(result.locked_until);
                 throw fieldError('currentPassword', 'Mật khẩu hiện tại không đúng.');
             }
         }
@@ -115,15 +115,6 @@ export const meService = {
     },
 };
 // --- Helpers ---------------------------------------------------------------------
-const lockedByAdmin = () =>
-    new AppError('ACCOUNT_LOCKED', 'Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên.', {
-        byAdmin: true,
-    });
-const temporarilyLocked = (until: Date) =>
-    new AppError('ACCOUNT_LOCKED', 'Tài khoản tạm khoá do nhập sai mật khẩu nhiều lần.', {
-        lockedUntil: until.toISOString(),
-    });
-const unauthenticated = () => new AppError('UNAUTHENTICATED', 'Bạn cần đăng nhập để tiếp tục.');
 
 const toMe = (u: MeRow): Me =>
     MeSchema.parse({

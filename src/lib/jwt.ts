@@ -25,8 +25,8 @@ export function verifyAccessToken(token: string): AccessTokenClaims {
         return ClaimsSchema.parse(payload);
     } catch (err) {
         if (err instanceof jwt.TokenExpiredError) {
-            throw new AppError('TOKEN_EXPIRED', 'Phiên đăng nhập đã hết hạn.');
+            throw new AppError('TOKEN_EXPIRED');
         }
-        throw new AppError('UNAUTHENTICATED', 'Bạn cần đăng nhập để tiếp tục.');
+        throw new AppError('UNAUTHENTICATED');
     }
 }

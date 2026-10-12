@@ -31,11 +31,7 @@ export function rateLimitMiddleware(options: RateLimitOptions) {
                     : Math.ceil(options.windowMs / 1000),
             );
             res.setHeader('Retry-After', String(retryAfterSeconds));
-            next(
-                new AppError('RATE_LIMITED', 'Bạn thao tác quá nhanh, vui lòng thử lại sau.', {
-                    retryAfterSeconds,
-                }),
-            );
+            next(new AppError('RATE_LIMITED', undefined, { retryAfterSeconds }));
         },
     });
 }
