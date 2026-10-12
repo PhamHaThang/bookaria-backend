@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EmailSchema, NewPasswordSchema, RegisterBodySchema } from './auth.schema';
+import { EmailSchema, NewPasswordSchema, RegisterBodySchema } from '.././auth.schema';
 
 describe('EmailSchema', () => {
     it('cắt khoảng trắng và đưa về chữ thường trước khi kiểm tra định dạng', () => {

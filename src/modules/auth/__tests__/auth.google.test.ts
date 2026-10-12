@@ -1,9 +1,9 @@
 import request from 'supertest';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { createApp } from '../../app';
-import { pool } from '../../db';
-import { createGoogleVerifier, type GoogleProfile, setGoogleVerifier } from '../../lib';
-import { REFRESH_TOKEN_COOKIE_NAME } from './auth.constants';
+import { createApp } from '../../../app';
+import { pool } from '../../../db';
+import { createGoogleVerifier, type GoogleProfile, setGoogleVerifier } from '../../../lib';
+import { REFRESH_TOKEN_COOKIE_NAME } from '.././auth.constants';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 

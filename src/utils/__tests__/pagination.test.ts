@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { PaginationQuerySchema } from '../schema';
-import { buildPaginationMeta, toOffset } from './pagination';
+import { PaginationQuerySchema } from '../../schema';
+import { buildPaginationMeta, toOffset } from '.././pagination';
 
 describe('PaginationQuerySchema', () => {
     it('ép chuỗi thành số và mặc định page=1, limit=20', () => {

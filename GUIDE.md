@@ -130,7 +130,7 @@ throw AppError / ZodError  →  errorMiddleware         (lỗi: luôn cùng mộ
 | Repository | `<module>.repository.ts` | `auth.repository.ts` |
 | Hằng số riêng của module | `<module>.constants.ts` | `auth.constants.ts` |
 | Schema | `<nhóm>.schema.ts` | `api/books.schema.ts` |
-| Test | `<tên>.test.ts` cạnh file nguồn | `auth.test.ts` |
+| Test | `<tên>.test.ts` trong thư mục `__tests__` cạnh file nguồn | `auth/__tests__/auth.test.ts` |
 
 ### Đặt tên trong code
 - Schema zod có hậu tố `Schema` (`LoginBodySchema`); kiểu suy ra **cùng tên không hậu tố**
@@ -355,13 +355,13 @@ Nếu route cần rate limit (đăng nhập, gửi email...), xem `auth.routes.t
 
 ### Bước 6. Test
 
-`src/modules/books/books.test.ts`
+`src/modules/books/__tests__/books.test.ts`
 
 ```ts
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createApp } from '../../app';
-import { pool } from '../../db';
+import { createApp } from '../../../app';
+import { pool } from '../../../db';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp();
@@ -424,7 +424,7 @@ pnpm check             # biome + typecheck + test
 | 3 | Nghiệp vụ | `modules/<m>/<m>.service.ts` |
 | 4 | HTTP | `modules/<m>/<m>.controller.ts` |
 | 5 | Route và gắn vào API | `modules/<m>/<m>.routes.ts`, `modules/index.ts` |
-| 6 | Test | `modules/<m>/<m>.test.ts` |
+| 6 | Test | `modules/<m>/__tests__/<m>.test.ts` |
 | 7 | Tài liệu, kiểm tra | `pnpm contract:sync`, `pnpm check` |
 
 ---
@@ -602,9 +602,9 @@ pnpm check           # biome + typecheck + test
 - Mỗi test tạo dữ liệu riêng (email ngẫu nhiên) nên không cần dọn.
 - Lấy link xác minh hoặc đặt lại mật khẩu: `setMailer({ async send(mail) { sent.push(mail); } })`
   rồi đọc `sent`.
-- Hàm thuần và schema: viết test đơn vị cạnh file (`pagination.test.ts`, `auth.schema.test.ts`),
+- Hàm thuần và schema: viết test đơn vị trong `__tests__` cạnh file (`utils/__tests__/pagination.test.ts`, `schema/api/__tests__/auth.schema.test.ts`),
   không cần DB.
-- Mẫu đầy đủ nhất: `src/modules/auth/auth.test.ts`.
+- Mẫu đầy đủ nhất: `src/modules/auth/__tests__/auth.test.ts`.
 
 ---
 
@@ -651,4 +651,4 @@ Thêm hoặc gỡ gói: `pnpm add <gói>`, `pnpm add -D <gói>`, `pnpm remove <g
    test). Đọc `auth.service.ts` để thấy transaction, lỗi, email, phát hiện dùng lại refresh token.
 3. `src/schema/routes.schema.ts` và `src/schema/error.schema.ts`: hợp đồng và mã lỗi.
 4. `src/middlewares/`: các bước xử lý trước controller.
-5. `src/modules/auth/auth.test.ts`: cách viết test tích hợp.
+5. `src/modules/auth/__tests__/auth.test.ts`: cách viết test tích hợp.

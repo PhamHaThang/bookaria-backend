@@ -2,7 +2,7 @@ import type { AddressInfo } from 'node:net';
 import { simpleParser } from 'mailparser';
 import { SMTPServer } from 'smtp-server';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { createSmtpMailer, logMailer, setMailer, smtpTransport } from './mailer';
+import { createSmtpMailer, logMailer, setMailer, smtpTransport } from '.././mailer';
 
 // Dựng một SMTP server thật trong tiến trình để kiểm tra thư được gửi đi đúng, không cần Docker.
 const received: string[] = [];
@@ -66,7 +66,7 @@ describe('createSmtpMailer + smtpTransport', () => {
 describe('getMailer chọn bộ gửi theo SMTP_URL', () => {
     it('không có SMTP_URL thì dùng logMailer (chỉ ghi log)', async () => {
         vi.stubEnv('SMTP_URL', '');
-        const { getMailer, logMailer: log } = await import('./mailer');
+        const { getMailer, logMailer: log } = await import('.././mailer');
         expect(getMailer()).toBe(log);
         expect(logMailer).toBeDefined();
     });
@@ -74,7 +74,7 @@ describe('getMailer chọn bộ gửi theo SMTP_URL', () => {
     it('có SMTP_URL thì thật sự gửi qua SMTP (không rơi về logMailer)', async () => {
         vi.stubEnv('SMTP_URL', url);
         vi.stubEnv('MAIL_FROM', 'Bookaria <no-reply@bookaria.test>');
-        const { getMailer, logMailer: log } = await import('./mailer');
+        const { getMailer, logMailer: log } = await import('.././mailer');
 
         const mailer = getMailer();
         expect(mailer).not.toBe(log);
@@ -87,7 +87,7 @@ describe('getMailer chọn bộ gửi theo SMTP_URL', () => {
 
     it('setMailer thay được bộ gửi, và setMailer(undefined) quay về mặc định', async () => {
         vi.stubEnv('SMTP_URL', '');
-        const { getMailer, setMailer: set, logMailer: log } = await import('./mailer');
+        const { getMailer, setMailer: set, logMailer: log } = await import('.././mailer');
         const sent: string[] = [];
         set({
             async send(mail) {

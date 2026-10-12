@@ -1,8 +1,8 @@
 import request from 'supertest';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createApp } from '../../app';
-import { pool } from '../../db';
-import { type Mail, setMailer } from '../../lib';
+import { createApp } from '../../../app';
+import { pool } from '../../../db';
+import { type Mail, setMailer } from '../../../lib';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 

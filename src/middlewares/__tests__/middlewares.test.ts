@@ -1,9 +1,9 @@
 import express from 'express';
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
-import { errorMiddleware } from './error.middleware';
-import { rateLimitMiddleware } from './rate-limit.middleware';
-import { requestIdMiddleware } from './request-id.middleware';
+import { errorMiddleware } from '.././error.middleware';
+import { rateLimitMiddleware } from '.././rate-limit.middleware';
+import { requestIdMiddleware } from '.././request-id.middleware';
 
 function makeApp(setup: (app: express.Express) => void) {
     const app = express();
