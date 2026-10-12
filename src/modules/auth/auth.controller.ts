@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { getAuth } from '../../middlewares';
 import {
     ForgotPasswordBodySchema,
+    GoogleLoginBodySchema,
     LoginBodySchema,
     RefreshTokenResultSchema,
     RegisterBodySchema,
@@ -31,6 +32,13 @@ export const authController = {
     login: asyncHandler(async (req: Request, res: Response) => {
         const body = LoginBodySchema.parse(req.body);
         const data = await authService.login(body, { userAgent: req.get('user-agent') });
+        respondWithAuthResult(res, 200, data);
+    }),
+    googleLogin: asyncHandler(async (req: Request, res: Response) => {
+        const { idToken } = GoogleLoginBodySchema.parse(req.body);
+        const data = await authService.loginWithGoogle(idToken, {
+            userAgent: req.get('user-agent'),
+        });
         respondWithAuthResult(res, 200, data);
     }),
     refresh: asyncHandler(async (req: Request, res: Response) => {

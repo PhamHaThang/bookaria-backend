@@ -31,6 +31,7 @@ const envSchema = z
         ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(900),
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
+        GOOGLE_CLIENT_ID: z.string().default(''),
     })
     .refine((env) => env.COOKIE_SAMESITE !== 'none' || env.COOKIE_SECURE, {
         path: ['COOKIE_SECURE'],

@@ -22,6 +22,14 @@ export const authRepository = {
         return rows[0] ?? null;
     },
 
+    async findUserByGoogleSub(db: Queryable, sub: string): Promise<UserRow | null> {
+        const { rows } = await db.query<UserRow>(
+            `SELECT ${USER_COLUMNS} FROM users WHERE google_sub = $1`,
+            [sub],
+        );
+        return rows[0] ?? null;
+    },
+
     async insertUser(
         db: Queryable,
         user: { email: string; passwordHash: string | null; displayName: string },
@@ -33,6 +41,39 @@ export const authRepository = {
             [user.email, user.passwordHash, user.displayName],
         );
         return rows[0] as UserRow;
+    },
+
+    /** Tạo tài khoản đăng nhập bằng Google: chưa có mật khẩu, email coi như đã xác minh. */
+    async insertGoogleUser(
+        db: Queryable,
+        user: { email: string; googleSub: string; displayName: string },
+    ): Promise<UserRow> {
+        const { rows } = await db.query<UserRow>(
+            `INSERT INTO users (email, password_hash, google_sub, display_name, email_verified_at)
+             VALUES ($1, NULL, $2, $3, now())
+             RETURNING ${USER_COLUMNS}`,
+            [user.email, user.googleSub, user.displayName],
+        );
+        return rows[0] as UserRow;
+    },
+
+    /** Gắn Google vào tài khoản có sẵn. `false` nếu tài khoản đó đã gắn với một Google khác. */
+    async linkGoogleAccount(db: Queryable, userId: string, sub: string): Promise<boolean> {
+        const { rowCount } = await db.query(
+            `UPDATE users
+                SET google_sub = $2, email_verified_at = COALESCE(email_verified_at, now())
+              WHERE id = $1 AND google_sub IS NULL`,
+            [userId, sub],
+        );
+        return rowCount === 1;
+    },
+
+    /** Bỏ mật khẩu (chỉ khi tài khoản còn cách đăng nhập khác là Google). */
+    async clearPassword(db: Queryable, userId: string): Promise<void> {
+        await db.query(
+            `UPDATE users SET password_hash = NULL WHERE id = $1 AND google_sub IS NOT NULL`,
+            [userId],
+        );
     },
 
     async recordFailedLogin(

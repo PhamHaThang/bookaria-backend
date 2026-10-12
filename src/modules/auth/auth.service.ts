@@ -1,6 +1,8 @@
 import { env, logger } from '../../config';
 import { pool, withTransaction } from '../../db';
 import {
+    type GoogleProfile,
+    getGoogleVerifier,
     hashPassword,
     sendMailSafely,
     signAccessToken,
@@ -8,7 +10,13 @@ import {
     verifyPassword,
 } from '../../lib';
 import type { AuthUser, LoginBody, RegisterBody } from '../../schema';
-import { AppError, hashToken, newToken } from '../../utils';
+import {
+    AppError,
+    hashToken,
+    lockedByAdminError,
+    newToken,
+    temporarilyLockedError,
+} from '../../utils';
 import {
     LOCK_MINUTES,
     MAX_FAILED_LOGINS,
@@ -28,7 +36,7 @@ export const authService = {
         ctx: { userAgent: string | undefined },
     ): Promise<AuthResult> {
         if (await authRepository.findUserByEmail(pool, body.email))
-            throw new AppError('EMAIL_TAKEN', 'Email đã được sử dụng');
+            throw new AppError('EMAIL_TAKEN');
 
         const passwordHash = await hashPassword(body.password);
         const verifyToken = newToken();
@@ -59,8 +67,7 @@ export const authService = {
                 return { user, session };
             }));
         } catch (error) {
-            if (isUniqueViolation(error))
-                throw new AppError('EMAIL_TAKEN', 'Email đã được sử dụng');
+            if (isUniqueViolation(error)) throw new AppError('EMAIL_TAKEN');
             throw error;
         }
 
@@ -75,14 +82,14 @@ export const authService = {
                 'VERIFY_EMAIL',
                 hashToken(token),
             );
-            if (!userId) throw tokenInvalidError();
+            if (!userId) throw new AppError('TOKEN_INVALID');
             await authRepository.updateUserEmailVerifiedAt(client, userId);
         });
     },
 
     async resendVerifyEmail(userId: string): Promise<void> {
         const user = await authRepository.findUserById(pool, userId);
-        if (!user) throw unauthenticatedError();
+        if (!user) throw new AppError('UNAUTHENTICATED');
 
         if (user.email_verified_at) return;
         const sinceLast = await authRepository.secondsSinceLastAuthToken(
@@ -113,9 +120,9 @@ export const authService = {
         const user = await authRepository.findUserByEmail(pool, body.email);
         if (!user?.password_hash) {
             await spendPasswordCheckTime(body.password);
-            throw invalidCredentialsError();
+            throw new AppError('INVALID_CREDENTIALS');
         }
-        if (user.status === 'LOCKED') throw lockedAccountError();
+        if (user.status === 'LOCKED') throw lockedByAdminError();
 
         if (user.locked_until && user.locked_until > new Date()) {
             throw temporarilyLockedError(user.locked_until);
@@ -129,35 +136,46 @@ export const authService = {
                 LOCK_MINUTES,
             );
             if (result.locked_until) throw temporarilyLockedError(result.locked_until);
-            throw invalidCredentialsError();
+            throw new AppError('INVALID_CREDENTIALS');
         }
-        await authRepository.recordSuccessfulLogin(pool, user.id);
+        return startSession(user, body.remember, ctx.userAgent);
+    },
 
-        const refreshToken = newToken();
-        const session = await authRepository.insertAuthSession(pool, {
-            userId: user.id,
-            refreshTokenHash: hashToken(refreshToken),
-            remember: body.remember,
-            userAgent: ctx.userAgent,
-            ttlSeconds: env.REFRESH_TOKEN_TTL_SECONDS,
-        });
-        return toAuthResponse(user, session, refreshToken);
+    /** Đăng nhập bằng Google; chưa có tài khoản thì tạo mới, trùng email thì gắn vào tài khoản đó. */
+    async loginWithGoogle(
+        idToken: string,
+        ctx: { userAgent: string | undefined },
+    ): Promise<AuthResult> {
+        const verifier = getGoogleVerifier();
+        if (!verifier) {
+            throw new AppError('INTERNAL_ERROR', 'Đăng nhập bằng Google chưa được cấu hình.');
+        }
+        const profile = await verifier.verify(idToken);
+        // Email chưa được Google xác nhận thì không được tin, nếu không sẽ chiếm được tài khoản người khác.
+        if (!profile?.emailVerified) {
+            throw new AppError('INVALID_CREDENTIALS', 'Không xác thực được tài khoản Google.');
+        }
+        const user = await findOrCreateGoogleUser(profile);
+        if (user.status === 'LOCKED') throw lockedByAdminError();
+        // Đăng nhập Google là đăng nhập "nhớ phiên" như các ứng dụng web thông thường.
+        return startSession(user, true, ctx.userAgent);
     },
 
     async refreshToken(refreshToken: string | undefined): Promise<AuthResult> {
-        if (!refreshToken) throw unauthenticatedError();
+        if (!refreshToken) throw new AppError('UNAUTHENTICATED');
         const refreshTokenHash = hashToken(refreshToken);
         const session = await authRepository.findAuthSessionByRefreshTokenHash(
             pool,
             refreshTokenHash,
         );
         if (session) {
-            if (session.revoked_at || session.expires_at < new Date()) throw unauthenticatedError();
+            if (session.revoked_at || session.expires_at < new Date())
+                throw new AppError('UNAUTHENTICATED');
             const user = await authRepository.findUserById(pool, session.user_id);
-            if (!user) throw unauthenticatedError();
+            if (!user) throw new AppError('UNAUTHENTICATED');
             if (user.status === 'LOCKED') {
                 await authRepository.revokeAuthSession(pool, session.id);
-                throw lockedAccountError();
+                throw lockedByAdminError();
             }
 
             const newRefreshToken = newToken();
@@ -183,7 +201,7 @@ export const authService = {
             const sinceLastUsed = Date.now() - (replacedSession.last_used_at?.getTime() ?? 0);
             if (sinceLastUsed < REFRESH_GRACE_SECONDS * 1000) {
                 const user = await authRepository.findUserById(pool, replacedSession.user_id);
-                if (!user) throw unauthenticatedError();
+                if (!user) throw new AppError('UNAUTHENTICATED');
                 return toAuthResponse(user, replacedSession);
             }
             await authRepository.revokeAuthSession(pool, replacedSession.id);
@@ -192,7 +210,7 @@ export const authService = {
                 'refresh token reuse: session revoked',
             );
         }
-        throw unauthenticatedError();
+        throw new AppError('UNAUTHENTICATED');
     },
     async logout(refreshToken: string | undefined): Promise<void> {
         if (!refreshToken) return;
@@ -210,7 +228,7 @@ export const authService = {
     async resetPassword(token: string, newPassword: string): Promise<void> {
         const tokenHash = hashToken(token);
         if (!(await authRepository.isAuthTokenValid(pool, 'RESET_PASSWORD', tokenHash))) {
-            throw tokenInvalidError();
+            throw new AppError('TOKEN_INVALID');
         }
         const passwordHash = await hashPassword(newPassword);
         await withTransaction(async (client) => {
@@ -219,7 +237,7 @@ export const authService = {
                 'RESET_PASSWORD',
                 tokenHash,
             );
-            if (!userId) throw tokenInvalidError();
+            if (!userId) throw new AppError('TOKEN_INVALID');
             await authRepository.updateUserPassword(client, userId, passwordHash);
             await authRepository.revokeAllAuthSessionsForUser(client, userId);
             await authRepository.cancelUnusedAuthTokens(client, userId, 'RESET_PASSWORD');
@@ -230,6 +248,69 @@ export const authService = {
 // --- Helpers ---------------------------------------------------------------------
 function isUniqueViolation(err: unknown): boolean {
     return (err as { code?: string }).code === '23505';
+}
+
+/** Ghi nhận đăng nhập thành công và tạo phiên mới (dùng chung cho mật khẩu và Google). */
+async function startSession(
+    user: UserRow,
+    remember: boolean,
+    userAgent: string | undefined,
+): Promise<AuthResult> {
+    await authRepository.recordSuccessfulLogin(pool, user.id);
+    const refreshToken = newToken();
+    const session = await authRepository.insertAuthSession(pool, {
+        userId: user.id,
+        refreshTokenHash: hashToken(refreshToken),
+        remember,
+        userAgent,
+        ttlSeconds: env.REFRESH_TOKEN_TTL_SECONDS,
+    });
+    return toAuthResponse(user, session, refreshToken);
+}
+
+async function findOrCreateGoogleUser(profile: GoogleProfile, canRetry = true): Promise<UserRow> {
+    const bySub = await authRepository.findUserByGoogleSub(pool, profile.sub);
+    if (bySub) return bySub;
+
+    const byEmail = await authRepository.findUserByEmail(pool, profile.email);
+    if (byEmail) return linkGoogleToUser(byEmail, profile.sub);
+
+    try {
+        return await authRepository.insertGoogleUser(pool, {
+            email: profile.email,
+            googleSub: profile.sub,
+            displayName: (profile.name ?? profile.email.split('@')[0] ?? profile.email).slice(
+                0,
+                100,
+            ),
+        });
+    } catch (error) {
+        // Hai yêu cầu cùng lúc cho một người: yêu cầu kia đã tạo xong, tra lại là thấy.
+        if (canRetry && isUniqueViolation(error)) return findOrCreateGoogleUser(profile, false);
+        throw error;
+    }
+}
+
+async function linkGoogleToUser(user: UserRow, sub: string): Promise<UserRow> {
+    const linked = await withTransaction(async (client) => {
+        if (!(await authRepository.linkGoogleAccount(client, user.id, sub))) return false;
+        if (!user.email_verified_at) {
+            await authRepository.clearPassword(client, user.id);
+            await authRepository.revokeAllAuthSessionsForUser(client, user.id);
+            await authRepository.cancelUnusedAuthTokens(client, user.id, 'RESET_PASSWORD');
+            await authRepository.cancelUnusedAuthTokens(client, user.id, 'VERIFY_EMAIL');
+        }
+        return true;
+    });
+    if (!linked) {
+        throw new AppError(
+            'INVALID_CREDENTIALS',
+            'Email này đã gắn với một tài khoản Google khác.',
+        );
+    }
+    const fresh = await authRepository.findUserById(pool, user.id);
+    if (!fresh) throw new AppError('UNAUTHENTICATED');
+    return fresh;
 }
 
 function toAuthResponse(user: UserRow, session: AuthSessionRow, refreshToken?: string): AuthResult {
@@ -252,22 +333,6 @@ function toAuthUser(user: UserRow): AuthUser {
     };
 }
 
-function unauthenticatedError(): AppError {
-    return new AppError('UNAUTHENTICATED', 'Bạn cần đăng nhập để tiếp tục');
-}
-function tokenInvalidError(): AppError {
-    return new AppError('TOKEN_INVALID', 'Liên kết không đúng, đã hết hạn hoặc đã được dùng.');
-}
-function invalidCredentialsError(): AppError {
-    return new AppError('INVALID_CREDENTIALS', 'Email hoặc mật khẩu không đúng.');
-}
-function temporarilyLockedError(until: Date): AppError {
-    return new AppError(
-        'ACCOUNT_LOCKED',
-        'Tài khoản tạm thời bị khóa do đăng nhập sai nhiều lần. Vui lòng thử lại sau.',
-        { lockedUntil: until.toISOString() },
-    );
-}
 async function sendResetPasswordMail(email: string): Promise<void> {
     const user = await authRepository.findUserByEmail(pool, email);
     if (!user) return;
@@ -285,9 +350,4 @@ async function sendResetPasswordMail(email: string): Promise<void> {
         });
     });
     await sendMailSafely(resetPasswordMail(user.email, user.display_name, token));
-}
-function lockedAccountError(): AppError {
-    return new AppError('ACCOUNT_LOCKED', 'Tài khoản đã bị khoá, vui lòng liên hệ quản trị viên.', {
-        byAdmin: true,
-    });
 }

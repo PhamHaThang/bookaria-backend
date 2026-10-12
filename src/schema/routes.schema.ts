@@ -266,7 +266,7 @@ export const routes: Route[] = [
         summary: 'Đăng nhập hoặc đăng ký bằng Google ID token',
         body: GoogleLoginBodySchema,
         responses: { 200: dataResponse(AuthResponseSchema) },
-        errors: ['INVALID_CREDENTIALS', 'ACCOUNT_LOCKED'],
+        errors: ['VALIDATION_ERROR', 'INVALID_CREDENTIALS', 'ACCOUNT_LOCKED', 'RATE_LIMITED'],
     },
     {
         id: 'getMe',

@@ -47,6 +47,9 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     // [POST] /auth/login
     router.post('/login', loginLimit, authController.login);
 
+    // [POST] /auth/google
+    router.post('/google', loginLimit, authController.googleLogin);
+
     // [POST] /auth/refresh
     router.post('/refresh', refreshLimit, requireTrustedOrigin, authController.refresh);
 

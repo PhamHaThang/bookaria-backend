@@ -5,6 +5,7 @@ export default defineConfig({
         env: {
             NODE_ENV: 'test',
             RATE_LIMIT_ENABLED: 'false',
+            GOOGLE_CLIENT_ID: '',
             BCRYPT_ROUNDS: '4',
             COOKIE_SECURE: 'false',
             COOKIE_SAMESITE: 'lax',
