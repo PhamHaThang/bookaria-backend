@@ -50,7 +50,10 @@ export const adminService = {
                 });
                 await adminRepository.insertAuditLog(db, actor.userId, 'CREATE_USER', userId, {
                     email: body.email,
+                    displayName: body.displayName,
                     role: body.role,
+                    status: 'ACTIVE',
+                    storageQuotaBytes: body.storageQuotaBytes,
                 });
                 return userId;
             });
@@ -98,7 +101,10 @@ export const adminService = {
                     throw new AppError('SELF_ACTION');
                 }
 
-                const updated = await adminRepository.updateUser(db, userId, body);
+                const updated =
+                    statusChanged || roleChanged || quotaChanged
+                        ? await adminRepository.updateUser(db, userId, body)
+                        : current;
                 const reason = body.reason ?? null;
 
                 if (statusChanged && body.status === 'LOCKED') {
@@ -145,6 +151,7 @@ export const adminService = {
                     await adminRepository.insertAuditLog(db, actor.userId, 'SET_QUOTA', userId, {
                         from: Number(current.storage_quota_bytes),
                         to: Number(updated.storage_quota_bytes),
+                        reason,
                     });
                 }
 

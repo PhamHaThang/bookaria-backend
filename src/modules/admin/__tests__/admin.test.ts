@@ -74,14 +74,25 @@ suite('quản lý người dùng của admin', () => {
         const accessToken = await login(email);
         expect(accessToken).toBeTruthy();
 
-        const audit = await pool.query<{ action: string; target_id: string }>(
-            `SELECT action, target_id FROM audit_logs
+        const audit = await pool.query<{
+            action: string;
+            target_id: string;
+            detail: Record<string, unknown>;
+        }>(
+            `SELECT action, target_id, detail FROM audit_logs
              WHERE actor_id = $1 AND action = 'CREATE_USER' ORDER BY id DESC LIMIT 1`,
             [admin.userId],
         );
         expect(audit.rows[0]).toEqual({
             action: 'CREATE_USER',
             target_id: created.body.data.id,
+            detail: {
+                email,
+                displayName: 'Người được tạo',
+                role: 'AUTHOR',
+                status: 'ACTIVE',
+                storageQuotaBytes: 500 * 1024 * 1024,
+            },
         });
 
         const duplicate = await request(app)
@@ -202,13 +213,27 @@ suite('quản lý người dùng của admin', () => {
             visibility_before_lock: null,
         });
 
-        const effects = await pool.query<{ notifications: number; audits: number }>(
+        const effects = await pool.query<{ notifications: number }>(
             `SELECT
-                (SELECT count(*)::int FROM notifications WHERE user_id = $1) AS notifications,
-                (SELECT count(*)::int FROM audit_logs WHERE actor_id = $2 AND target_id = $1) AS audits`,
-            [author.userId, admin.userId],
+                (SELECT count(*)::int FROM notifications WHERE user_id = $1) AS notifications`,
+            [author.userId],
         );
-        expect(effects.rows[0]).toEqual({ notifications: 2, audits: 2 });
+        expect(effects.rows[0]).toEqual({ notifications: 2 });
+        const audits = await pool.query<{ action: string; detail: Record<string, unknown> }>(
+            `SELECT action, detail FROM audit_logs
+             WHERE actor_id = $1 AND target_id = $2 ORDER BY id`,
+            [admin.userId, author.userId],
+        );
+        expect(audits.rows).toEqual([
+            {
+                action: 'LOCK_USER',
+                detail: { from: 'ACTIVE', to: 'LOCKED', reason: 'Vi phạm điều khoản' },
+            },
+            {
+                action: 'UNLOCK_USER',
+                detail: { from: 'LOCKED', to: 'ACTIVE', reason: 'Đã xử lý' },
+            },
+        ]);
     });
 
     it('hạ quyền có hiệu lực ngay và thay đổi quota được ghi audit', async () => {
@@ -226,15 +251,56 @@ suite('quản lý người dùng của admin', () => {
             storageQuotaBytes: quota,
         });
 
-        const state = await pool.query<{ active_sessions: number; audits: number }>(
+        const state = await pool.query<{ active_sessions: number }>(
             `SELECT
                 (SELECT count(*)::int FROM auth_sessions
-                 WHERE user_id = $1 AND revoked_at IS NULL) AS active_sessions,
-                (SELECT count(*)::int FROM audit_logs
-                 WHERE actor_id = $2 AND target_id = $1) AS audits`,
-            [target.userId, actor.userId],
+                 WHERE user_id = $1 AND revoked_at IS NULL) AS active_sessions`,
+            [target.userId],
         );
-        expect(state.rows[0]).toEqual({ active_sessions: 0, audits: 2 });
+        expect(state.rows[0]).toEqual({ active_sessions: 0 });
+        const audits = await pool.query<{ action: string; detail: Record<string, unknown> }>(
+            `SELECT action, detail FROM audit_logs
+             WHERE actor_id = $1 AND target_id = $2 ORDER BY id`,
+            [actor.userId, target.userId],
+        );
+        expect(audits.rows).toEqual([
+            {
+                action: 'CHANGE_ROLE',
+                detail: { from: 'ADMIN', to: 'AUTHOR', reason: 'Điều chỉnh quyền' },
+            },
+            {
+                action: 'SET_QUOTA',
+                detail: {
+                    from: 500 * 1024 * 1024,
+                    to: quota,
+                    reason: 'Điều chỉnh quyền',
+                },
+            },
+        ]);
+    });
+
+    it('không cập nhật hoặc ghi audit khi giá trị không đổi', async () => {
+        const admin = await createAdmin();
+        const author = await register('NoChange');
+        const before = await pool.query<{ updated_at: Date }>(
+            `SELECT updated_at FROM users WHERE id = $1`,
+            [author.userId],
+        );
+
+        const response = await request(app)
+            .patch(`/api/v1/admin/users/${author.userId}`)
+            .set(bearer(admin.token))
+            .send({ status: 'ACTIVE', reason: 'Không đổi' });
+        expect(response.status).toBe(200);
+
+        const after = await pool.query<{ updated_at: Date; audits: number }>(
+            `SELECT updated_at,
+                (SELECT count(*)::int FROM audit_logs
+                 WHERE actor_id = $2 AND target_id = $1) AS audits
+             FROM users WHERE id = $1`,
+            [author.userId, admin.userId],
+        );
+        expect(after.rows[0]).toEqual({ updated_at: before.rows[0]?.updated_at, audits: 0 });
     });
 
     it('không cho admin tự khóa hoặc tự hạ quyền', async () => {
