@@ -4,8 +4,10 @@ import {
     HttpUrlSchema,
     IdSchema,
     IsoDateTimeSchema,
+    LIMITS,
     PaginationQuerySchema,
     shortText,
+    sortQuery,
 } from '../common.schema';
 import {
     AdminUserSchema,
@@ -26,6 +28,7 @@ import {
     UserStatusSchema,
 } from '../enums.schema';
 import { MarkerScoreSchema } from '../marker.schema';
+import { EmailSchema, NewPasswordSchema } from './auth.schema';
 
 // --- Dashboard -----------------------------------------------------------------------------------
 export const AdminDashboardSchema = z.object({
@@ -42,10 +45,25 @@ export const AdminUsersQuerySchema = PaginationQuerySchema.extend({
     q: z.string().trim().max(100).optional(),
     role: UserRoleSchema.optional(),
     status: UserStatusSchema.optional(),
+    sort: sortQuery(['displayName', 'email', 'createdAt', 'updatedAt', 'storageUsedBytes']).default(
+        '-createdAt',
+    ),
 });
+export type AdminUsersQuery = z.infer<typeof AdminUsersQuerySchema>;
+
+export const AdminCreateUserBodySchema = z.object({
+    email: EmailSchema,
+    password: NewPasswordSchema,
+    displayName: shortText(100),
+    role: UserRoleSchema.default('AUTHOR'),
+    storageQuotaBytes: z.int().positive().default(LIMITS.defaultQuotaBytes),
+});
+export type AdminCreateUserBody = z.infer<typeof AdminCreateUserBodySchema>;
+
 export const AdminUserDetailsSchema = AdminUserSchema.extend({
     books: z.array(BookSummarySchema),
 });
+export type AdminUserDetails = z.infer<typeof AdminUserDetailsSchema>;
 
 /**
  * `PATCH /admin/users/:userId`: all fields optional, but `reason` is required when changing
@@ -78,6 +96,7 @@ export const AdminUpdateUserResultSchema = z.object({
         storageQuotaBytes: BytesSchema,
     }),
 });
+export type AdminUpdateUserResult = z.infer<typeof AdminUpdateUserResultSchema>;
 // --- Moderation -------------------------------------------------------------------
 
 export const AdminBooksQuerySchema = PaginationQuerySchema.extend({

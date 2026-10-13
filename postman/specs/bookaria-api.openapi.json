@@ -10146,6 +10146,27 @@
                             "type": "string",
                             "enum": ["ACTIVE", "LOCKED"]
                         }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "default": "-createdAt",
+                            "type": "string",
+                            "enum": [
+                                "displayName",
+                                "-displayName",
+                                "email",
+                                "-email",
+                                "createdAt",
+                                "-createdAt",
+                                "updatedAt",
+                                "-updatedAt",
+                                "storageUsedBytes",
+                                "-storageUsedBytes"
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -10290,6 +10311,186 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "operationId": "postAdminUsers",
+                "tags": ["admin"],
+                "summary": "Tạo tài khoản người dùng bằng mật khẩu ban đầu",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "minLength": 8
+                                    },
+                                    "displayName": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    },
+                                    "role": {
+                                        "default": "AUTHOR",
+                                        "type": "string",
+                                        "enum": ["AUTHOR", "ADMIN"]
+                                    },
+                                    "storageQuotaBytes": {
+                                        "default": 524288000,
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": true,
+                                        "maximum": 9007199254740991
+                                    }
+                                },
+                                "required": ["email", "password", "displayName"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Đã tạo",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AdminUser"
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`EMAIL_TAKEN`: Email này đã được đăng ký.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_TAKEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_TAKEN",
+                                                "message": "Email này đã được đăng ký.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/admin/users/{userId}": {
@@ -10393,6 +10594,11 @@
                                                     "format": "date-time",
                                                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                                                 },
+                                                "updatedAt": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                },
                                                 "books": {
                                                     "type": "array",
                                                     "items": {
@@ -10414,6 +10620,7 @@
                                                 "status",
                                                 "bookCount",
                                                 "lastLoginAt",
+                                                "updatedAt",
                                                 "books"
                                             ],
                                             "additionalProperties": false
@@ -14368,6 +14575,7 @@
                         "schema": {
                             "type": "string",
                             "enum": [
+                                "CREATE_USER",
                                 "LOCK_USER",
                                 "UNLOCK_USER",
                                 "CHANGE_ROLE",
@@ -17358,6 +17566,11 @@
                         "type": "string",
                         "format": "date-time",
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                 },
                 "required": [
@@ -17373,7 +17586,8 @@
                     "createdAt",
                     "status",
                     "bookCount",
-                    "lastLoginAt"
+                    "lastLoginAt",
+                    "updatedAt"
                 ],
                 "additionalProperties": false
             },
@@ -17468,6 +17682,7 @@
                     "action": {
                         "type": "string",
                         "enum": [
+                            "CREATE_USER",
                             "LOCK_USER",
                             "UNLOCK_USER",
                             "CHANGE_ROLE",

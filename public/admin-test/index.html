@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Bookaria Admin API Test</title>
+        <link rel="stylesheet" href="./styles.css" />
+        <script src="./app.js" defer></script>
+    </head>
+    <body>
+        <main class="shell">
+            <header class="page-header">
+                <div>
+                    <p class="eyebrow">Bookaria</p>
+                    <h1>Admin API Test</h1>
+                    <p class="muted">Trang nội bộ để thử đăng nhập và API quản lý người dùng.</p>
+                </div>
+                <button id="logout-button" class="secondary hidden" type="button">Đăng xuất</button>
+            </header>
+
+            <p id="message" class="message hidden" role="status"></p>
+
+            <section id="login-section" class="card narrow">
+                <h2>Đăng nhập quản trị</h2>
+                <form id="login-form" class="form-grid">
+                    <label>
+                        Email
+                        <input name="email" type="email" value="admin@gmail.com" required />
+                    </label>
+                    <label>
+                        Mật khẩu
+                        <input name="password" type="password" required />
+                    </label>
+                    <label class="check-row">
+                        <input name="remember" type="checkbox" />
+                        Ghi nhớ phiên refresh
+                    </label>
+                    <button type="submit">Đăng nhập</button>
+                </form>
+                <p class="hint">Seed dev mặc định dùng mật khẩu <code>admin123</code>.</p>
+            </section>
+
+            <section id="app-section" class="hidden">
+                <div class="card">
+                    <div class="section-heading">
+                        <h2>Người dùng</h2>
+                        <button id="open-create-user" type="button">Thêm người dùng</button>
+                    </div>
+                    <form id="filters-form" class="filters">
+                        <label>
+                            Tìm kiếm
+                            <input name="q" type="search" placeholder="Email hoặc tên" />
+                        </label>
+                        <label>
+                            Vai trò
+                            <select name="role">
+                                <option value="">Tất cả</option>
+                                <option value="AUTHOR">AUTHOR</option>
+                                <option value="ADMIN">ADMIN</option>
+                            </select>
+                        </label>
+                        <label>
+                            Trạng thái
+                            <select name="status">
+                                <option value="">Tất cả</option>
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="LOCKED">LOCKED</option>
+                            </select>
+                        </label>
+                        <label>
+                            Sắp xếp
+                            <select name="sort">
+                                <option value="-createdAt">Ngày tạo: mới nhất</option>
+                                <option value="createdAt">Ngày tạo: cũ nhất</option>
+                                <option value="-updatedAt">Cập nhật: mới nhất</option>
+                                <option value="updatedAt">Cập nhật: cũ nhất</option>
+                                <option value="displayName">Tên: A–Z</option>
+                                <option value="-displayName">Tên: Z–A</option>
+                                <option value="email">Email: A–Z</option>
+                                <option value="-email">Email: Z–A</option>
+                                <option value="-storageUsedBytes">Dung lượng: cao nhất</option>
+                                <option value="storageUsedBytes">Dung lượng: thấp nhất</option>
+                            </select>
+                        </label>
+                        <button type="submit">Lọc</button>
+                    </form>
+                </div>
+
+                <div class="card table-card">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Người dùng</th>
+                                    <th>Vai trò</th>
+                                    <th>Trạng thái</th>
+                                    <th>Sách</th>
+                                    <th>Dung lượng</th>
+                                    <th>Cập nhật</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination">
+                        <button id="previous-page" class="secondary" type="button">Trang trước</button>
+                        <span id="page-label"></span>
+                        <button id="next-page" class="secondary" type="button">Trang sau</button>
+                    </div>
+                </div>
+
+                <section id="detail-card" class="card hidden" aria-live="polite">
+                    <div class="section-heading">
+                        <h2>Chi tiết người dùng</h2>
+                        <button id="close-detail" class="secondary" type="button">Đóng</button>
+                    </div>
+                    <dl id="user-detail" class="details"></dl>
+                    <h3>Sách</h3>
+                    <ul id="book-list" class="book-list"></ul>
+                </section>
+            </section>
+        </main>
+
+        <dialog id="create-user-dialog">
+            <form id="create-user-form" class="form-grid">
+                <div class="section-heading">
+                    <h2>Thêm người dùng</h2>
+                    <button
+                        id="close-create-user"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Đóng"
+                    >
+                        ×
+                    </button>
+                </div>
+                <label>
+                    Họ tên
+                    <input name="displayName" maxlength="100" required />
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" required />
+                </label>
+                <label>
+                    Mật khẩu ban đầu
+                    <input name="password" type="password" minlength="8" maxlength="72" required />
+                </label>
+                <button type="submit">Tạo người dùng</button>
+            </form>
+        </dialog>
+
+        <dialog id="edit-dialog">
+            <form id="edit-form" class="form-grid">
+                <div class="section-heading">
+                    <h2>Cập nhật người dùng</h2>
+                    <button id="close-edit" class="icon-button" type="button" aria-label="Đóng">×</button>
+                </div>
+                <p id="edit-user-label" class="muted"></p>
+                <label>
+                    Vai trò
+                    <select name="role">
+                        <option value="AUTHOR">AUTHOR</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </label>
+                <label>
+                    Trạng thái
+                    <select name="status">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="LOCKED">LOCKED</option>
+                    </select>
+                </label>
+                <label>
+                    Hạn mức (MB)
+                    <input name="quotaMb" type="number" min="1" step="1" required />
+                </label>
+                <label>
+                    Lý do đổi vai trò/trạng thái
+                    <textarea name="reason" maxlength="500" rows="3"></textarea>
+                </label>
+                <button type="submit">Lưu thay đổi</button>
+            </form>
+        </dialog>
+    </body>
+</html>

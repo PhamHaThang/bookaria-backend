@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { adminRouter } from './admin/admin.routes';
 import { authRouter } from './auth/auth.routes';
 import { bookRouter } from './books/books.routes';
 import { healthRouter } from './health/health.routes';
@@ -14,5 +15,6 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use('/auth', authRouter({ rateLimit: options.rateLimit }));
     router.use('/me', meRouter({ rateLimit: options.rateLimit }));
     router.use('/books', bookRouter());
+    router.use('/admin', adminRouter());
     return router;
 }

@@ -40,6 +40,10 @@ export function createApp(options: AppOptions = {}) {
     app.use(express.urlencoded({ extended: true }));
     app.use(cookieParser());
 
+    if (env.NODE_ENV !== 'production') {
+        app.use('/admin-test', express.static('public/admin-test'));
+    }
+
     app.use('/api/v1', createApiRouter({ rateLimit: options.rateLimit ?? env.RATE_LIMIT_ENABLED }));
 
     app.use(notFoundMiddleware);
