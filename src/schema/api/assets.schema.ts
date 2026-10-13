@@ -128,6 +128,7 @@ export const CompleteAssetBodySchema = z.object({
     name: shortText(150).optional(),
     tags: z.array(shortText(30)).max(20).default([]),
 });
+export type CompleteAssetBody = z.infer<typeof CompleteAssetBodySchema>;
 
 /** 202: a model, audio or video file still needs processing. */
 export const CompleteAssetProcessingSchema = z.object({
@@ -162,5 +163,5 @@ export const UpdateAssetBodySchema = z
     .refine((b) => Object.values(b).some((v) => v !== undefined), {
         error: 'Cần gửi ít nhất một trường để sửa',
     });
-
+export type UpdateAssetBody = z.infer<typeof UpdateAssetBodySchema>;
 export const AssetCategoryListSchema = z.array(AssetCategorySchema);
