@@ -1,17 +1,15 @@
-import type { Queryable } from '../../db';
+import { buildOrderBy, escapeLike, type Queryable } from '../../db';
 import type { BookDetailRow, BookRow, EditableBook } from './books.types';
 
-const SUMMARY_COLUMNS = `b.id, b.title, b.cover_asset_id, b.status, b.visibility,
-(b.taken_down_at IS NOT NULL) AS taken_down,
-(SELECT count(*)::int FROM pages p WHERE p.book_id = b.id) AS page_count,
-b.updated_at, b.deleted_at`;
+const SUMMARY_COLUMNS = `b.id, b.title, b.cover_asset_id, b.status, b.visibility, ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type, (b.taken_down_at IS NOT NULL) AS taken_down, (SELECT count(*)::int FROM pages p WHERE p.book_id = b.id) AS page_count, b.updated_at, b.deleted_at`;
+
+const COVER_JOIN = `LEFT JOIN assets ca ON ca.id = b.cover_asset_id AND ca.deleted_at IS NULL`;
 
 const SORT_COLUMNS = {
     updatedAt: 'b.updated_at',
     createdAt: 'b.created_at',
     title: 'b.title',
 } as const;
-type SortColumn = keyof typeof SORT_COLUMNS;
 
 export const booksRepository = {
     async getBooks(
@@ -37,10 +35,11 @@ export const booksRepository = {
             whereClauses.push(`b.status = $${params.length}`);
         }
         const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
-        const orderBySql = orderBy(sort);
+        const orderBySql = buildOrderBy(sort, SORT_COLUMNS);
         const sql = `
             SELECT ${SUMMARY_COLUMNS}
             FROM books b
+            ${COVER_JOIN}
             ${whereSql}
             ORDER BY ${orderBySql}
             LIMIT $${params.length + 1} OFFSET $${params.length + 2}
@@ -65,13 +64,14 @@ export const booksRepository = {
             `
             SELECT ${SUMMARY_COLUMNS}
             FROM books b
+            ${COVER_JOIN}
             WHERE ${clause}
             ORDER BY b.deleted_at DESC, b.id LIMIT $3 OFFSET $4
         `,
             [ownerId, trashDays, limit, offset],
         );
         const count = await db.query<{ total: number }>(
-            `SELECT count(*)::int AS total FROM books b WHERE ${clause}`,
+            `SELECT count(*)::int AS total FROM books b ${COVER_JOIN} WHERE ${clause}`,
             [ownerId, trashDays],
         );
         return { rows, total: count.rows[0]?.total ?? 0 };
@@ -84,6 +84,7 @@ export const booksRepository = {
     ): Promise<BookRow | undefined> {
         const { rows } = await db.query<BookRow>(
             `SELECT ${SUMMARY_COLUMNS} FROM books b
+            ${COVER_JOIN}
             WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL`,
             [bookId, ownerId],
         );
@@ -98,6 +99,7 @@ export const booksRepository = {
             `SELECT ${SUMMARY_COLUMNS}, b.description, b.age_min, b.age_max, b.language, b.topic, b.page_format, b.page_aspect, b.slug, v.version_no, v.published_at AS version_published_at
             FROM books b
             LEFT JOIN book_versions v ON v.id = b.current_version_id
+            ${COVER_JOIN}
             WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL`,
             [bookId, ownerId],
         );
@@ -188,21 +190,3 @@ export const booksRepository = {
         return res.rowCount === 1;
     },
 };
-// --- Helpers ---------------------------------------------------------------------
-/**
- * Converts a sort string to a SQL ORDER BY clause.
- * `-updaded_at` => `b.updated_at DESC`
- * `title` => `b.title ASC`
- */
-function orderBy(sort: string): string {
-    const desc = sort.startsWith('-');
-    const key = (desc ? sort.slice(1) : sort) as SortColumn;
-    return `${SORT_COLUMNS[key]} ${desc ? 'DESC' : 'ASC'}`;
-}
-
-/**
- *  Escapes special characters in a string for use in a SQL LIKE clause.
- */
-function escapeLike(text: string): string {
-    return text.replace(/[\\%_]/g, (c) => `\\${c}`);
-}

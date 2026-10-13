@@ -7,6 +7,8 @@ export interface BookRow {
     status: BookStatus;
     visibility: BookVisibility;
     taken_down: boolean;
+    cover_public_id: string | null;
+    cover_resource_type: 'image' | 'video' | 'raw' | null;
     page_count: number;
     updated_at: Date;
     deleted_at: Date | null;

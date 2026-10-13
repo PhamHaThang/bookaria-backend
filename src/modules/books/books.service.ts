@@ -15,6 +15,7 @@ import {
     type UpdateBookBody,
 } from '../../schema';
 import { AppError, buildPaginationMeta, fieldError, toOffset } from '../../utils';
+import { assetsService } from '../assets/assets.service';
 import { PAGE_ASPECT, TRASH_DAYS } from './books.constants';
 import { booksRepository } from './books.repository';
 import type { BookRow } from './books.types';
@@ -105,9 +106,6 @@ export const booksService = {
         });
     },
     async updateBook(userId: string, bookId: string, body: UpdateBookBody): Promise<BookSummary> {
-        if (typeof body.coverAssetId === 'string')
-            throw fieldError('coverAssetId', 'Cập nhật ảnh bìa chưa được hỗ trợ');
-
         await withTransaction(async (db) => {
             const currentBook = await booksRepository.lockEditableBook(db, userId, bookId);
             if (!currentBook) throw new AppError('NOT_FOUND');
@@ -118,7 +116,16 @@ export const booksService = {
             if (body.language !== undefined) changes.language = blankToNull(body.language);
             if (body.topic !== undefined) changes.topic = blankToNull(body.topic);
             if (body.coverAssetId === null) changes.cover_asset_id = null;
-
+            if (typeof body.coverAssetId === 'string') {
+                // Chỉ cho phép sử dụng ảnh của người dùng hoặc thư viện chung để làm ảnh bìa.
+                if (!(await assetsService.lockImageForUse(db, userId, body.coverAssetId))) {
+                    throw fieldError(
+                        'coverAssetId',
+                        'Không tìm thấy ảnh này trong thư viện của bạn.',
+                    );
+                }
+                changes.cover_asset_id = body.coverAssetId;
+            }
             // Validate age range
             const ageMin = body.ageMin !== undefined ? body.ageMin : currentBook.age_min;
             const ageMax = body.ageMax !== undefined ? body.ageMax : currentBook.age_max;
@@ -196,7 +203,13 @@ const toSummary = (b: BookRow) =>
         id: b.id,
         title: b.title,
         // The cover address is built from the uploaded image.
-        coverUrl: null,
+        coverUrl:
+            b.cover_public_id && b.cover_resource_type
+                ? assetsService.coverUrl({
+                      resource_type: b.cover_resource_type,
+                      public_id: b.cover_public_id,
+                  })
+                : null,
         status: b.status,
         visibility: b.visibility,
         takenDown: b.taken_down,

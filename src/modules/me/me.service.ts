@@ -13,6 +13,7 @@ import {
     type PaginationMeta,
 } from '../../schema';
 import { AppError, fieldError, lockedByAdminError, temporarilyLockedError } from '../../utils';
+import { assetsService } from '../assets/assets.service';
 import { LOCK_MINUTES, MAX_FAILED_LOGINS } from '../auth/auth.constants';
 import { passwordChangedMail } from '../auth/auth.emails';
 import { authRepository } from '../auth/auth.repository';
@@ -31,13 +32,14 @@ export const meService = {
         if (body.organization !== undefined) changes.organization = blankToNull(body.organization);
         if (body.bio !== undefined) changes.bio = blankToNull(body.bio);
         if (body.avatarAssetId === null) changes.avatar_url = null;
-        if (typeof body.avatarAssetId === 'string') {
-            throw fieldError(
-                'avatarAssetId',
-                'Chưa hỗ trợ đặt ảnh đại diện từ tài nguyên đã tải lên.',
-            );
-        }
-        const user = await meRepository.updateMe(pool, userId, changes);
+        const user = await withTransaction(async (db) => {
+            if (typeof body.avatarAssetId === 'string') {
+                const url = await assetsService.lockAvatarForUse(db, userId, body.avatarAssetId);
+                if (!url) throw fieldError('avatarAssetId', 'Không tìm thấy ảnh đại diện này.');
+                changes.avatar_url = url;
+            }
+            return await meRepository.updateMe(db, userId, changes);
+        });
         if (!user) throw new AppError('UNAUTHENTICATED');
         return toMe(user);
     },
