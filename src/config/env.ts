@@ -32,6 +32,13 @@ const envSchema = z
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
         GOOGLE_CLIENT_ID: z.string().default(''),
+        CLOUDINARY_URL: z
+            .string()
+            .trim()
+            .regex(/^(cloudinary:\/\/[^:@\s]+:[^@\s]+@[^\s/]+)?$/, {
+                error: 'CLOUDINARY_URL phải có dạng cloudinary://<api_key>:<api_secret>@<cloud_name>',
+            })
+            .default(''),
     })
     .refine((env) => env.COOKIE_SAMESITE !== 'none' || env.COOKIE_SECURE, {
         path: ['COOKIE_SECURE'],
