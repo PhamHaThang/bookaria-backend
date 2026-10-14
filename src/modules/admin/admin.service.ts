@@ -636,6 +636,12 @@ export const adminService = {
         };
     },
 
+    async getAuditLog(logId: number): Promise<AuditLog> {
+        const log = await adminRepository.findAuditLog(pool, logId);
+        if (!log) throw new AppError('NOT_FOUND', 'Không tìm thấy nhật ký quản trị.');
+        return toAuditLog(log);
+    },
+
     async getUsers(query: AdminUsersQuery): Promise<{ rows: AdminUser[]; meta: PaginationMeta }> {
         const { rows, total } = await adminRepository.getUsers(pool, query, toOffset(query));
         return {

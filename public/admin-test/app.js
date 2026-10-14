@@ -8,6 +8,8 @@ const state = {
     libraryPage: 1,
     libraryTotalPages: 1,
     markersPage: 1,
+    auditPage: 1,
+    auditTotalPages: 1,
     selectedUser: null,
     selectedBookId: null,
     view: 'dashboard',
@@ -16,7 +18,19 @@ const state = {
 const elements = {
     app: document.querySelector('#app-section'),
     auditActions: document.querySelector('#audit-actions'),
+    auditDetailDialog: document.querySelector('#audit-detail-dialog'),
+    auditDetailId: document.querySelector('#audit-detail-id'),
+    auditDetailJson: document.querySelector('#audit-detail-json'),
+    auditDetailMeta: document.querySelector('#audit-detail-meta'),
+    auditFilters: document.querySelector('#audit-filters'),
+    auditLogs: document.querySelector('#audit-logs-body'),
+    auditLogsMeta: document.querySelector('#audit-logs-meta'),
+    auditNext: document.querySelector('#audit-next-page'),
+    auditPageLabel: document.querySelector('#audit-page-label'),
+    auditPrevious: document.querySelector('#audit-previous-page'),
+    auditView: document.querySelector('#audit-view'),
     books: document.querySelector('#book-list'),
+    closeAuditDetail: document.querySelector('#close-audit-detail'),
     closeCreateUser: document.querySelector('#close-create-user'),
     closeDetail: document.querySelector('#close-detail'),
     closeEdit: document.querySelector('#close-edit'),
@@ -82,6 +96,8 @@ const elements = {
     usersView: document.querySelector('#users-view'),
     updateCategoryForm: document.querySelector('#update-category-form'),
     categoryResult: document.querySelector('#category-result'),
+    refreshAudit: document.querySelector('#refresh-audit'),
+    resetAuditFilters: document.querySelector('#reset-audit-filters'),
 };
 
 elements.loginForm.addEventListener('submit', login);
@@ -98,6 +114,30 @@ elements.createCategoryForm.addEventListener('submit', createCategory);
 elements.updateCategoryForm.addEventListener('submit', updateCategory);
 elements.deleteCategoryForm.addEventListener('submit', deleteCategory);
 elements.createMarkerForm.addEventListener('submit', createMarker);
+elements.refreshAudit.addEventListener('click', () => void loadAuditLogs());
+elements.auditFilters.addEventListener('submit', (event) => {
+    event.preventDefault();
+    state.auditPage = 1;
+    void loadAuditLogs();
+});
+elements.resetAuditFilters.addEventListener('click', () => {
+    elements.auditFilters.reset();
+    state.auditPage = 1;
+    void loadAuditLogs();
+});
+elements.auditPrevious.addEventListener('click', () => {
+    if (state.auditPage > 1) {
+        state.auditPage -= 1;
+        void loadAuditLogs();
+    }
+});
+elements.auditNext.addEventListener('click', () => {
+    if (state.auditPage < state.auditTotalPages) {
+        state.auditPage += 1;
+        void loadAuditLogs();
+    }
+});
+elements.closeAuditDetail.addEventListener('click', () => elements.auditDetailDialog.close());
 elements.libraryFilters.addEventListener('submit', (event) => {
     event.preventDefault();
     state.libraryPage = 1;
@@ -193,18 +233,22 @@ async function logout() {
     elements.login.classList.remove('hidden');
     elements.detail.classList.add('hidden');
     elements.moderationDetail.classList.add('hidden');
+    elements.auditDetailDialog.close();
     elements.createUserDialog.close();
     elements.dialog.close();
     showMessage('Đã đăng xuất.');
 }
 
 async function openView(view) {
-    state.view = ['users', 'moderation', 'library', 'markers'].includes(view) ? view : 'dashboard';
+    state.view = ['users', 'moderation', 'library', 'markers', 'audit'].includes(view)
+        ? view
+        : 'dashboard';
     elements.dashboardView.classList.toggle('hidden', state.view !== 'dashboard');
     elements.libraryView.classList.toggle('hidden', state.view !== 'library');
     elements.markersView.classList.toggle('hidden', state.view !== 'markers');
     elements.moderationView.classList.toggle('hidden', state.view !== 'moderation');
     elements.usersView.classList.toggle('hidden', state.view !== 'users');
+    elements.auditView.classList.toggle('hidden', state.view !== 'audit');
     for (const link of elements.navLinks) {
         const active = link.dataset.view === state.view;
         link.classList.toggle('active', active);
@@ -216,6 +260,7 @@ async function openView(view) {
     else if (state.view === 'moderation') await loadModeration();
     else if (state.view === 'library') await loadLibraryAssets();
     else if (state.view === 'markers') await loadMarkers();
+    else if (state.view === 'audit') await loadAuditLogs();
     else await loadUsers();
 }
 
@@ -950,6 +995,96 @@ async function updateUser(event) {
         await loadUsers();
         if (!elements.detail.classList.contains('hidden')) await showDetail(original.id);
         showMessage('Đã cập nhật người dùng.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function loadAuditLogs() {
+    const filters = new FormData(elements.auditFilters);
+    const params = new URLSearchParams({
+        page: String(state.auditPage),
+        limit: '20',
+    });
+    const action = String(filters.get('action') ?? '').trim();
+    const targetType = String(filters.get('targetType') ?? '').trim();
+    const targetId = String(filters.get('targetId') ?? '').trim();
+    const actorId = String(filters.get('actorId') ?? '').trim();
+
+    if (action) params.set('action', action);
+    if (targetType) params.set('targetType', targetType);
+    if (targetId) params.set('targetId', targetId);
+    if (actorId) params.set('actorId', actorId);
+
+    try {
+        const result = await api(`/admin/audit-logs?${params.toString()}`);
+        state.auditTotalPages = Math.max(1, Math.ceil(result.meta.total / result.meta.limit));
+        elements.auditLogsMeta.textContent = `${formatNumber(result.meta.total)} mục nhật ký`;
+        elements.auditPageLabel.textContent = `Trang ${result.meta.page} / ${state.auditTotalPages}`;
+        elements.auditPrevious.disabled = result.meta.page <= 1;
+        elements.auditNext.disabled = result.meta.page >= state.auditTotalPages;
+        renderAuditLogs(result.data);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+function renderAuditLogs(logs) {
+    elements.auditLogs.replaceChildren();
+    if (!logs.length) {
+        renderEmptyRow(elements.auditLogs, 6, 'Không có nhật ký phù hợp.');
+        return;
+    }
+
+    for (const log of logs) {
+        const row = document.createElement('tr');
+
+        const actorCell = document.createElement('td');
+        actorCell.append(
+            node('span', log.actor.displayName, 'user-name'),
+            node('span', log.actor.email, 'user-email'),
+        );
+
+        const targetCell = document.createElement('td');
+        const targetBadge = node('span', log.targetType, 'badge badge-target');
+        const targetIdSpan = node('span', log.targetId, 'user-email');
+        targetCell.append(targetBadge, targetIdSpan);
+
+        row.append(
+            cell(`#${log.id}`),
+            cell(formatDate(log.createdAt)),
+            actorCell,
+            cellWith(node('span', log.action, 'badge badge-action')),
+            targetCell,
+            cellWith(button('Chi tiết', 'secondary', () => void showAuditDetail(log.id))),
+        );
+        elements.auditLogs.append(row);
+    }
+}
+
+async function showAuditDetail(logId) {
+    try {
+        const { data } = await api(`/admin/audit-logs/${logId}`);
+        elements.auditDetailId.textContent = String(data.id);
+        elements.auditDetailMeta.replaceChildren();
+
+        const metaItems = [
+            ['Thời gian', formatDate(data.createdAt)],
+            ['Quản trị viên', `${data.actor.displayName} (${data.actor.email})`],
+            ['Actor ID', data.actor.id],
+            ['Hành động', data.action],
+            ['Loại đối tượng', data.targetType],
+            ['ID đối tượng', data.targetId],
+        ];
+
+        for (const [label, value] of metaItems) {
+            const item = document.createElement('div');
+            item.append(node('dt', label), node('dd', String(value)));
+            elements.auditDetailMeta.append(item);
+        }
+
+        elements.auditDetailJson.textContent = JSON.stringify(data.detail, null, 2);
+        elements.auditDetailDialog.showModal();
     } catch (error) {
         showError(error);
     }

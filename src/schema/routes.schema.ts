@@ -151,6 +151,7 @@ const params = {
     slug: z.object({ slug: SlugSchema }),
     token: z.object({ token: z.string().min(1).max(32) }),
     bookVersion: z.object({ bookId: IdSchema, versionNo: z.coerce.number().int().positive() }),
+    logId: z.object({ logId: z.coerce.number().int().positive() }),
 };
 
 /**
@@ -1050,6 +1051,16 @@ export const routes: Route[] = [
         summary: 'Nhật ký quản trị',
         query: AuditLogsQuerySchema,
         responses: { 200: pagedResponse(AuditLogSchema) },
+    },
+    {
+        id: 'getAdminAuditLogsByLogId',
+        method: 'GET',
+        path: '/admin/audit-logs/:logId',
+        access: 'admin',
+        summary: 'Chi tiết một nhật ký quản trị',
+        params: params.logId,
+        responses: { 200: dataResponse(AuditLogSchema) },
+        errors: ['NOT_FOUND'],
     },
 ];
 

@@ -1118,7 +1118,9 @@ suite('jobs và audit của admin', () => {
         expect(blocked.body.error.code).toBe('JOB_IN_PROGRESS');
 
         const audit = await request(app)
-            .get(`/api/v1/admin/audit-logs?action=RETRY_JOB&actorId=${admin.userId}`)
+            .get(
+                `/api/v1/admin/audit-logs?action=RETRY_JOB&actorId=${admin.userId}&targetType=JOB&targetId=${failedJobId}`,
+            )
             .set(bearer(admin.token));
         expect(audit.status).toBe(200);
         expect(audit.body.data).toEqual(
@@ -1130,5 +1132,22 @@ suite('jobs và audit của admin', () => {
                 }),
             ]),
         );
+
+        const logId = audit.body.data[0].id;
+        const single = await request(app)
+            .get(`/api/v1/admin/audit-logs/${logId}`)
+            .set(bearer(admin.token));
+        expect(single.status).toBe(200);
+        expect(single.body.data).toMatchObject({
+            id: logId,
+            action: 'RETRY_JOB',
+            target: { type: 'JOB', id: failedJobId },
+        });
+
+        const notFound = await request(app)
+            .get('/api/v1/admin/audit-logs/999999999')
+            .set(bearer(admin.token));
+        expect(notFound.status).toBe(404);
+        expect(notFound.body.error.code).toBe('NOT_FOUND');
     });
 });

@@ -408,6 +408,14 @@ export const adminRepository = {
             params.push(query.actorId);
             where.push(`a.actor_id = $${params.length}`);
         }
+        if (query.targetType) {
+            params.push(query.targetType);
+            where.push(`a.target_type = $${params.length}`);
+        }
+        if (query.targetId) {
+            params.push(query.targetId);
+            where.push(`a.target_id = $${params.length}`);
+        }
         const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
         const [logs, count] = await Promise.all([
             db.query<AuditLogRow>(
@@ -425,6 +433,17 @@ export const adminRepository = {
             ),
         ]);
         return { rows: logs.rows, total: count.rows[0]?.total ?? 0 };
+    },
+
+    async findAuditLog(db: Queryable, logId: number): Promise<AuditLogRow | undefined> {
+        const { rows } = await db.query<AuditLogRow>(
+            `SELECT a.id, a.actor_id, u.display_name AS actor_display_name, a.action,
+                    a.target_type, a.target_id, a.detail, a.created_at
+             FROM audit_logs a JOIN users u ON u.id = a.actor_id
+             WHERE a.id = $1`,
+            [logId],
+        );
+        return rows[0];
     },
 
     async getDashboard(db: Queryable) {

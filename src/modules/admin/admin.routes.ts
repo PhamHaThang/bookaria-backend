@@ -26,6 +26,7 @@ export const adminRouter = () => {
     router.get('/jobs', adminController.getJobs);
     router.post('/jobs/:jobId/retry', adminController.retryJob);
     router.get('/audit-logs', adminController.getAuditLogs);
+    router.get('/audit-logs/:logId', adminController.getAuditLog);
     router.get('/users', adminController.getUsers);
     router.post('/users', adminController.createUser);
     router.get('/users/:userId', adminController.getUser);

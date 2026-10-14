@@ -19,6 +19,7 @@ import {
 import {
     AssetTypeSchema,
     AuditActionSchema,
+    AuditTargetTypeSchema,
     BookVisibilitySchema,
     JobStatusSchema,
     JobTypeSchema,
@@ -237,5 +238,7 @@ export type AdminJob = z.infer<typeof AdminJobSchema>;
 export const AuditLogsQuerySchema = PaginationQuerySchema.extend({
     action: AuditActionSchema.optional(),
     actorId: IdSchema.optional(),
+    targetType: AuditTargetTypeSchema.optional(),
+    targetId: IdSchema.optional(),
 });
 export type AuditLogsQuery = z.infer<typeof AuditLogsQuerySchema>;

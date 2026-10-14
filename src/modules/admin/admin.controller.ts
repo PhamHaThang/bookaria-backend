@@ -153,6 +153,11 @@ export const adminController = {
         res.json({ data: rows, meta });
     }),
 
+    getAuditLog: asyncHandler(async (req: Request, res: Response) => {
+        const log = await adminService.getAuditLog(logIdOf(req.params));
+        res.json({ data: log });
+    }),
+
     getUsers: asyncHandler(async (req: Request, res: Response) => {
         const query = AdminUsersQuerySchema.parse(req.query);
         const { rows, meta } = await adminService.getUsers(query);
@@ -211,4 +216,12 @@ function jobIdOf(params: { jobId?: string }): string {
     const parsed = IdSchema.safeParse(params.jobId);
     if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy job.');
     return parsed.data;
+}
+
+function logIdOf(params: { logId?: string }): number {
+    const num = Number(params.logId);
+    if (!Number.isInteger(num) || num <= 0) {
+        throw new AppError('NOT_FOUND', 'Không tìm thấy nhật ký quản trị.');
+    }
+    return num;
 }

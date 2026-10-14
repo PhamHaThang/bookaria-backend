@@ -64,6 +64,10 @@
                             <span aria-hidden="true">▣</span>
                             Marker
                         </button>
+                        <button class="nav-link" data-view="audit" type="button">
+                            <span aria-hidden="true">⏱</span>
+                            Nhật ký
+                        </button>
                     </nav>
                 </aside>
 
@@ -559,6 +563,97 @@
                             <ul id="book-list" class="book-list"></ul>
                         </section>
                     </section>
+
+                    <section id="audit-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Hệ thống</p>
+                                <h2>Nhật ký quản trị</h2>
+                                <p id="audit-logs-meta" class="muted"></p>
+                            </div>
+                            <button id="refresh-audit" class="secondary" type="button">
+                                Làm mới
+                            </button>
+                        </div>
+
+                        <div class="card">
+                            <form id="audit-filters" class="audit-filters">
+                                <label>
+                                    Hành động
+                                    <select name="action">
+                                        <option value="">Tất cả hành động</option>
+                                        <option value="CREATE_USER">CREATE_USER</option>
+                                        <option value="LOCK_USER">LOCK_USER</option>
+                                        <option value="UNLOCK_USER">UNLOCK_USER</option>
+                                        <option value="CHANGE_ROLE">CHANGE_ROLE</option>
+                                        <option value="SET_QUOTA">SET_QUOTA</option>
+                                        <option value="TAKE_DOWN_BOOK">TAKE_DOWN_BOOK</option>
+                                        <option value="REINSTATE_BOOK">REINSTATE_BOOK</option>
+                                        <option value="RESOLVE_REPORT">RESOLVE_REPORT</option>
+                                        <option value="DISMISS_REPORT">DISMISS_REPORT</option>
+                                        <option value="CREATE_LIBRARY_ASSET">CREATE_LIBRARY_ASSET</option>
+                                        <option value="UPDATE_LIBRARY_ASSET">UPDATE_LIBRARY_ASSET</option>
+                                        <option value="DELETE_ASSET">DELETE_ASSET</option>
+                                        <option value="MANAGE_CATEGORY">MANAGE_CATEGORY</option>
+                                        <option value="MANAGE_MARKER">MANAGE_MARKER</option>
+                                        <option value="RETRY_JOB">RETRY_JOB</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Loại đối tượng
+                                    <select name="targetType">
+                                        <option value="">Tất cả loại</option>
+                                        <option value="USER">USER</option>
+                                        <option value="BOOK">BOOK</option>
+                                        <option value="ASSET">ASSET</option>
+                                        <option value="REPORT">REPORT</option>
+                                        <option value="JOB">JOB</option>
+                                        <option value="CATEGORY">CATEGORY</option>
+                                        <option value="MARKER">MARKER</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    ID đối tượng
+                                    <input name="targetId" placeholder="UUID đối tượng" />
+                                </label>
+                                <label>
+                                    ID Quản trị viên
+                                    <input name="actorId" placeholder="UUID actor" />
+                                </label>
+                                <button type="submit">Lọc</button>
+                                <button id="reset-audit-filters" class="secondary" type="button">
+                                    Đặt lại
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="card table-card">
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Thời gian</th>
+                                            <th>Quản trị viên</th>
+                                            <th>Hành động</th>
+                                            <th>Đối tượng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="audit-logs-body"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination">
+                                <button id="audit-previous-page" class="secondary" type="button">
+                                    Trang trước
+                                </button>
+                                <span id="audit-page-label"></span>
+                                <button id="audit-next-page" class="secondary" type="button">
+                                    Trang sau
+                                </button>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </section>
         </main>
@@ -623,6 +718,18 @@
                 </label>
                 <button type="submit">Lưu thay đổi</button>
             </form>
+        </dialog>
+
+        <dialog id="audit-detail-dialog">
+            <div class="form-grid">
+                <div class="section-heading">
+                    <h2>Chi tiết nhật ký #<span id="audit-detail-id"></span></h2>
+                    <button id="close-audit-detail" class="icon-button" type="button" aria-label="Đóng">×</button>
+                </div>
+                <dl id="audit-detail-meta" class="details"></dl>
+                <h3>Dữ liệu chi tiết (Detail)</h3>
+                <pre id="audit-detail-json" class="json-box"></pre>
+            </div>
         </dialog>
     </body>
 </html>
