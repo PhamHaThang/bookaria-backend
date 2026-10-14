@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+import { env } from '../../config';
 import { pool, withTransaction } from '../../db';
 import { hashPassword } from '../../lib';
 import type { Auth } from '../../middlewares';
@@ -18,10 +20,16 @@ import {
     AdminUserDetailsSchema,
     AdminUserSchema,
     type AdminUsersQuery,
+    type Asset,
+    AssetCategorySchema,
+    AssetSchema,
     type BookSummary,
     BookSummarySchema,
+    type CreateCategoryBody,
+    type CreateLibraryAssetBody,
     type DismissReportsResult,
     DismissReportsResultSchema,
+    type LibraryAssetsQuery,
     MARKER_RULES,
     type ModerationItem,
     ModerationItemSchema,
@@ -31,10 +39,18 @@ import {
     type TakedownBody,
     type TakedownResult,
     TakedownResultSchema,
+    type UpdateCategoryBody,
+    type UpdateLibraryAssetBody,
 } from '../../schema';
 import { AppError, buildPaginationMeta, lockedByAdminError, toOffset } from '../../utils';
 import { adminRepository } from './admin.repository';
-import type { AdminBookRow, AdminUserRow, ModerationBookRow } from './admin.types';
+import type {
+    AdminBookRow,
+    AdminUserRow,
+    AssetCategoryRow,
+    LibraryAssetRow,
+    ModerationBookRow,
+} from './admin.types';
 
 export const adminService = {
     async assertAdmin(auth: Auth): Promise<void> {
@@ -260,6 +276,223 @@ export const adminService = {
         });
     },
 
+    async getLibraryAssets(
+        query: LibraryAssetsQuery,
+    ): Promise<{ rows: Asset[]; meta: PaginationMeta }> {
+        const { rows, total } = await adminRepository.getLibraryAssets(
+            pool,
+            query,
+            toOffset(query),
+        );
+        return {
+            rows: rows.map(toLibraryAsset),
+            meta: buildPaginationMeta(query, total),
+        };
+    },
+
+    async createLibraryAsset(actor: Auth, body: CreateLibraryAssetBody): Promise<Asset> {
+        const asset = await withTransaction(async (db) => {
+            const current = await adminRepository.lockOwnedAsset(db, body.assetId);
+            if (!current) throw new AppError('NOT_FOUND', 'Không tìm thấy tài nguyên đã upload.');
+            if (current.status !== 'READY') {
+                throw new AppError(
+                    'VALIDATION_ERROR',
+                    'Chỉ có thể đưa tài nguyên READY vào thư viện chung.',
+                );
+            }
+            if (body.categoryId && !(await adminRepository.findCategory(db, body.categoryId))) {
+                throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
+            }
+
+            const promoted = await adminRepository.promoteLibraryAsset(db, body.assetId, {
+                name: body.name,
+                categoryId: body.categoryId ?? null,
+                license: body.license,
+                authorName: body.authorName,
+                sourceUrl: body.sourceUrl ?? null,
+                tags: cleanTags(body.tags),
+            });
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'CREATE_LIBRARY_ASSET',
+                body.assetId,
+                {
+                    fromOwnerId: current.owner_id,
+                    name: promoted.name,
+                    categoryId: promoted.category_id,
+                    license: promoted.license,
+                    authorName: promoted.author_name,
+                },
+                'ASSET',
+            );
+            return promoted;
+        });
+        return toLibraryAsset(asset);
+    },
+
+    async updateLibraryAsset(
+        actor: Auth,
+        assetId: string,
+        body: UpdateLibraryAssetBody,
+    ): Promise<Asset> {
+        const asset = await withTransaction(async (db) => {
+            const current = await adminRepository.lockLibraryAsset(db, assetId);
+            if (!current) throw new AppError('NOT_FOUND', 'Không tìm thấy tài nguyên thư viện.');
+            if (!current.license || !current.author_name) throw new AppError('INTERNAL_ERROR');
+            if (
+                body.categoryId &&
+                body.categoryId !== current.category_id &&
+                !(await adminRepository.findCategory(db, body.categoryId))
+            ) {
+                throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
+            }
+
+            const next = {
+                name: body.name ?? current.name,
+                categoryId: body.categoryId === undefined ? current.category_id : body.categoryId,
+                license: body.license ?? current.license,
+                authorName: body.authorName ?? current.author_name,
+                sourceUrl: body.sourceUrl === undefined ? current.source_url : body.sourceUrl,
+                tags: body.tags === undefined ? current.tags : cleanTags(body.tags),
+            };
+            if (sameLibraryAsset(current, next)) return current;
+
+            const updated = await adminRepository.updateLibraryAsset(db, assetId, next);
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'UPDATE_LIBRARY_ASSET',
+                assetId,
+                {
+                    before: editableLibraryAsset(current),
+                    after: editableLibraryAsset(updated),
+                },
+                'ASSET',
+            );
+            return updated;
+        });
+        return toLibraryAsset(asset);
+    },
+
+    async deleteLibraryAsset(actor: Auth, assetId: string): Promise<void> {
+        await withTransaction(async (db) => {
+            const asset = await adminRepository.lockLibraryAsset(db, assetId);
+            if (!asset) throw new AppError('NOT_FOUND', 'Không tìm thấy tài nguyên thư viện.');
+            const usage = await adminRepository.getAssetUsageCounts(db, assetId);
+            if (usage.cover_count + usage.page_image_count + usage.page_asset_count > 0) {
+                throw new AppError('ASSET_IN_USE', undefined, {
+                    covers: usage.cover_count,
+                    pageImages: usage.page_image_count,
+                    pageAssets: usage.page_asset_count,
+                });
+            }
+            await adminRepository.softDeleteLibraryAsset(db, assetId);
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'DELETE_ASSET',
+                assetId,
+                { name: asset.name, categoryId: asset.category_id, softDeleted: true },
+                'ASSET',
+            );
+        });
+    },
+
+    async createCategory(actor: Auth, body: CreateCategoryBody) {
+        const category = await withTransaction(async (db) => {
+            await adminRepository.lockCategoryTree(db);
+            if (body.parentId && !(await adminRepository.findCategory(db, body.parentId))) {
+                throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục cha.');
+            }
+            const created = await adminRepository.insertCategory(db, {
+                name: body.name,
+                slug: `${slugify(body.name)}-${randomUUID().slice(0, 8)}`,
+                parentId: body.parentId ?? null,
+            });
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_CATEGORY',
+                created.id,
+                { operation: 'CREATE', name: created.name, parentId: created.parent_id },
+                'CATEGORY',
+            );
+            return created;
+        });
+        return toCategory(category);
+    },
+
+    async updateCategory(actor: Auth, categoryId: string, body: UpdateCategoryBody) {
+        const category = await withTransaction(async (db) => {
+            await adminRepository.lockCategoryTree(db);
+            const current = await adminRepository.findCategory(db, categoryId);
+            if (!current) throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
+
+            if (body.parentId) {
+                if (!(await adminRepository.findCategory(db, body.parentId))) {
+                    throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục cha.');
+                }
+                if (await adminRepository.categoryWouldCycle(db, categoryId, body.parentId)) {
+                    throw new AppError('CATEGORY_CYCLE');
+                }
+            }
+
+            const next = {
+                name: body.name ?? current.name,
+                parentId: body.parentId === undefined ? current.parent_id : body.parentId,
+                sortOrder: body.sortOrder ?? current.sort_order,
+            };
+            if (
+                next.name === current.name &&
+                next.parentId === current.parent_id &&
+                next.sortOrder === current.sort_order
+            ) {
+                return current;
+            }
+
+            const updated = await adminRepository.updateCategory(db, categoryId, next);
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_CATEGORY',
+                categoryId,
+                {
+                    operation: 'UPDATE',
+                    before: toCategory(current),
+                    after: toCategory(updated),
+                },
+                'CATEGORY',
+            );
+            return updated;
+        });
+        return toCategory(category);
+    },
+
+    async deleteCategory(actor: Auth, categoryId: string): Promise<void> {
+        await withTransaction(async (db) => {
+            await adminRepository.lockCategoryTree(db);
+            const category = await adminRepository.findCategory(db, categoryId);
+            if (!category) throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
+            if (await adminRepository.categoryHasContent(db, categoryId)) {
+                throw new AppError('CATEGORY_NOT_EMPTY');
+            }
+            await adminRepository.deleteCategory(db, categoryId);
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_CATEGORY',
+                categoryId,
+                {
+                    operation: 'DELETE',
+                    name: category.name,
+                    parentId: category.parent_id,
+                },
+                'CATEGORY',
+            );
+        });
+    },
+
     async getUsers(query: AdminUsersQuery): Promise<{ rows: AdminUser[]; meta: PaginationMeta }> {
         const { rows, total } = await adminRepository.getUsers(pool, query, toOffset(query));
         return {
@@ -453,3 +686,89 @@ const isLastAdminError = (error: unknown) => {
 };
 
 const isUniqueViolation = (error: unknown) => (error as { code?: string }).code === '23505';
+
+const cleanTags = (tags: string[]) => [...new Set(tags.map((tag) => tag.toLowerCase()))];
+
+const editableLibraryAsset = (asset: LibraryAssetRow) => ({
+    name: asset.name,
+    categoryId: asset.category_id,
+    license: asset.license,
+    authorName: asset.author_name,
+    sourceUrl: asset.source_url,
+    tags: asset.tags,
+});
+
+const sameLibraryAsset = (
+    current: LibraryAssetRow,
+    next: {
+        name: string;
+        categoryId: string | null;
+        license: string;
+        authorName: string;
+        sourceUrl: string | null;
+        tags: string[];
+    },
+) =>
+    current.name === next.name &&
+    current.category_id === next.categoryId &&
+    current.license === next.license &&
+    current.author_name === next.authorName &&
+    current.source_url === next.sourceUrl &&
+    JSON.stringify(current.tags) === JSON.stringify(next.tags);
+
+const toLibraryAsset = (asset: LibraryAssetRow): Asset =>
+    AssetSchema.parse({
+        id: asset.id,
+        type: asset.type,
+        url: libraryAssetUrl(asset),
+        thumbnailUrl: asset.thumbnail_url,
+        meta: asset.meta,
+        name: asset.name,
+        status: asset.status,
+        sizeBytes: Number(asset.size_bytes),
+        format: asset.format,
+        tags: asset.tags,
+        license: asset.license,
+        authorName: asset.author_name,
+        sourceUrl: asset.source_url,
+        scope: 'library',
+        categoryId: asset.category_id,
+        error: asset.error,
+        createdAt: asset.created_at.toISOString(),
+    });
+
+function libraryAssetUrl(asset: LibraryAssetRow): string {
+    const publicId = asset.optimized_public_id ?? asset.original_public_id;
+    if (/^https?:\/\//i.test(publicId)) return publicId;
+    if (!env.CLOUDINARY_URL) {
+        throw new AppError(
+            'INTERNAL_ERROR',
+            'Chưa cấu hình CLOUDINARY_URL để dựng URL tài nguyên.',
+        );
+    }
+    const cloudName = new URL(env.CLOUDINARY_URL).hostname;
+    const path = publicId.split('/').map(encodeURIComponent).join('/');
+    return `https://res.cloudinary.com/${cloudName}/${asset.resource_type}/upload/${path}.${asset.format}`;
+}
+
+const toCategory = (category: AssetCategoryRow) =>
+    AssetCategorySchema.parse({
+        id: category.id,
+        name: category.name,
+        parentId: category.parent_id,
+        sortOrder: category.sort_order,
+    });
+
+function slugify(name: string): string {
+    return (
+        name
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replaceAll('đ', 'd')
+            .replaceAll('Đ', 'd')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .slice(0, 91) || 'category'
+    );
+}

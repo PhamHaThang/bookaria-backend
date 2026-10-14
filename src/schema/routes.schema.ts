@@ -981,7 +981,7 @@ export const routes: Route[] = [
         params: params.categoryId,
         body: UpdateCategoryBodySchema,
         responses: { 200: dataResponse(AssetCategorySchema) },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'CATEGORY_CYCLE'],
     },
     {
         id: 'deleteAdminAssetCategoriesByCategoryId',
@@ -991,7 +991,7 @@ export const routes: Route[] = [
         summary: 'Xoá danh mục rỗng',
         params: params.categoryId,
         responses: { 204: null },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'CATEGORY_NOT_EMPTY'],
     },
     {
         id: 'getAdminBookariaMarkers',

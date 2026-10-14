@@ -4,6 +4,7 @@ import type {
     AdminUsersQuery,
     AuditAction,
     AuditTargetType,
+    LibraryAssetsQuery,
     UserRole,
     UserStatus,
 } from '../../schema';
@@ -11,8 +12,11 @@ import type {
     AdminBookRow,
     AdminDashboardMetricsRow,
     AdminUserRow,
+    AssetCategoryRow,
+    AssetUsageCountsRow,
     AuditActionTodayRow,
     CurrentAdminRow,
+    LibraryAssetRow,
     LockedModerationBookRow,
     LockedUserRow,
     ModerationBookRow,
@@ -46,7 +50,209 @@ const MODERATION_BOOK_COLUMNS = `b.id, b.title, b.description,
 const MODERATION_BOOK_JOINS = `JOIN users u ON u.id = b.owner_id
     LEFT JOIN assets cover ON cover.id = b.cover_asset_id`;
 
+const LIBRARY_ASSET_COLUMNS = `id, owner_id, category_id, type, name, original_public_id,
+    resource_type, optimized_public_id, thumbnail_url, format, size_bytes, status, error,
+    meta, tags, license, author_name, source_url, created_at`;
+
 export const adminRepository = {
+    async getLibraryAssets(db: Queryable, query: LibraryAssetsQuery, offset: number) {
+        const where = ['owner_id IS NULL', 'deleted_at IS NULL'];
+        const params: unknown[] = [];
+        if (query.type) {
+            params.push(query.type);
+            where.push(`type = $${params.length}`);
+        }
+        if (query.categoryId) {
+            params.push(query.categoryId);
+            where.push(`category_id = $${params.length}`);
+        }
+        if (query.q) {
+            params.push(`%${escapeLike(query.q)}%`);
+            where.push(`name ILIKE $${params.length} ESCAPE '\\'`);
+        }
+        const clause = where.join(' AND ');
+        const { rows } = await db.query<LibraryAssetRow>(
+            `SELECT ${LIBRARY_ASSET_COLUMNS} FROM assets
+             WHERE ${clause}
+             ORDER BY created_at DESC, id
+             LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+            [...params, query.limit, offset],
+        );
+        const count = await db.query<{ total: number }>(
+            `SELECT count(*)::int AS total FROM assets WHERE ${clause}`,
+            params,
+        );
+        return { rows, total: count.rows[0]?.total ?? 0 };
+    },
+
+    async lockOwnedAsset(db: Queryable, assetId: string): Promise<LibraryAssetRow | undefined> {
+        const { rows } = await db.query<LibraryAssetRow>(
+            `SELECT ${LIBRARY_ASSET_COLUMNS} FROM assets
+             WHERE id = $1 AND owner_id IS NOT NULL AND deleted_at IS NULL
+             FOR UPDATE`,
+            [assetId],
+        );
+        return rows[0];
+    },
+
+    async lockLibraryAsset(db: Queryable, assetId: string): Promise<LibraryAssetRow | undefined> {
+        const { rows } = await db.query<LibraryAssetRow>(
+            `SELECT ${LIBRARY_ASSET_COLUMNS} FROM assets
+             WHERE id = $1 AND owner_id IS NULL AND deleted_at IS NULL
+             FOR UPDATE`,
+            [assetId],
+        );
+        return rows[0];
+    },
+
+    async promoteLibraryAsset(
+        db: Queryable,
+        assetId: string,
+        asset: {
+            name: string;
+            categoryId: string | null;
+            license: string;
+            authorName: string;
+            sourceUrl: string | null;
+            tags: string[];
+        },
+    ): Promise<LibraryAssetRow> {
+        const { rows } = await db.query<LibraryAssetRow>(
+            `UPDATE assets SET owner_id = NULL, name = $2, category_id = $3,
+                    license = $4, author_name = $5, source_url = $6, tags = $7
+             WHERE id = $1
+             RETURNING ${LIBRARY_ASSET_COLUMNS}`,
+            [
+                assetId,
+                asset.name,
+                asset.categoryId,
+                asset.license,
+                asset.authorName,
+                asset.sourceUrl,
+                asset.tags,
+            ],
+        );
+        return rows[0] as LibraryAssetRow;
+    },
+
+    async updateLibraryAsset(
+        db: Queryable,
+        assetId: string,
+        asset: {
+            name: string;
+            categoryId: string | null;
+            license: string;
+            authorName: string;
+            sourceUrl: string | null;
+            tags: string[];
+        },
+    ): Promise<LibraryAssetRow> {
+        const { rows } = await db.query<LibraryAssetRow>(
+            `UPDATE assets SET name = $2, category_id = $3, license = $4,
+                    author_name = $5, source_url = $6, tags = $7
+             WHERE id = $1
+             RETURNING ${LIBRARY_ASSET_COLUMNS}`,
+            [
+                assetId,
+                asset.name,
+                asset.categoryId,
+                asset.license,
+                asset.authorName,
+                asset.sourceUrl,
+                asset.tags,
+            ],
+        );
+        return rows[0] as LibraryAssetRow;
+    },
+
+    async getAssetUsageCounts(db: Queryable, assetId: string): Promise<AssetUsageCountsRow> {
+        const { rows } = await db.query<AssetUsageCountsRow>(
+            `SELECT
+                (SELECT count(*)::int FROM books WHERE cover_asset_id = $1) AS cover_count,
+                (SELECT count(*)::int FROM pages WHERE image_asset_id = $1) AS page_image_count,
+                (SELECT count(*)::int FROM page_assets WHERE asset_id = $1) AS page_asset_count`,
+            [assetId],
+        );
+        return rows[0] as AssetUsageCountsRow;
+    },
+
+    async softDeleteLibraryAsset(db: Queryable, assetId: string): Promise<void> {
+        await db.query(`UPDATE assets SET deleted_at = now() WHERE id = $1`, [assetId]);
+    },
+
+    async lockCategoryTree(db: Queryable): Promise<void> {
+        await db.query(`LOCK TABLE asset_categories IN SHARE ROW EXCLUSIVE MODE`);
+    },
+
+    async findCategory(db: Queryable, categoryId: string): Promise<AssetCategoryRow | undefined> {
+        const { rows } = await db.query<AssetCategoryRow>(
+            `SELECT id, name, parent_id, sort_order FROM asset_categories WHERE id = $1`,
+            [categoryId],
+        );
+        return rows[0];
+    },
+
+    async insertCategory(
+        db: Queryable,
+        category: { name: string; slug: string; parentId: string | null },
+    ): Promise<AssetCategoryRow> {
+        const { rows } = await db.query<AssetCategoryRow>(
+            `INSERT INTO asset_categories (name, slug, parent_id)
+             VALUES ($1, $2, $3)
+             RETURNING id, name, parent_id, sort_order`,
+            [category.name, category.slug, category.parentId],
+        );
+        return rows[0] as AssetCategoryRow;
+    },
+
+    async categoryWouldCycle(
+        db: Queryable,
+        categoryId: string,
+        parentId: string,
+    ): Promise<boolean> {
+        const { rows } = await db.query<{ cycle: boolean }>(
+            `WITH RECURSIVE ancestors AS (
+                SELECT id, parent_id FROM asset_categories WHERE id = $2
+                UNION
+                SELECT c.id, c.parent_id
+                FROM asset_categories c JOIN ancestors a ON c.id = a.parent_id
+             )
+             SELECT EXISTS (SELECT 1 FROM ancestors WHERE id = $1) AS cycle`,
+            [categoryId, parentId],
+        );
+        return rows[0]?.cycle ?? false;
+    },
+
+    async updateCategory(
+        db: Queryable,
+        categoryId: string,
+        category: { name: string; parentId: string | null; sortOrder: number },
+    ): Promise<AssetCategoryRow> {
+        const { rows } = await db.query<AssetCategoryRow>(
+            `UPDATE asset_categories SET name = $2, parent_id = $3, sort_order = $4
+             WHERE id = $1
+             RETURNING id, name, parent_id, sort_order`,
+            [categoryId, category.name, category.parentId, category.sortOrder],
+        );
+        return rows[0] as AssetCategoryRow;
+    },
+
+    async categoryHasContent(db: Queryable, categoryId: string): Promise<boolean> {
+        const { rows } = await db.query<{ has_content: boolean }>(
+            `SELECT EXISTS (
+                 SELECT 1 FROM asset_categories WHERE parent_id = $1
+             ) OR EXISTS (
+                 SELECT 1 FROM assets WHERE category_id = $1 AND deleted_at IS NULL
+             ) AS has_content`,
+            [categoryId],
+        );
+        return rows[0]?.has_content ?? false;
+    },
+
+    async deleteCategory(db: Queryable, categoryId: string): Promise<void> {
+        await db.query(`DELETE FROM asset_categories WHERE id = $1`, [categoryId]);
+    },
+
     async getDashboard(db: Queryable) {
         const [metrics, publishedPerDay, auditActionsToday] = await Promise.all([
             db.query<AdminDashboardMetricsRow>(

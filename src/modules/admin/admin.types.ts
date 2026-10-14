@@ -1,4 +1,6 @@
 import type {
+    AssetStatus,
+    AssetType,
     AuditAction,
     BookStatus,
     BookVisibility,
@@ -8,6 +10,41 @@ import type {
     UserRole,
     UserStatus,
 } from '../../schema';
+
+export interface LibraryAssetRow {
+    id: string;
+    owner_id: string | null;
+    category_id: string | null;
+    type: AssetType;
+    name: string;
+    original_public_id: string;
+    resource_type: 'image' | 'video' | 'raw';
+    optimized_public_id: string | null;
+    thumbnail_url: string | null;
+    format: string;
+    size_bytes: string;
+    status: AssetStatus;
+    error: string | null;
+    meta: Record<string, unknown>;
+    tags: string[];
+    license: string | null;
+    author_name: string | null;
+    source_url: string | null;
+    created_at: Date;
+}
+
+export interface AssetCategoryRow {
+    id: string;
+    name: string;
+    parent_id: string | null;
+    sort_order: number;
+}
+
+export interface AssetUsageCountsRow {
+    cover_count: number;
+    page_image_count: number;
+    page_asset_count: number;
+}
 
 export interface AdminDashboardMetricsRow {
     users: number;

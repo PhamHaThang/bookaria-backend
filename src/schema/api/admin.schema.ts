@@ -162,6 +162,7 @@ export const LibraryAssetsQuerySchema = PaginationQuerySchema.extend({
     categoryId: IdSchema.optional(),
     q: z.string().trim().max(100).optional(),
 });
+export type LibraryAssetsQuery = z.infer<typeof LibraryAssetsQuerySchema>;
 
 /** Shared assets must carry a license and the original author (database CHECK). */
 export const CreateLibraryAssetBodySchema = z.object({
@@ -173,6 +174,7 @@ export const CreateLibraryAssetBodySchema = z.object({
     sourceUrl: HttpUrlSchema.optional(),
     tags: z.array(shortText(30)).max(20).default([]),
 });
+export type CreateLibraryAssetBody = z.infer<typeof CreateLibraryAssetBodySchema>;
 
 export const UpdateLibraryAssetBodySchema = z
     .object({
@@ -186,21 +188,24 @@ export const UpdateLibraryAssetBodySchema = z
     .refine((b) => Object.values(b).some((v) => v !== undefined), {
         error: 'Cần gửi ít nhất một trường để sửa',
     });
+export type UpdateLibraryAssetBody = z.infer<typeof UpdateLibraryAssetBodySchema>;
 
 export const CreateCategoryBodySchema = z.object({
     name: shortText(100),
     parentId: IdSchema.nullable().optional(),
 });
+export type CreateCategoryBody = z.infer<typeof CreateCategoryBodySchema>;
 
 export const UpdateCategoryBodySchema = z
     .object({
         name: shortText(100).optional(),
         parentId: IdSchema.nullable().optional(),
-        sortOrder: z.int().optional(),
+        sortOrder: z.int().min(-32768).max(32767).optional(),
     })
     .refine((b) => Object.values(b).some((v) => v !== undefined), {
         error: 'Cần gửi ít nhất một trường để sửa',
     });
+export type UpdateCategoryBody = z.infer<typeof UpdateCategoryBodySchema>;
 
 // --- Bookaria marker set -------------------------------------------------------------------------
 /** Adds a pre-built marker to the shared set. */

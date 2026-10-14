@@ -267,6 +267,40 @@ button.nav-link.active {
     margin: 1rem 0;
 }
 
+.library-panels {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.library-filters {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 160px minmax(220px, 1fr) auto;
+    gap: 1rem;
+    align-items: end;
+    margin: 1rem 0;
+}
+
+.compact-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: end;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e8ebf2;
+}
+
+.compact-form > strong:first-child {
+    grid-column: 1 / -1;
+}
+
+#category-result {
+    display: block;
+    margin-top: 1rem;
+    overflow-wrap: anywhere;
+}
+
 .detail-actions {
     display: flex;
     flex-wrap: wrap;
@@ -463,6 +497,8 @@ dialog::backdrop {
     .app-layout,
     .dashboard-panels,
     .filters,
+    .library-filters,
+    .library-panels,
     .moderation-filters,
     .details {
         grid-template-columns: 1fr;
@@ -478,7 +514,7 @@ dialog::backdrop {
     }
 
     .quick-nav {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .metric-grid {

@@ -13368,8 +13368,8 @@
                                     },
                                     "sortOrder": {
                                         "type": "integer",
-                                        "minimum": -9007199254740991,
-                                        "maximum": 9007199254740991
+                                        "minimum": -32768,
+                                        "maximum": 32767
                                     }
                                 }
                             }
@@ -13479,6 +13479,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "`CATEGORY_CYCLE`: Danh mục cha tạo thành một cây vòng lặp.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "CATEGORY_CYCLE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "CATEGORY_CYCLE",
+                                                "message": "Danh mục cha tạo thành một cây vòng lặp.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13619,6 +13640,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`CATEGORY_NOT_EMPTY`: Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "CATEGORY_NOT_EMPTY": {
+                                        "value": {
+                                            "error": {
+                                                "code": "CATEGORY_NOT_EMPTY",
+                                                "message": "Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -17873,6 +17915,8 @@
                                     "EMAIL_TAKEN",
                                     "REVISION_CONFLICT",
                                     "ASSET_IN_USE",
+                                    "CATEGORY_NOT_EMPTY",
+                                    "CATEGORY_CYCLE",
                                     "JOB_IN_PROGRESS",
                                     "BOOK_UNAVAILABLE",
                                     "FILE_TOO_LARGE",

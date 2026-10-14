@@ -5,6 +5,8 @@ const state = {
     token: sessionStorage.getItem('bookariaAdminToken') ?? '',
     page: 1,
     totalPages: 1,
+    libraryPage: 1,
+    libraryTotalPages: 1,
     selectedUser: null,
     selectedBookId: null,
     view: 'dashboard',
@@ -18,6 +20,8 @@ const elements = {
     closeDetail: document.querySelector('#close-detail'),
     closeEdit: document.querySelector('#close-edit'),
     closeModerationDetail: document.querySelector('#close-moderation-detail'),
+    createCategoryForm: document.querySelector('#create-category-form'),
+    createLibraryAssetForm: document.querySelector('#create-library-asset-form'),
     createUserDialog: document.querySelector('#create-user-dialog'),
     createUserForm: document.querySelector('#create-user-form'),
     dashboardUpdated: document.querySelector('#dashboard-updated'),
@@ -28,8 +32,16 @@ const elements = {
     editForm: document.querySelector('#edit-form'),
     editUserLabel: document.querySelector('#edit-user-label'),
     filters: document.querySelector('#filters-form'),
+    deleteCategoryForm: document.querySelector('#delete-category-form'),
     login: document.querySelector('#login-section'),
     loginForm: document.querySelector('#login-form'),
+    libraryAssets: document.querySelector('#library-assets-body'),
+    libraryAssetsMeta: document.querySelector('#library-assets-meta'),
+    libraryFilters: document.querySelector('#library-filters'),
+    libraryNext: document.querySelector('#library-next-page'),
+    libraryPageLabel: document.querySelector('#library-page-label'),
+    libraryPrevious: document.querySelector('#library-previous-page'),
+    libraryView: document.querySelector('#library-view'),
     logout: document.querySelector('#logout-button'),
     message: document.querySelector('#message'),
     metricBooks: document.querySelector('#metric-books'),
@@ -56,11 +68,14 @@ const elements = {
     publishedChart: document.querySelector('#published-chart'),
     refreshDashboard: document.querySelector('#refresh-dashboard'),
     refreshModeration: document.querySelector('#refresh-moderation'),
+    refreshLibrary: document.querySelector('#refresh-library'),
     reinstateBook: document.querySelector('#reinstate-book'),
     dismissReports: document.querySelector('#dismiss-reports'),
     takedownBook: document.querySelector('#takedown-book'),
     users: document.querySelector('#users-body'),
     usersView: document.querySelector('#users-view'),
+    updateCategoryForm: document.querySelector('#update-category-form'),
+    categoryResult: document.querySelector('#category-result'),
 };
 
 elements.loginForm.addEventListener('submit', login);
@@ -70,6 +85,28 @@ elements.closeCreateUser.addEventListener('click', () => elements.createUserDial
 elements.createUserForm.addEventListener('submit', createUser);
 elements.refreshDashboard.addEventListener('click', () => void loadDashboard());
 elements.refreshModeration.addEventListener('click', () => void loadModeration());
+elements.refreshLibrary.addEventListener('click', () => void loadLibraryAssets());
+elements.createLibraryAssetForm.addEventListener('submit', createLibraryAsset);
+elements.createCategoryForm.addEventListener('submit', createCategory);
+elements.updateCategoryForm.addEventListener('submit', updateCategory);
+elements.deleteCategoryForm.addEventListener('submit', deleteCategory);
+elements.libraryFilters.addEventListener('submit', (event) => {
+    event.preventDefault();
+    state.libraryPage = 1;
+    void loadLibraryAssets();
+});
+elements.libraryPrevious.addEventListener('click', () => {
+    if (state.libraryPage > 1) {
+        state.libraryPage -= 1;
+        void loadLibraryAssets();
+    }
+});
+elements.libraryNext.addEventListener('click', () => {
+    if (state.libraryPage < state.libraryTotalPages) {
+        state.libraryPage += 1;
+        void loadLibraryAssets();
+    }
+});
 elements.moderationFilters.addEventListener('submit', (event) => {
     event.preventDefault();
     void loadModerationBooks();
@@ -154,8 +191,9 @@ async function logout() {
 }
 
 async function openView(view) {
-    state.view = view === 'users' || view === 'moderation' ? view : 'dashboard';
+    state.view = ['users', 'moderation', 'library'].includes(view) ? view : 'dashboard';
     elements.dashboardView.classList.toggle('hidden', state.view !== 'dashboard');
+    elements.libraryView.classList.toggle('hidden', state.view !== 'library');
     elements.moderationView.classList.toggle('hidden', state.view !== 'moderation');
     elements.usersView.classList.toggle('hidden', state.view !== 'users');
     for (const link of elements.navLinks) {
@@ -167,6 +205,7 @@ async function openView(view) {
 
     if (state.view === 'dashboard') await loadDashboard();
     else if (state.view === 'moderation') await loadModeration();
+    else if (state.view === 'library') await loadLibraryAssets();
     else await loadUsers();
 }
 
@@ -431,6 +470,203 @@ async function refreshSelectedBook() {
     if (bookId) await showModerationBook(bookId);
 }
 
+async function loadLibraryAssets() {
+    const filters = new FormData(elements.libraryFilters);
+    const params = new URLSearchParams({
+        page: String(state.libraryPage),
+        limit: '20',
+    });
+    for (const key of ['q', 'type', 'categoryId']) {
+        const value = String(filters.get(key) ?? '').trim();
+        if (value) params.set(key, value);
+    }
+
+    try {
+        const result = await api(`/admin/library/assets?${params}`);
+        state.libraryTotalPages = Math.max(1, result.meta.totalPages);
+        elements.libraryAssetsMeta.textContent = `${formatNumber(result.meta.total)} asset`;
+        elements.libraryPageLabel.textContent = `Trang ${state.libraryPage}/${state.libraryTotalPages}`;
+        elements.libraryPrevious.disabled = state.libraryPage <= 1;
+        elements.libraryNext.disabled = state.libraryPage >= state.libraryTotalPages;
+        renderLibraryAssets(result.data);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+function renderLibraryAssets(assets) {
+    elements.libraryAssets.replaceChildren();
+    if (!assets.length) {
+        renderEmptyRow(elements.libraryAssets, 7, 'Không có asset thư viện phù hợp.');
+        return;
+    }
+
+    for (const asset of assets) {
+        const identity = document.createElement('td');
+        identity.append(
+            externalLink(asset.name, asset.url),
+            node('span', `${asset.id} · ${asset.status}`, 'user-email'),
+            node('span', asset.tags.join(', ') || 'Không có tag', 'user-email'),
+        );
+        const actions = node('div', '', 'actions');
+        actions.append(
+            button('Sửa', '', () => void editLibraryAsset(asset)),
+            button('Xóa', 'danger', () => void removeLibraryAsset(asset)),
+        );
+        const row = document.createElement('tr');
+        row.append(
+            identity,
+            cellWith(node('span', asset.type, 'badge')),
+            cell(asset.license),
+            cell(asset.authorName),
+            cell(asset.categoryId ?? '—'),
+            cell(formatBytes(asset.sizeBytes)),
+            cellWith(actions),
+        );
+        elements.libraryAssets.append(row);
+    }
+}
+
+async function createLibraryAsset(event) {
+    event.preventDefault();
+    const form = new FormData(elements.createLibraryAssetForm);
+    const categoryId = String(form.get('categoryId') ?? '').trim();
+    const sourceUrl = String(form.get('sourceUrl') ?? '').trim();
+    try {
+        const { data } = await api('/admin/library/assets', {
+            method: 'POST',
+            body: {
+                assetId: String(form.get('assetId')).trim(),
+                name: String(form.get('name')).trim(),
+                license: String(form.get('license')).trim(),
+                authorName: String(form.get('authorName')).trim(),
+                tags: parseTags(form.get('tags')),
+                ...(categoryId ? { categoryId } : {}),
+                ...(sourceUrl ? { sourceUrl } : {}),
+            },
+        });
+        elements.createLibraryAssetForm.reset();
+        state.libraryPage = 1;
+        await loadLibraryAssets();
+        showMessage(`Đã thêm “${data.name}” vào thư viện.`);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function editLibraryAsset(asset) {
+    const name = prompt('Tên asset:', asset.name);
+    if (name === null) return;
+    const license = prompt('License:', asset.license);
+    if (license === null) return;
+    const authorName = prompt('Tác giả gốc:', asset.authorName);
+    if (authorName === null) return;
+    const categoryId = prompt('Category ID (để trống để bỏ category):', asset.categoryId ?? '');
+    if (categoryId === null) return;
+    const sourceUrl = prompt('URL nguồn (để trống để xóa):', asset.sourceUrl ?? '');
+    if (sourceUrl === null) return;
+    const tags = prompt('Tags, phân cách bằng dấu phẩy:', asset.tags.join(', '));
+    if (tags === null) return;
+    if (!name.trim() || !license.trim() || !authorName.trim()) {
+        showMessage('Tên, license và tác giả gốc không được để trống.', true);
+        return;
+    }
+
+    try {
+        await api(`/admin/library/assets/${asset.id}`, {
+            method: 'PATCH',
+            body: {
+                name: name.trim(),
+                license: license.trim(),
+                authorName: authorName.trim(),
+                categoryId: categoryId.trim() || null,
+                sourceUrl: sourceUrl.trim() || null,
+                tags: parseTags(tags),
+            },
+        });
+        await loadLibraryAssets();
+        showMessage('Đã cập nhật asset thư viện.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function removeLibraryAsset(asset) {
+    if (!confirm(`Xóa “${asset.name}” khỏi thư viện?`)) return;
+    try {
+        await api(`/admin/library/assets/${asset.id}`, { method: 'DELETE' });
+        await loadLibraryAssets();
+        showMessage('Đã xóa asset khỏi thư viện.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function createCategory(event) {
+    event.preventDefault();
+    const form = new FormData(elements.createCategoryForm);
+    const parentId = String(form.get('parentId') ?? '').trim();
+    try {
+        const { data } = await api('/admin/asset-categories', {
+            method: 'POST',
+            body: {
+                name: String(form.get('name')).trim(),
+                ...(parentId ? { parentId } : {}),
+            },
+        });
+        elements.createCategoryForm.reset();
+        elements.updateCategoryForm.elements.categoryId.value = data.id;
+        elements.deleteCategoryForm.elements.categoryId.value = data.id;
+        elements.createLibraryAssetForm.elements.categoryId.value = data.id;
+        elements.categoryResult.textContent = `Category vừa tạo: ${data.name} · ${data.id}`;
+        showMessage(`Đã tạo category “${data.name}”.`);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function updateCategory(event) {
+    event.preventDefault();
+    const form = new FormData(elements.updateCategoryForm);
+    const categoryId = String(form.get('categoryId')).trim();
+    const name = String(form.get('name') ?? '').trim();
+    const parentId = String(form.get('parentId') ?? '').trim();
+    const sortOrder = String(form.get('sortOrder') ?? '').trim();
+    const body = {};
+    if (name) body.name = name;
+    if (parentId) body.parentId = parentId.toLowerCase() === 'null' ? null : parentId;
+    if (sortOrder) body.sortOrder = Number(sortOrder);
+    if (!Object.keys(body).length) {
+        showMessage('Cần nhập ít nhất một trường category cần sửa.', true);
+        return;
+    }
+
+    try {
+        const { data } = await api(`/admin/asset-categories/${categoryId}`, {
+            method: 'PATCH',
+            body,
+        });
+        elements.categoryResult.textContent = `Category đã sửa: ${data.name} · ${data.id}`;
+        showMessage('Đã cập nhật category.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function deleteCategory(event) {
+    event.preventDefault();
+    const categoryId = String(new FormData(elements.deleteCategoryForm).get('categoryId')).trim();
+    if (!confirm(`Xóa category ${categoryId}?`)) return;
+    try {
+        await api(`/admin/asset-categories/${categoryId}`, { method: 'DELETE' });
+        elements.deleteCategoryForm.reset();
+        elements.categoryResult.textContent = `Đã xóa category ${categoryId}`;
+        showMessage('Đã xóa category.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
 async function createUser(event) {
     event.preventDefault();
     const form = new FormData(elements.createUserForm);
@@ -659,7 +895,9 @@ function showApp() {
 function showError(error) {
     const details = Array.isArray(error.details)
         ? ` ${error.details.map((item) => `${item.path}: ${item.message}`).join('; ')}`
-        : '';
+        : error.details
+          ? ` ${JSON.stringify(error.details)}`
+          : '';
     showMessage(`${error.message}${details}`, true);
 }
 
@@ -707,6 +945,17 @@ function button(text, className, onClick) {
     result.type = 'button';
     result.addEventListener('click', onClick);
     return result;
+}
+
+function parseTags(value) {
+    return [
+        ...new Set(
+            String(value ?? '')
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean),
+        ),
+    ];
 }
 
 function formatMb(bytes) {

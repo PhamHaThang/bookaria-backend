@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
+import { env } from '../../../config';
 import { pool } from '../../../db';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -34,6 +35,19 @@ async function createAdmin() {
     const admin = await register('Admin');
     await pool.query(`UPDATE users SET role = 'ADMIN' WHERE id = $1`, [admin.userId]);
     return { ...admin, token: await login(admin.email) };
+}
+
+async function createReadyAsset(ownerId: string, name = 'Tài nguyên kiểm thử') {
+    const marker = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const { rows } = await pool.query<{ id: string }>(
+        `INSERT INTO assets
+            (owner_id, type, name, original_public_id, resource_type, thumbnail_url,
+             format, size_bytes, status)
+         VALUES ($1, 'IMAGE', $2, $3, 'image', $3, 'jpg', 2048, 'READY')
+         RETURNING id`,
+        [ownerId, name, `https://example.com/assets/${marker}.jpg`],
+    );
+    return (rows[0] as { id: string }).id;
 }
 
 async function createReportedBook(ownerId: string, reasons = ['COPYRIGHT', 'OTHER']) {
@@ -612,5 +626,239 @@ suite('kiểm duyệt của admin', () => {
             audit_count: 1,
             target_type: 'BOOK',
         });
+    });
+});
+
+suite('thư viện tài nguyên chung của admin', () => {
+    it('dựng URL giao tài nguyên từ Cloudinary public id', async () => {
+        const admin = await createAdmin();
+        const author = await register('LibraryUrlAuthor');
+        const assetId = await createReadyAsset(author.userId);
+        await pool.query(
+            `UPDATE assets SET original_public_id = 'bookaria/library/example', thumbnail_url = NULL
+             WHERE id = $1`,
+            [assetId],
+        );
+        const previousCloudinaryUrl = env.CLOUDINARY_URL;
+        env.CLOUDINARY_URL = 'cloudinary://key:secret@test-cloud';
+        try {
+            const response = await request(app)
+                .post('/api/v1/admin/library/assets')
+                .set(bearer(admin.token))
+                .send({
+                    assetId,
+                    name: 'Asset Cloudinary',
+                    license: 'CC0',
+                    authorName: 'Tác giả',
+                });
+            expect(response.status).toBe(201);
+            expect(response.body.data.url).toBe(
+                'https://res.cloudinary.com/test-cloud/image/upload/bookaria/library/example.jpg',
+            );
+        } finally {
+            env.CLOUDINARY_URL = previousCloudinaryUrl;
+        }
+    });
+
+    it('liệt kê, thêm, sửa, xoá mềm asset và ghi audit', async () => {
+        const admin = await createAdmin();
+        const author = await register('LibraryAssetAuthor');
+        const assetId = await createReadyAsset(author.userId, 'Cây xanh');
+        const category = await request(app)
+            .post('/api/v1/admin/asset-categories')
+            .set(bearer(admin.token))
+            .send({ name: 'Thiên nhiên' });
+        const categoryId = category.body.data.id as string;
+
+        const invalid = await request(app)
+            .post('/api/v1/admin/library/assets')
+            .set(bearer(admin.token))
+            .send({ assetId, name: 'Cây thư viện', authorName: 'Tác giả gốc' });
+        expect(invalid.status).toBe(400);
+
+        const created = await request(app)
+            .post('/api/v1/admin/library/assets')
+            .set(bearer(admin.token))
+            .send({
+                assetId,
+                name: 'Cây thư viện',
+                categoryId,
+                license: 'CC-BY-4.0',
+                authorName: 'Tác giả gốc',
+                sourceUrl: 'https://example.com/source',
+                tags: ['Nature', 'nature', 'Tree'],
+            });
+        expect(created.status).toBe(201);
+        expect(created.body.data).toMatchObject({
+            id: assetId,
+            scope: 'library',
+            categoryId,
+            license: 'CC-BY-4.0',
+            authorName: 'Tác giả gốc',
+            tags: ['nature', 'tree'],
+        });
+
+        const listed = await request(app)
+            .get(
+                `/api/v1/admin/library/assets?type=IMAGE&categoryId=${categoryId}&q=${encodeURIComponent('Cây')}`,
+            )
+            .set(bearer(admin.token));
+        expect(listed.status).toBe(200);
+        expect(listed.body.meta.total).toBe(1);
+        expect(listed.body.data[0].id).toBe(assetId);
+
+        const updated = await request(app)
+            .patch(`/api/v1/admin/library/assets/${assetId}`)
+            .set(bearer(admin.token))
+            .send({ name: 'Cây đã sửa', categoryId: null, license: 'CC0' });
+        expect(updated.status).toBe(200);
+        expect(updated.body.data).toMatchObject({
+            id: assetId,
+            name: 'Cây đã sửa',
+            categoryId: null,
+            license: 'CC0',
+        });
+
+        const removed = await request(app)
+            .delete(`/api/v1/admin/library/assets/${assetId}`)
+            .set(bearer(admin.token));
+        expect(removed.status).toBe(204);
+
+        const state = await pool.query<{
+            owner_id: string | null;
+            deleted_at: Date | null;
+            audits: number;
+        }>(
+            `SELECT owner_id, deleted_at,
+                (SELECT count(*)::int FROM audit_logs
+                 WHERE target_id = assets.id
+                   AND action IN ('CREATE_LIBRARY_ASSET', 'UPDATE_LIBRARY_ASSET', 'DELETE_ASSET')) AS audits
+             FROM assets WHERE id = $1`,
+            [assetId],
+        );
+        expect(state.rows[0]).toMatchObject({ owner_id: null, audits: 3 });
+        expect(state.rows[0]?.deleted_at).toBeInstanceOf(Date);
+    });
+
+    it('không xoá asset đang được book hoặc page sử dụng', async () => {
+        const admin = await createAdmin();
+        const author = await register('UsedLibraryAssetAuthor');
+        const assetId = await createReadyAsset(author.userId);
+        await request(app).post('/api/v1/admin/library/assets').set(bearer(admin.token)).send({
+            assetId,
+            name: 'Asset đang dùng',
+            license: 'CC-BY',
+            authorName: 'Tác giả',
+        });
+        const book = await pool.query<{ id: string }>(
+            `INSERT INTO books (owner_id, title, cover_asset_id)
+             VALUES ($1, 'Sách dùng asset', $2) RETURNING id`,
+            [author.userId, assetId],
+        );
+        const bookId = (book.rows[0] as { id: string }).id;
+        const page = await pool.query<{ id: string }>(
+            `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode)
+             VALUES ($1, 0, $2, 'NONE') RETURNING id`,
+            [bookId, assetId],
+        );
+        await pool.query(`INSERT INTO page_assets (page_id, asset_id) VALUES ($1, $2)`, [
+            (page.rows[0] as { id: string }).id,
+            assetId,
+        ]);
+
+        const response = await request(app)
+            .delete(`/api/v1/admin/library/assets/${assetId}`)
+            .set(bearer(admin.token));
+        expect(response.status).toBe(409);
+        expect(response.body.error).toMatchObject({
+            code: 'ASSET_IN_USE',
+            details: { covers: 1, pageImages: 1, pageAssets: 1 },
+        });
+        const asset = await pool.query<{ deleted_at: Date | null }>(
+            `SELECT deleted_at FROM assets WHERE id = $1`,
+            [assetId],
+        );
+        expect(asset.rows[0]?.deleted_at).toBeNull();
+    });
+
+    it('chặn category còn nội dung và cây category vòng lặp', async () => {
+        const admin = await createAdmin();
+        const author = await register('LibraryCategoryAuthor');
+        const parent = await request(app)
+            .post('/api/v1/admin/asset-categories')
+            .set(bearer(admin.token))
+            .send({ name: 'Danh mục cha' });
+        const parentId = parent.body.data.id as string;
+        const child = await request(app)
+            .post('/api/v1/admin/asset-categories')
+            .set(bearer(admin.token))
+            .send({ name: 'Danh mục con', parentId });
+        const childId = child.body.data.id as string;
+
+        const updated = await request(app)
+            .patch(`/api/v1/admin/asset-categories/${childId}`)
+            .set(bearer(admin.token))
+            .send({ name: 'Danh mục con mới', sortOrder: 5 });
+        expect(updated.status).toBe(200);
+        expect(updated.body.data).toMatchObject({ name: 'Danh mục con mới', sortOrder: 5 });
+
+        const cycle = await request(app)
+            .patch(`/api/v1/admin/asset-categories/${parentId}`)
+            .set(bearer(admin.token))
+            .send({ parentId: childId });
+        expect(cycle.status).toBe(422);
+        expect(cycle.body.error.code).toBe('CATEGORY_CYCLE');
+
+        const parentWithChild = await request(app)
+            .delete(`/api/v1/admin/asset-categories/${parentId}`)
+            .set(bearer(admin.token));
+        expect(parentWithChild.status).toBe(409);
+        expect(parentWithChild.body.error.code).toBe('CATEGORY_NOT_EMPTY');
+
+        expect(
+            (
+                await request(app)
+                    .delete(`/api/v1/admin/asset-categories/${childId}`)
+                    .set(bearer(admin.token))
+            ).status,
+        ).toBe(204);
+
+        const assetId = await createReadyAsset(author.userId);
+        await request(app).post('/api/v1/admin/library/assets').set(bearer(admin.token)).send({
+            assetId,
+            name: 'Asset trong category',
+            categoryId: parentId,
+            license: 'CC0',
+            authorName: 'Tác giả',
+        });
+        const parentWithAsset = await request(app)
+            .delete(`/api/v1/admin/asset-categories/${parentId}`)
+            .set(bearer(admin.token));
+        expect(parentWithAsset.status).toBe(409);
+
+        await request(app)
+            .delete(`/api/v1/admin/library/assets/${assetId}`)
+            .set(bearer(admin.token));
+        expect(
+            (
+                await request(app)
+                    .delete(`/api/v1/admin/asset-categories/${parentId}`)
+                    .set(bearer(admin.token))
+            ).status,
+        ).toBe(204);
+
+        const audits = await pool.query<{ operation: string }>(
+            `SELECT detail->>'operation' AS operation FROM audit_logs
+             WHERE target_type = 'CATEGORY' AND target_id = ANY($1::uuid[])
+             ORDER BY id`,
+            [[parentId, childId]],
+        );
+        expect(audits.rows.map((row) => row.operation)).toEqual([
+            'CREATE',
+            'CREATE',
+            'UPDATE',
+            'DELETE',
+            'DELETE',
+        ]);
     });
 });

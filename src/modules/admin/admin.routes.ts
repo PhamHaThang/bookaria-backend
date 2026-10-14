@@ -13,6 +13,13 @@ export const adminRouter = () => {
     router.post('/books/:bookId/takedown', adminController.takeDownBook);
     router.post('/books/:bookId/reinstate', adminController.reinstateBook);
     router.post('/books/:bookId/reports/dismiss', adminController.dismissReports);
+    router.get('/library/assets', adminController.getLibraryAssets);
+    router.post('/library/assets', adminController.createLibraryAsset);
+    router.patch('/library/assets/:assetId', adminController.updateLibraryAsset);
+    router.delete('/library/assets/:assetId', adminController.deleteLibraryAsset);
+    router.post('/asset-categories', adminController.createCategory);
+    router.patch('/asset-categories/:categoryId', adminController.updateCategory);
+    router.delete('/asset-categories/:categoryId', adminController.deleteCategory);
     router.get('/users', adminController.getUsers);
     router.post('/users', adminController.createUser);
     router.get('/users/:userId', adminController.getUser);

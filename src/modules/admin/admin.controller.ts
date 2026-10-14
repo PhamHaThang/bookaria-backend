@@ -5,10 +5,15 @@ import {
     AdminCreateUserBodySchema,
     AdminUpdateUserBodySchema,
     AdminUsersQuerySchema,
+    CreateCategoryBodySchema,
+    CreateLibraryAssetBodySchema,
     IdSchema,
+    LibraryAssetsQuerySchema,
     ModerationNoteBodySchema,
     PaginationQuerySchema,
     TakedownBodySchema,
+    UpdateCategoryBodySchema,
+    UpdateLibraryAssetBodySchema,
 } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { adminService } from './admin.service';
@@ -57,6 +62,54 @@ export const adminController = {
         res.json({ data: result });
     }),
 
+    getLibraryAssets: asyncHandler(async (req: Request, res: Response) => {
+        const query = LibraryAssetsQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getLibraryAssets(query);
+        res.json({ data: rows, meta });
+    }),
+
+    createLibraryAsset: asyncHandler(async (req: Request, res: Response) => {
+        const body = CreateLibraryAssetBodySchema.parse(req.body);
+        const asset = await adminService.createLibraryAsset(getAuth(res), body);
+        res.status(201).json({ data: asset });
+    }),
+
+    updateLibraryAsset: asyncHandler(async (req: Request, res: Response) => {
+        const body = UpdateLibraryAssetBodySchema.parse(req.body);
+        const asset = await adminService.updateLibraryAsset(
+            getAuth(res),
+            assetIdOf(req.params),
+            body,
+        );
+        res.json({ data: asset });
+    }),
+
+    deleteLibraryAsset: asyncHandler(async (req: Request, res: Response) => {
+        await adminService.deleteLibraryAsset(getAuth(res), assetIdOf(req.params));
+        res.status(204).end();
+    }),
+
+    createCategory: asyncHandler(async (req: Request, res: Response) => {
+        const body = CreateCategoryBodySchema.parse(req.body);
+        const category = await adminService.createCategory(getAuth(res), body);
+        res.status(201).json({ data: category });
+    }),
+
+    updateCategory: asyncHandler(async (req: Request, res: Response) => {
+        const body = UpdateCategoryBodySchema.parse(req.body);
+        const category = await adminService.updateCategory(
+            getAuth(res),
+            categoryIdOf(req.params),
+            body,
+        );
+        res.json({ data: category });
+    }),
+
+    deleteCategory: asyncHandler(async (req: Request, res: Response) => {
+        await adminService.deleteCategory(getAuth(res), categoryIdOf(req.params));
+        res.status(204).end();
+    }),
+
     getUsers: asyncHandler(async (req: Request, res: Response) => {
         const query = AdminUsersQuerySchema.parse(req.query);
         const { rows, meta } = await adminService.getUsers(query);
@@ -90,5 +143,17 @@ function userIdOf(params: { userId?: string }): string {
 function bookIdOf(params: { bookId?: string }): string {
     const parsed = IdSchema.safeParse(params.bookId);
     if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy sách.');
+    return parsed.data;
+}
+
+function assetIdOf(params: { assetId?: string }): string {
+    const parsed = IdSchema.safeParse(params.assetId);
+    if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy tài nguyên.');
+    return parsed.data;
+}
+
+function categoryIdOf(params: { categoryId?: string }): string {
+    const parsed = IdSchema.safeParse(params.categoryId);
+    if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
     return parsed.data;
 }
