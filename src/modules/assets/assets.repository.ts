@@ -159,16 +159,17 @@ export const assetsRepository = {
         );
         return rows[0];
     },
-    async lockUsableImage(
+    async lockUsableAsset(
         db: Queryable,
         userId: string,
         assetId: string,
+        type: AssetType,
     ): Promise<{ id: string } | undefined> {
         const { rows } = await db.query<{ id: string }>(
             `SELECT id FROM assets
-            WHERE id = $1 AND type = 'IMAGE' AND deleted_at IS NULL AND status = 'READY'
-            AND (owner_id = $2 OR (owner_id IS NULL AND status = 'READY')) FOR SHARE`,
-            [assetId, userId],
+            WHERE id = $1 AND type = $2 AND deleted_at IS NULL AND status = 'READY'
+            AND (owner_id = $3 OR owner_id IS NULL) FOR SHARE`,
+            [assetId, type, userId],
         );
         return rows[0];
     },

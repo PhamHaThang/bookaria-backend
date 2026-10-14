@@ -57,3 +57,7 @@ export interface CompleteUploadResult {
     status: 200 | 202;
     body: { data: unknown };
 }
+export type AssetFile = Pick<
+    AssetRow,
+    'resource_type' | 'original_public_id' | 'optimized_public_id' | 'format'
+>;

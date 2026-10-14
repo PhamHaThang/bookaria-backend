@@ -14,6 +14,7 @@ import {
     type Asset,
     type AssetCategory,
     AssetCategoryListSchema,
+    AssetRefSchema,
     AssetSchema,
     type AssetType,
     type AssetUsage,
@@ -32,15 +33,24 @@ import {
 } from '../../schema';
 import { AppError, buildPaginationMeta, toOffset } from '../../utils';
 import { assetsRepository } from './assets.repository';
-import type { AssetRow, CompleteUploadResult, UploadIntentRow, UsageRow } from './assets.types';
+import type {
+    AssetFile,
+    AssetRow,
+    CompleteUploadResult,
+    UploadIntentRow,
+    UsageRow,
+} from './assets.types';
+
+const MARKER_MIND_MAX_BYTES = 5 * 1024 * 1024;
 
 export const assetsService = {
-    async lockImageForUse(
+    async lockAssetForUse(
         db: Queryable,
         userId: string,
         assetId: string,
+        type: AssetType,
     ): Promise<{ id: string } | undefined> {
-        return await assetsRepository.lockUsableImage(db, userId, assetId);
+        return await assetsRepository.lockUsableAsset(db, userId, assetId, type);
     },
     async lockAvatarForUse(
         db: Queryable,
@@ -277,6 +287,10 @@ export const assetsService = {
             await assetsRepository.softDeleteAsset(db, assetId);
         });
     },
+    // Kiểm tra xem user có quyền xem asset hay không (dùng cho các route public).
+    async canSeeAsset(db: Queryable, userId: string, assetId: string): Promise<boolean> {
+        return (await assetsRepository.getVisibleAsset(db, userId, assetId)) !== undefined;
+    },
 
     // Lấy URL ảnh bìa (thumbnail) của một asset, hoặc null nếu không có.
     coverUrl(a: { resource_type: CloudinaryResourceType; public_id: string }): string | null {
@@ -287,6 +301,14 @@ export const assetsService = {
             publicId: a.public_id,
             transform: TRANSFORM.thumbnail,
         });
+    },
+    // Kiểm tra xem một file có phải là Marker File hay không.
+    async isMarkerFileOf(userId: string, publicId: string): Promise<boolean> {
+        if (!publicId.startsWith(`${UPLOAD_FOLDER}/${userId}/`) || !publicId.endsWith('.mind')) {
+            return false;
+        }
+        const stored = await requireStorage().inspect('raw', publicId);
+        return stored !== null && stored.bytes <= MARKER_MIND_MAX_BYTES;
     },
 };
 export const assetCategoriesService = {
@@ -324,16 +346,19 @@ function nameFromFile(fileName: string): string {
     const base = fileName.replace(/\.[^.]*$/, '').trim();
     return (base === '' ? 'Tài nguyên' : base).slice(0, 150);
 }
+function fileUrl(storage: MediaStorage, a: AssetFile): string {
+    return storage.deliveryUrl({
+        resourceType: a.resource_type,
+        publicId: a.optimized_public_id ?? a.original_public_id,
+        format: a.format,
+    });
+}
 function toAsset(storage: MediaStorage, a: AssetRow): Asset {
     return AssetSchema.parse({
         id: a.id,
         type: a.type,
         // The processed copy when the worker has made one, the original until then.
-        url: storage.deliveryUrl({
-            resourceType: a.resource_type,
-            publicId: a.optimized_public_id ?? a.original_public_id,
-            format: a.format,
-        }),
+        url: fileUrl(storage, a),
         thumbnailUrl: a.thumbnail_url,
         meta: a.meta,
         name: a.name,
@@ -424,4 +449,28 @@ function recheckUploadRequest(
         });
     }
     return check.assetType;
+}
+
+export function toAssetRef(a: AssetFile & Pick<AssetRow, 'type' | 'thumbnail_url' | 'meta'>) {
+    const storage = requireStorage();
+    return AssetRefSchema.parse({
+        type: a.type,
+        url: fileUrl(storage, a),
+        thumbnailUrl: a.thumbnail_url,
+        meta: a.meta,
+    });
+}
+
+export function pageImageUrls(a: AssetFile & Pick<AssetRow, 'thumbnail_url'>) {
+    const storage = requireStorage();
+    return {
+        url: fileUrl(storage, a),
+        thumbnailUrl:
+            a.thumbnail_url ??
+            storage.deliveryUrl({
+                resourceType: a.resource_type,
+                publicId: a.original_public_id,
+                transform: TRANSFORM.thumbnail,
+            }),
+    };
 }

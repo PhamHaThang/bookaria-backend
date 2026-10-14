@@ -31,5 +31,6 @@ export interface EditableBook {
     age_min: number | null;
     age_max: number | null;
     page_format: PageFormat;
+    page_aspect: string;
     taken_down: boolean;
 }

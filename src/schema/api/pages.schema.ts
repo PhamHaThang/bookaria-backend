@@ -43,6 +43,7 @@ export const ReorderPagesBodySchema = z.object({
             error: 'Danh sách trang có mã bị trùng lặp',
         }),
 });
+export type ReorderPagesBody = z.infer<typeof ReorderPagesBodySchema>;
 
 export const ReorderPagesResultSchema = z.object({
     pages: z.array(z.object({ id: IdSchema, orderIndex: z.int().min(0) })),
@@ -55,6 +56,7 @@ export const PageSettingsPatchSchema = z.object({
     narrationAssetId: IdSchema.nullable().optional(),
     lighting: LightingPresetSchema.optional(),
 });
+export type PageSettingsPatch = z.infer<typeof PageSettingsPatchSchema>;
 
 /** `PATCH /pages/:pageId`. `noAr: true` marks a text-only page (marker mode NONE). */
 export const UpdatePageBodySchema = z
@@ -66,6 +68,7 @@ export const UpdatePageBodySchema = z
     .refine((b) => Object.values(b).some((v) => v !== undefined), {
         error: 'Cần gửi ít nhất một trường để sửa',
     });
+export type UpdatePageBody = z.infer<typeof UpdatePageBodySchema>;
 
 /**
  * `PUT /pages/:pageId/image`. A custom-marker page must send the `.mind` file compiled in the
@@ -75,6 +78,7 @@ export const ReplacePageImageBodySchema = z.object({
     imageAssetId: IdSchema,
     markerMindPublicId: z.string().trim().min(1).max(300).optional(),
 });
+export type ReplacePageImageBody = z.infer<typeof ReplacePageImageBodySchema>;
 
 export const ReplacePageImageResultSchema = z.object({
     page: PageSummarySchema,

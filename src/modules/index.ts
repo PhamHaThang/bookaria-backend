@@ -4,6 +4,7 @@ import { authRouter } from './auth/auth.routes';
 import { bookRouter } from './books/books.routes';
 import { healthRouter } from './health/health.routes';
 import { meRouter } from './me/me.routes';
+import { bookPagesRouter, pagesRouter } from './pages/pages.routes';
 
 export interface ApiRouterOptions {
     rateLimit: boolean;
@@ -14,7 +15,9 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use(healthRouter);
     router.use('/auth', authRouter({ rateLimit: options.rateLimit }));
     router.use('/me', meRouter({ rateLimit: options.rateLimit }));
+    router.use('/books/:bookId/pages', bookPagesRouter());
     router.use('/books', bookRouter());
+    router.use('/pages', pagesRouter());
     router.use('/assets', assetsRouter({ rateLimit: options.rateLimit }));
     router.use('/asset-categories', assetCategoriesRouter());
     return router;

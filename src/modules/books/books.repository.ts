@@ -111,7 +111,7 @@ export const booksRepository = {
         bookId: string,
     ): Promise<EditableBook | undefined> {
         const { rows } = await db.query<EditableBook>(
-            `SELECT b.age_min, b.age_max, b.page_format, (b.taken_down_at IS NOT NULL) AS taken_down
+            `SELECT b.age_min, b.age_max, b.page_format, b.page_aspect, (b.taken_down_at IS NOT NULL) AS taken_down
             FROM books b
             WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL
             FOR UPDATE`,

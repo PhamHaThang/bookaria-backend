@@ -16,6 +16,7 @@ import {
 } from '../../schema';
 import { AppError, buildPaginationMeta, fieldError, toOffset } from '../../utils';
 import { assetsService } from '../assets/assets.service';
+import { pagesService } from '../pages/pages.service';
 import { PAGE_ASPECT, TRASH_DAYS } from './books.constants';
 import { booksRepository } from './books.repository';
 import type { BookRow } from './books.types';
@@ -68,9 +69,7 @@ export const booksService = {
                           versionNo: book.version_no,
                           publishedAt: book.version_published_at.toISOString(),
                       },
-            // The page strip needs thumbnail addresses and the page endpoints.
-            // Until then it is empty; `pageCount` above is already the real number.
-            pages: [],
+            pages: await pagesService.getPageSummaries(pool, bookId),
         });
     },
     async createBook(userId: string, body: CreateBookBody): Promise<CreateBookResult> {
@@ -118,7 +117,9 @@ export const booksService = {
             if (body.coverAssetId === null) changes.cover_asset_id = null;
             if (typeof body.coverAssetId === 'string') {
                 // Chỉ cho phép sử dụng ảnh của người dùng hoặc thư viện chung để làm ảnh bìa.
-                if (!(await assetsService.lockImageForUse(db, userId, body.coverAssetId))) {
+                if (
+                    !(await assetsService.lockAssetForUse(db, userId, body.coverAssetId, 'IMAGE'))
+                ) {
                     throw fieldError(
                         'coverAssetId',
                         'Không tìm thấy ảnh này trong thư viện của bạn.',
