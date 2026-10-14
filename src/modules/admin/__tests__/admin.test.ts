@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { env } from '../../../config';
 import { pool } from '../../../db';
+import { adminService } from '../admin.service';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp();
@@ -100,6 +101,14 @@ suite('quản lý người dùng của admin', () => {
         await pool.query(`UPDATE users SET role = 'AUTHOR' WHERE id = $1`, [admin.userId]);
         const stale = await request(app).get('/api/v1/admin/users').set(bearer(admin.token));
         expect(stale.status).toBe(403);
+
+        const lockedAdmin = await createAdmin();
+        await pool.query(`UPDATE users SET status = 'LOCKED' WHERE id = $1`, [lockedAdmin.userId]);
+        const lockedRes = await request(app)
+            .get('/api/v1/admin/users')
+            .set(bearer(lockedAdmin.token));
+        expect(lockedRes.status).toBe(423);
+        expect(lockedRes.body.error.code).toBe('ACCOUNT_LOCKED');
     });
 
     it('trả thống kê dashboard và hành vi quản trị trong ngày', async () => {
@@ -246,12 +255,13 @@ suite('quản lý người dùng của admin', () => {
         }
     });
 
-    it('tìm người dùng và trả chi tiết kèm sách', async () => {
+    it('tìm người dùng và trả chi tiết kèm sách có coverUrl', async () => {
         const admin = await createAdmin();
         const author = await register('Nguoi Viet');
+        const coverAssetId = await createReadyAsset(author.userId, 'Ảnh bìa sách');
         await pool.query(
-            `INSERT INTO books (owner_id, title, visibility) VALUES ($1, 'Sách kiểm thử', 'PUBLIC')`,
-            [author.userId],
+            `INSERT INTO books (owner_id, title, cover_asset_id, visibility) VALUES ($1, 'Sách kiểm thử', $2, 'PUBLIC')`,
+            [author.userId, coverAssetId],
         );
 
         const list = await request(app)
@@ -271,6 +281,7 @@ suite('quản lý người dùng của admin', () => {
         expect(detail.status).toBe(200);
         expect(detail.body.data.books).toHaveLength(1);
         expect(detail.body.data.books[0].title).toBe('Sách kiểm thử');
+        expect(detail.body.data.books[0].coverUrl).toContain('https://example.com/assets/');
     });
 
     it('khóa và mở khóa trong transaction, kèm session, sách, thông báo và audit', async () => {
@@ -422,6 +433,33 @@ suite('quản lý người dùng của admin', () => {
             .send({ role: 'AUTHOR', reason: 'Không hợp lệ' });
         expect(response.status).toBe(422);
         expect(response.body.error.code).toBe('SELF_ACTION');
+    });
+
+    it('chặn khóa hoặc hạ quyền admin cuối cùng (LAST_ADMIN)', async () => {
+        const actorAdmin = await createAdmin();
+        const targetAdmin = await createAdmin();
+
+        await pool.query(`UPDATE users SET role = 'AUTHOR' WHERE id <> $1 AND role = 'ADMIN'`, [
+            targetAdmin.userId,
+        ]);
+
+        await expect(
+            adminService.updateUser(
+                { userId: actorAdmin.userId, role: 'ADMIN', sessionId: actorAdmin.token },
+                targetAdmin.userId,
+                { role: 'AUTHOR', reason: 'Hạ quyền admin cuối cùng' },
+            ),
+        ).rejects.toMatchObject({ code: 'LAST_ADMIN' });
+
+        await expect(
+            adminService.updateUser(
+                { userId: actorAdmin.userId, role: 'ADMIN', sessionId: actorAdmin.token },
+                targetAdmin.userId,
+                { status: 'LOCKED', reason: 'Khóa admin cuối cùng' },
+            ),
+        ).rejects.toMatchObject({ code: 'LAST_ADMIN' });
+
+        await pool.query(`UPDATE users SET role = 'ADMIN' WHERE id = $1`, [actorAdmin.userId]);
     });
 });
 
@@ -860,5 +898,237 @@ suite('thư viện tài nguyên chung của admin', () => {
             'DELETE',
             'DELETE',
         ]);
+    });
+});
+
+suite('bộ marker Bookaria của admin', () => {
+    it('liệt kê, thêm, bật/tắt marker; chặn number hoặc seed trùng và ghi audit', async () => {
+        const admin = await createAdmin();
+        const markerNumber = 1_000_000 + (Date.now() % 1_000_000);
+        const seed = Date.now() * 1_000 + Math.floor(Math.random() * 1_000);
+        const previousCloudinaryUrl = env.CLOUDINARY_URL;
+        env.CLOUDINARY_URL = 'cloudinary://key:secret@test-cloud';
+        let markerId: string;
+        try {
+            const created = await request(app)
+                .post('/api/v1/admin/bookaria-markers')
+                .set(bearer(admin.token))
+                .send({
+                    number: markerNumber,
+                    imagePublicId: `bookaria/markers/${markerNumber}`,
+                    mindPublicId: `bookaria/markers/${markerNumber}.mind`,
+                    seed,
+                    markerScore: 5,
+                });
+            expect(created.status).toBe(201);
+            expect(created.body.data).toMatchObject({
+                number: markerNumber,
+                imageUrl: `https://res.cloudinary.com/test-cloud/image/upload/bookaria/markers/${markerNumber}`,
+                markerScore: 5,
+                isActive: true,
+            });
+            expect(created.body.data.validatedAt).toBeTruthy();
+            markerId = created.body.data.id as string;
+
+            const listed = await request(app)
+                .get('/api/v1/admin/bookaria-markers?page=1&limit=20')
+                .set(bearer(admin.token));
+            expect(listed.status).toBe(200);
+            expect(listed.body.data).toEqual(
+                expect.arrayContaining([expect.objectContaining({ id: markerId })]),
+            );
+
+            const duplicateNumber = await request(app)
+                .post('/api/v1/admin/bookaria-markers')
+                .set(bearer(admin.token))
+                .send({
+                    number: markerNumber,
+                    imagePublicId: 'bookaria/markers/duplicate-number',
+                    mindPublicId: 'bookaria/markers/duplicate-number.mind',
+                    seed: seed + 1,
+                });
+            expect(duplicateNumber.body.error.code).toBe('MARKER_DUPLICATE');
+            expect(duplicateNumber.status).toBe(409);
+
+            const duplicateSeed = await request(app)
+                .post('/api/v1/admin/bookaria-markers')
+                .set(bearer(admin.token))
+                .send({
+                    number: markerNumber + 1,
+                    imagePublicId: 'bookaria/markers/duplicate-seed',
+                    mindPublicId: 'bookaria/markers/duplicate-seed.mind',
+                    seed,
+                });
+            expect(duplicateSeed.body.error.code).toBe('MARKER_DUPLICATE');
+            expect(duplicateSeed.status).toBe(409);
+
+            const disabled = await request(app)
+                .patch(`/api/v1/admin/bookaria-markers/${markerId}`)
+                .set(bearer(admin.token))
+                .send({ isActive: false });
+            expect(disabled.status).toBe(200);
+            expect(disabled.body.data.isActive).toBe(false);
+
+            const enabled = await request(app)
+                .patch(`/api/v1/admin/bookaria-markers/${markerId}`)
+                .set(bearer(admin.token))
+                .send({ isActive: true });
+            expect(enabled.status).toBe(200);
+            expect(enabled.body.data.isActive).toBe(true);
+        } finally {
+            env.CLOUDINARY_URL = previousCloudinaryUrl;
+        }
+
+        const audits = await pool.query<{ operation: string }>(
+            `SELECT detail->>'operation' AS operation FROM audit_logs
+             WHERE target_type = 'MARKER' AND target_id = $1 ORDER BY id`,
+            [markerId as string],
+        );
+        expect(audits.rows.map((row) => row.operation)).toEqual([
+            'CREATE',
+            'SET_ACTIVE',
+            'SET_ACTIVE',
+        ]);
+    });
+
+    it('không cho page mới nhận marker đang tắt', async () => {
+        const admin = await createAdmin();
+        const author = await register('InactiveMarkerAuthor');
+        const markerNumber = 2_000_000 + (Date.now() % 1_000_000);
+        const marker = await request(app)
+            .post('/api/v1/admin/bookaria-markers')
+            .set(bearer(admin.token))
+            .send({
+                number: markerNumber,
+                imagePublicId: `https://example.com/markers/${markerNumber}.png`,
+                mindPublicId: `bookaria/markers/${markerNumber}.mind`,
+                seed: Date.now() * 1_000 + Math.floor(Math.random() * 1_000),
+            });
+        expect(marker.status).toBe(201);
+        const markerId = marker.body.data.id as string;
+        await request(app)
+            .patch(`/api/v1/admin/bookaria-markers/${markerId}`)
+            .set(bearer(admin.token))
+            .send({ isActive: false });
+
+        const assetId = await createReadyAsset(author.userId);
+        const book = await pool.query<{ id: string }>(
+            `INSERT INTO books (owner_id, title) VALUES ($1, 'Marker bị tắt') RETURNING id`,
+            [author.userId],
+        );
+        const bookId = (book.rows[0] as { id: string }).id;
+        await expect(
+            pool.query(
+                `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode, bookaria_marker_id)
+                 VALUES ($1, 0, $2, 'BOOKARIA_MARKER', $3)`,
+                [bookId, assetId, markerId],
+            ),
+        ).rejects.toMatchObject({ code: '23514' });
+
+        await request(app)
+            .patch(`/api/v1/admin/bookaria-markers/${markerId}`)
+            .set(bearer(admin.token))
+            .send({ isActive: true });
+        await expect(
+            pool.query(
+                `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode, bookaria_marker_id)
+                 VALUES ($1, 0, $2, 'BOOKARIA_MARKER', $3)`,
+                [bookId, assetId, markerId],
+            ),
+        ).resolves.toBeDefined();
+    });
+});
+
+suite('jobs và audit của admin', () => {
+    it('lọc jobs, chỉ retry job FAILED, tránh job mở trùng và ghi audit để tra cứu', async () => {
+        const admin = await createAdmin();
+        const author = await register('JobAuthor');
+        const failed = await pool.query<{ id: string }>(
+            `INSERT INTO jobs
+                (type, status, ref_type, ref_id, result, progress, attempts, error, created_by,
+                 started_at, finished_at)
+             VALUES
+                ('PUBLISH_BOOK', 'FAILED', 'BOOK', $1, '{"partial":true}'::jsonb, 60, 2,
+                 'Không thể xuất bản', $2, now(), now())
+             RETURNING id`,
+            [author.userId, author.userId],
+        );
+        const failedJobId = (failed.rows[0] as { id: string }).id;
+
+        const listed = await request(app)
+            .get('/api/v1/admin/jobs?status=FAILED&type=PUBLISH_BOOK')
+            .set(bearer(admin.token));
+        expect(listed.status).toBe(200);
+        expect(listed.body.data).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: failedJobId,
+                    status: 'FAILED',
+                    error: { code: 'JOB_FAILED', message: 'Không thể xuất bản' },
+                    attempts: 2,
+                    createdBy: { id: author.userId, displayName: 'JobAuthor' },
+                }),
+            ]),
+        );
+
+        const retried = await request(app)
+            .post(`/api/v1/admin/jobs/${failedJobId}/retry`)
+            .set(bearer(admin.token));
+        expect(retried.status).toBe(202);
+        expect(retried.body.data).toEqual({ jobId: failedJobId });
+
+        const reset = await pool.query<{
+            status: string;
+            progress: number;
+            attempts: number;
+            result: Record<string, unknown> | null;
+            error: string | null;
+            started_at: Date | null;
+            finished_at: Date | null;
+        }>(
+            `SELECT status, progress, attempts, result, error, started_at, finished_at
+             FROM jobs WHERE id = $1`,
+            [failedJobId],
+        );
+        expect(reset.rows[0]).toEqual({
+            status: 'QUEUED',
+            progress: 0,
+            attempts: 0,
+            result: null,
+            error: null,
+            started_at: null,
+            finished_at: null,
+        });
+
+        const retryOpen = await request(app)
+            .post(`/api/v1/admin/jobs/${failedJobId}/retry`)
+            .set(bearer(admin.token));
+        expect(retryOpen.status).toBe(409);
+        expect(retryOpen.body.error.code).toBe('JOB_IN_PROGRESS');
+
+        const anotherFailed = await pool.query<{ id: string }>(
+            `INSERT INTO jobs (type, status, ref_type, ref_id, error, created_by)
+             VALUES ('PUBLISH_BOOK', 'FAILED', 'BOOK', $1, 'Lỗi lần hai', $2) RETURNING id`,
+            [author.userId, author.userId],
+        );
+        const blocked = await request(app)
+            .post(`/api/v1/admin/jobs/${anotherFailed.rows[0]?.id}/retry`)
+            .set(bearer(admin.token));
+        expect(blocked.status).toBe(409);
+        expect(blocked.body.error.code).toBe('JOB_IN_PROGRESS');
+
+        const audit = await request(app)
+            .get(`/api/v1/admin/audit-logs?action=RETRY_JOB&actorId=${admin.userId}`)
+            .set(bearer(admin.token));
+        expect(audit.status).toBe(200);
+        expect(audit.body.data).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    action: 'RETRY_JOB',
+                    actor: { id: admin.userId, displayName: 'Admin' },
+                    target: { type: 'JOB', id: failedJobId },
+                }),
+            ]),
+        );
     });
 });

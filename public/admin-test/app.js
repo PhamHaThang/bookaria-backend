@@ -7,6 +7,7 @@ const state = {
     totalPages: 1,
     libraryPage: 1,
     libraryTotalPages: 1,
+    markersPage: 1,
     selectedUser: null,
     selectedBookId: null,
     view: 'dashboard',
@@ -20,6 +21,7 @@ const elements = {
     closeDetail: document.querySelector('#close-detail'),
     closeEdit: document.querySelector('#close-edit'),
     closeModerationDetail: document.querySelector('#close-moderation-detail'),
+    createMarkerForm: document.querySelector('#create-marker-form'),
     createCategoryForm: document.querySelector('#create-category-form'),
     createLibraryAssetForm: document.querySelector('#create-library-asset-form'),
     createUserDialog: document.querySelector('#create-user-dialog'),
@@ -44,6 +46,9 @@ const elements = {
     libraryView: document.querySelector('#library-view'),
     logout: document.querySelector('#logout-button'),
     message: document.querySelector('#message'),
+    markers: document.querySelector('#markers-body'),
+    markersMeta: document.querySelector('#markers-meta'),
+    markersView: document.querySelector('#markers-view'),
     metricBooks: document.querySelector('#metric-books'),
     metricJobs: document.querySelector('#metric-jobs'),
     metricReports: document.querySelector('#metric-reports'),
@@ -69,6 +74,7 @@ const elements = {
     refreshDashboard: document.querySelector('#refresh-dashboard'),
     refreshModeration: document.querySelector('#refresh-moderation'),
     refreshLibrary: document.querySelector('#refresh-library'),
+    refreshMarkers: document.querySelector('#refresh-markers'),
     reinstateBook: document.querySelector('#reinstate-book'),
     dismissReports: document.querySelector('#dismiss-reports'),
     takedownBook: document.querySelector('#takedown-book'),
@@ -86,10 +92,12 @@ elements.createUserForm.addEventListener('submit', createUser);
 elements.refreshDashboard.addEventListener('click', () => void loadDashboard());
 elements.refreshModeration.addEventListener('click', () => void loadModeration());
 elements.refreshLibrary.addEventListener('click', () => void loadLibraryAssets());
+elements.refreshMarkers.addEventListener('click', () => void loadMarkers());
 elements.createLibraryAssetForm.addEventListener('submit', createLibraryAsset);
 elements.createCategoryForm.addEventListener('submit', createCategory);
 elements.updateCategoryForm.addEventListener('submit', updateCategory);
 elements.deleteCategoryForm.addEventListener('submit', deleteCategory);
+elements.createMarkerForm.addEventListener('submit', createMarker);
 elements.libraryFilters.addEventListener('submit', (event) => {
     event.preventDefault();
     state.libraryPage = 1;
@@ -191,9 +199,10 @@ async function logout() {
 }
 
 async function openView(view) {
-    state.view = ['users', 'moderation', 'library'].includes(view) ? view : 'dashboard';
+    state.view = ['users', 'moderation', 'library', 'markers'].includes(view) ? view : 'dashboard';
     elements.dashboardView.classList.toggle('hidden', state.view !== 'dashboard');
     elements.libraryView.classList.toggle('hidden', state.view !== 'library');
+    elements.markersView.classList.toggle('hidden', state.view !== 'markers');
     elements.moderationView.classList.toggle('hidden', state.view !== 'moderation');
     elements.usersView.classList.toggle('hidden', state.view !== 'users');
     for (const link of elements.navLinks) {
@@ -206,6 +215,7 @@ async function openView(view) {
     if (state.view === 'dashboard') await loadDashboard();
     else if (state.view === 'moderation') await loadModeration();
     else if (state.view === 'library') await loadLibraryAssets();
+    else if (state.view === 'markers') await loadMarkers();
     else await loadUsers();
 }
 
@@ -662,6 +672,86 @@ async function deleteCategory(event) {
         elements.deleteCategoryForm.reset();
         elements.categoryResult.textContent = `Đã xóa category ${categoryId}`;
         showMessage('Đã xóa category.');
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function loadMarkers() {
+    try {
+        const result = await api(`/admin/bookaria-markers?page=${state.markersPage}&limit=100`);
+        elements.markersMeta.textContent = `${formatNumber(result.meta.total)} marker`;
+        renderMarkers(result.data);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+function renderMarkers(markers) {
+    elements.markers.replaceChildren();
+    if (!markers.length) {
+        renderEmptyRow(elements.markers, 6, 'Chưa có marker.');
+        return;
+    }
+    for (const marker of markers) {
+        const actions = node('div', '', 'actions');
+        actions.append(
+            button(
+                marker.isActive ? 'Tắt' : 'Bật',
+                marker.isActive ? 'danger' : '',
+                () => void setMarkerActive(marker, !marker.isActive),
+            ),
+        );
+        const row = document.createElement('tr');
+        row.append(
+            cell(String(marker.number)),
+            cellWith(externalLink('Mở ảnh', marker.imageUrl)),
+            cell(marker.markerScore ?? '—'),
+            cell(formatDate(marker.validatedAt)),
+            cellWith(
+                node(
+                    'span',
+                    marker.isActive ? 'ACTIVE' : 'INACTIVE',
+                    `badge ${marker.isActive ? '' : 'locked'}`,
+                ),
+            ),
+            cellWith(actions),
+        );
+        elements.markers.append(row);
+    }
+}
+
+async function createMarker(event) {
+    event.preventDefault();
+    const form = new FormData(elements.createMarkerForm);
+    const markerScore = String(form.get('markerScore') ?? '').trim();
+    try {
+        const { data } = await api('/admin/bookaria-markers', {
+            method: 'POST',
+            body: {
+                number: Number(form.get('number')),
+                seed: Number(form.get('seed')),
+                imagePublicId: String(form.get('imagePublicId')).trim(),
+                mindPublicId: String(form.get('mindPublicId')).trim(),
+                ...(markerScore ? { markerScore: Number(markerScore) } : {}),
+            },
+        });
+        elements.createMarkerForm.reset();
+        await loadMarkers();
+        showMessage(`Đã thêm marker #${data.number}.`);
+    } catch (error) {
+        showError(error);
+    }
+}
+
+async function setMarkerActive(marker, isActive) {
+    try {
+        await api(`/admin/bookaria-markers/${marker.id}`, {
+            method: 'PATCH',
+            body: { isActive },
+        });
+        await loadMarkers();
+        showMessage(`Đã ${isActive ? 'bật' : 'tắt'} marker #${marker.number}.`);
     } catch (error) {
         showError(error);
     }

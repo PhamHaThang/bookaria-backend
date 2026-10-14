@@ -30,6 +30,7 @@ export const ErrorCodeSchema = z.enum([
     'ACCOUNT_LOCKED',
     'RATE_LIMITED',
     'MARKER_POOL_EXHAUSTED',
+    'MARKER_DUPLICATE',
     'INTERNAL_ERROR',
 ]);
 
@@ -62,6 +63,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
     LAST_ADMIN: 422,
     SELF_ACTION: 422,
     MARKER_POOL_EXHAUSTED: 422,
+    MARKER_DUPLICATE: 409,
     ACCOUNT_LOCKED: 423,
     RATE_LIMITED: 429,
     INTERNAL_ERROR: 500,
@@ -96,6 +98,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     ACCOUNT_LOCKED: 'Tài khoản đang bị khoá.',
     RATE_LIMITED: 'Bạn thao tác quá nhanh, vui lòng thử lại sau.',
     MARKER_POOL_EXHAUSTED: 'Sách đã dùng hết số marker Bookaria.',
+    MARKER_DUPLICATE: 'Số hoặc seed marker đã tồn tại.',
     INTERNAL_ERROR: 'Đã có lỗi xảy ra, vui lòng thử lại sau.',
 };
 

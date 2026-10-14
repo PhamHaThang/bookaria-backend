@@ -1,20 +1,26 @@
 import type { Queryable } from '../../db';
 import type {
     AdminBooksQuery,
+    AdminJobsQuery,
     AdminUsersQuery,
     AuditAction,
+    AuditLogsQuery,
     AuditTargetType,
     LibraryAssetsQuery,
+    PaginationQuery,
     UserRole,
     UserStatus,
 } from '../../schema';
 import type {
     AdminBookRow,
     AdminDashboardMetricsRow,
+    AdminJobRow,
     AdminUserRow,
     AssetCategoryRow,
     AssetUsageCountsRow,
     AuditActionTodayRow,
+    AuditLogRow,
+    BookariaMarkerRow,
     CurrentAdminRow,
     LibraryAssetRow,
     LockedModerationBookRow,
@@ -251,6 +257,174 @@ export const adminRepository = {
 
     async deleteCategory(db: Queryable, categoryId: string): Promise<void> {
         await db.query(`DELETE FROM asset_categories WHERE id = $1`, [categoryId]);
+    },
+
+    async getBookariaMarkers(db: Queryable, query: PaginationQuery, offset: number) {
+        const [markers, count] = await Promise.all([
+            db.query<BookariaMarkerRow>(
+                `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
+                        marker_score, is_active
+                 FROM bookaria_markers
+                 ORDER BY number, id
+                 LIMIT $1 OFFSET $2`,
+                [query.limit, offset],
+            ),
+            db.query<{ total: number }>(`SELECT count(*)::int AS total FROM bookaria_markers`),
+        ]);
+        return { rows: markers.rows, total: count.rows[0]?.total ?? 0 };
+    },
+
+    async insertBookariaMarker(
+        db: Queryable,
+        marker: {
+            number: number;
+            imagePublicId: string;
+            mindPublicId: string;
+            seed: number;
+            markerScore: number | null;
+        },
+    ): Promise<BookariaMarkerRow> {
+        const { rows } = await db.query<BookariaMarkerRow>(
+            `INSERT INTO bookaria_markers
+                (number, image_public_id, mind_public_id, seed, marker_score, validated_at)
+             VALUES ($1, $2, $3, $4, $5, now())
+             RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
+                       marker_score, is_active`,
+            [
+                marker.number,
+                marker.imagePublicId,
+                marker.mindPublicId,
+                marker.seed,
+                marker.markerScore,
+            ],
+        );
+        return rows[0] as BookariaMarkerRow;
+    },
+
+    async lockBookariaMarker(
+        db: Queryable,
+        markerId: string,
+    ): Promise<BookariaMarkerRow | undefined> {
+        const { rows } = await db.query<BookariaMarkerRow>(
+            `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
+                    marker_score, is_active
+             FROM bookaria_markers WHERE id = $1 FOR UPDATE`,
+            [markerId],
+        );
+        return rows[0];
+    },
+
+    async setBookariaMarkerActive(
+        db: Queryable,
+        markerId: string,
+        isActive: boolean,
+    ): Promise<BookariaMarkerRow> {
+        const { rows } = await db.query<BookariaMarkerRow>(
+            `UPDATE bookaria_markers SET is_active = $2 WHERE id = $1
+             RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
+                       marker_score, is_active`,
+            [markerId, isActive],
+        );
+        return rows[0] as BookariaMarkerRow;
+    },
+
+    async getJobs(db: Queryable, query: AdminJobsQuery, offset: number) {
+        const where: string[] = [];
+        const params: unknown[] = [];
+        if (query.status) {
+            params.push(query.status);
+            where.push(`j.status = $${params.length}`);
+        }
+        if (query.type) {
+            params.push(query.type);
+            where.push(`j.type = $${params.length}`);
+        }
+        const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const [jobs, count] = await Promise.all([
+            db.query<AdminJobRow>(
+                `SELECT j.id, j.type, j.status, j.progress, j.ref_type, j.ref_id, j.result,
+                        j.error, j.attempts, j.created_at, j.finished_at,
+                        u.id AS created_by_id, u.display_name AS created_by_display_name
+                 FROM jobs j LEFT JOIN users u ON u.id = j.created_by
+                 ${clause}
+                 ORDER BY j.created_at DESC, j.id DESC
+                 LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+                [...params, query.limit, offset],
+            ),
+            db.query<{ total: number }>(
+                `SELECT count(*)::int AS total FROM jobs j ${clause}`,
+                params,
+            ),
+        ]);
+        return { rows: jobs.rows, total: count.rows[0]?.total ?? 0 };
+    },
+
+    async lockJob(db: Queryable, jobId: string): Promise<AdminJobRow | undefined> {
+        const { rows } = await db.query<AdminJobRow>(
+            `SELECT j.id, j.type, j.status, j.progress, j.ref_type, j.ref_id, j.result,
+                    j.error, j.attempts, j.created_at, j.finished_at,
+                    u.id AS created_by_id, u.display_name AS created_by_display_name
+             FROM jobs j LEFT JOIN users u ON u.id = j.created_by
+             WHERE j.id = $1 FOR UPDATE OF j`,
+            [jobId],
+        );
+        return rows[0];
+    },
+
+    async hasOpenJobForRef(
+        db: Queryable,
+        refType: AdminJobRow['ref_type'],
+        refId: string,
+        ignoredJobId: string,
+    ): Promise<boolean> {
+        const { rows } = await db.query<{ id: string }>(
+            `SELECT id FROM jobs
+             WHERE ref_type = $1 AND ref_id = $2 AND id <> $3
+               AND status IN ('QUEUED', 'RUNNING')
+             FOR UPDATE`,
+            [refType, refId, ignoredJobId],
+        );
+        return rows.length > 0;
+    },
+
+    async retryJob(db: Queryable, jobId: string): Promise<void> {
+        await db.query(
+            `UPDATE jobs
+             SET status = 'QUEUED', progress = 0, attempts = 0, result = NULL, error = NULL,
+                 started_at = NULL, finished_at = NULL
+             WHERE id = $1`,
+            [jobId],
+        );
+    },
+
+    async getAuditLogs(db: Queryable, query: AuditLogsQuery, offset: number) {
+        const where: string[] = [];
+        const params: unknown[] = [];
+        if (query.action) {
+            params.push(query.action);
+            where.push(`a.action = $${params.length}`);
+        }
+        if (query.actorId) {
+            params.push(query.actorId);
+            where.push(`a.actor_id = $${params.length}`);
+        }
+        const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const [logs, count] = await Promise.all([
+            db.query<AuditLogRow>(
+                `SELECT a.id, a.actor_id, u.display_name AS actor_display_name, a.action,
+                        a.target_type, a.target_id, a.detail, a.created_at
+                 FROM audit_logs a JOIN users u ON u.id = a.actor_id
+                 ${clause}
+                 ORDER BY a.id DESC
+                 LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+                [...params, query.limit, offset],
+            ),
+            db.query<{ total: number }>(
+                `SELECT count(*)::int AS total FROM audit_logs a ${clause}`,
+                params,
+            ),
+        ]);
+        return { rows: logs.rows, total: count.rows[0]?.total ?? 0 };
     },
 
     async getDashboard(db: Queryable) {
@@ -543,11 +717,12 @@ export const adminRepository = {
 
     async getUserBooks(db: Queryable, userId: string): Promise<AdminBookRow[]> {
         const { rows } = await db.query<AdminBookRow>(
-            `SELECT b.id, b.title, b.status, b.visibility,
+            `SELECT b.id, b.title, cover.thumbnail_url AS cover_url, b.status, b.visibility,
                     (b.taken_down_at IS NOT NULL) AS taken_down,
                     (SELECT count(*)::int FROM pages p WHERE p.book_id = b.id) AS page_count,
                     b.updated_at
              FROM books b
+             LEFT JOIN assets cover ON cover.id = b.cover_asset_id
              WHERE b.owner_id = $1 AND b.deleted_at IS NULL
              ORDER BY b.updated_at DESC, b.id`,
             [userId],

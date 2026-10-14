@@ -12,6 +12,9 @@ import {
     type AdminCreateUserBody,
     type AdminDashboard,
     AdminDashboardSchema,
+    type AdminJob,
+    AdminJobSchema,
+    type AdminJobsQuery,
     type AdminUpdateUserBody,
     type AdminUpdateUserResult,
     AdminUpdateUserResultSchema,
@@ -23,8 +26,14 @@ import {
     type Asset,
     AssetCategorySchema,
     AssetSchema,
+    type AuditLog,
+    AuditLogSchema,
+    type AuditLogsQuery,
+    type BookariaMarker,
+    BookariaMarkerSchema,
     type BookSummary,
     BookSummarySchema,
+    type CreateBookariaMarkerBody,
     type CreateCategoryBody,
     type CreateLibraryAssetBody,
     type DismissReportsResult,
@@ -39,6 +48,7 @@ import {
     type TakedownBody,
     type TakedownResult,
     TakedownResultSchema,
+    type UpdateBookariaMarkerBody,
     type UpdateCategoryBody,
     type UpdateLibraryAssetBody,
 } from '../../schema';
@@ -46,8 +56,11 @@ import { AppError, buildPaginationMeta, lockedByAdminError, toOffset } from '../
 import { adminRepository } from './admin.repository';
 import type {
     AdminBookRow,
+    AdminJobRow,
     AdminUserRow,
     AssetCategoryRow,
+    AuditLogRow,
+    BookariaMarkerRow,
     LibraryAssetRow,
     ModerationBookRow,
 } from './admin.types';
@@ -56,7 +69,7 @@ export const adminService = {
     async assertAdmin(auth: Auth): Promise<void> {
         const user = await adminRepository.findCurrentAdmin(pool, auth.userId, auth.sessionId);
         if (!user) throw new AppError('UNAUTHENTICATED');
-        if (user.status === 'LOCKED') throw lockedByAdminError();
+        if (user.status !== 'ACTIVE') throw lockedByAdminError();
         if (user.role !== 'ADMIN') throw new AppError('FORBIDDEN');
         if (!user.session_active) throw new AppError('UNAUTHENTICATED');
     },
@@ -493,6 +506,136 @@ export const adminService = {
         });
     },
 
+    async getBookariaMarkers(
+        query: PaginationQuery,
+    ): Promise<{ rows: BookariaMarker[]; meta: PaginationMeta }> {
+        const { rows, total } = await adminRepository.getBookariaMarkers(
+            pool,
+            query,
+            toOffset(query),
+        );
+        return {
+            rows: rows.map(toBookariaMarker),
+            meta: buildPaginationMeta(query, total),
+        };
+    },
+
+    async createBookariaMarker(
+        actor: Auth,
+        body: CreateBookariaMarkerBody,
+    ): Promise<BookariaMarker> {
+        try {
+            const marker = await withTransaction(async (db) => {
+                const created = await adminRepository.insertBookariaMarker(db, {
+                    ...body,
+                    markerScore: body.markerScore ?? null,
+                });
+                await adminRepository.insertAuditLog(
+                    db,
+                    actor.userId,
+                    'MANAGE_MARKER',
+                    created.id,
+                    {
+                        operation: 'CREATE',
+                        number: created.number,
+                        seed: created.seed,
+                        isActive: created.is_active,
+                    },
+                    'MARKER',
+                );
+                return created;
+            });
+            return toBookariaMarker(marker);
+        } catch (error) {
+            if (isUniqueViolation(error)) throw new AppError('MARKER_DUPLICATE');
+            throw error;
+        }
+    },
+
+    async updateBookariaMarker(
+        actor: Auth,
+        markerId: string,
+        body: UpdateBookariaMarkerBody,
+    ): Promise<BookariaMarker> {
+        const marker = await withTransaction(async (db) => {
+            const current = await adminRepository.lockBookariaMarker(db, markerId);
+            if (!current) throw new AppError('NOT_FOUND', 'Không tìm thấy marker.');
+            if (current.is_active === body.isActive) return current;
+
+            const updated = await adminRepository.setBookariaMarkerActive(
+                db,
+                markerId,
+                body.isActive,
+            );
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_MARKER',
+                markerId,
+                {
+                    operation: 'SET_ACTIVE',
+                    number: updated.number,
+                    from: current.is_active,
+                    to: updated.is_active,
+                },
+                'MARKER',
+            );
+            return updated;
+        });
+        return toBookariaMarker(marker);
+    },
+
+    async getJobs(query: AdminJobsQuery): Promise<{ rows: AdminJob[]; meta: PaginationMeta }> {
+        const { rows, total } = await adminRepository.getJobs(pool, query, toOffset(query));
+        return {
+            rows: rows.map(toAdminJob),
+            meta: buildPaginationMeta(query, total),
+        };
+    },
+
+    async retryJob(actor: Auth, jobId: string): Promise<string> {
+        try {
+            return await withTransaction(async (db) => {
+                const job = await adminRepository.lockJob(db, jobId);
+                if (!job) throw new AppError('NOT_FOUND', 'Không tìm thấy job.');
+                if (job.status === 'QUEUED' || job.status === 'RUNNING') {
+                    throw new AppError('JOB_IN_PROGRESS');
+                }
+                if (job.status !== 'FAILED') {
+                    throw new AppError('VALIDATION_ERROR', 'Chỉ có thể chạy lại job FAILED.');
+                }
+                if (await adminRepository.hasOpenJobForRef(db, job.ref_type, job.ref_id, job.id)) {
+                    throw new AppError('JOB_IN_PROGRESS');
+                }
+                await adminRepository.retryJob(db, jobId);
+                await adminRepository.insertAuditLog(
+                    db,
+                    actor.userId,
+                    'RETRY_JOB',
+                    jobId,
+                    {
+                        type: job.type,
+                        ref: { type: job.ref_type, id: job.ref_id },
+                        reset: ['status', 'progress', 'attempts', 'result', 'error', 'timestamps'],
+                    },
+                    'JOB',
+                );
+                return jobId;
+            });
+        } catch (error) {
+            if (isUniqueViolation(error)) throw new AppError('JOB_IN_PROGRESS');
+            throw error;
+        }
+    },
+
+    async getAuditLogs(query: AuditLogsQuery): Promise<{ rows: AuditLog[]; meta: PaginationMeta }> {
+        const { rows, total } = await adminRepository.getAuditLogs(pool, query, toOffset(query));
+        return {
+            rows: rows.map(toAuditLog),
+            meta: buildPaginationMeta(query, total),
+        };
+    },
+
     async getUsers(query: AdminUsersQuery): Promise<{ rows: AdminUser[]; meta: PaginationMeta }> {
         const { rows, total } = await adminRepository.getUsers(pool, query, toOffset(query));
         return {
@@ -661,7 +804,7 @@ const toBookSummary = (book: AdminBookRow): BookSummary =>
     BookSummarySchema.parse({
         id: book.id,
         title: book.title,
-        coverUrl: null,
+        coverUrl: book.cover_url,
         status: book.status,
         visibility: book.visibility,
         takenDown: book.taken_down,
@@ -758,6 +901,54 @@ const toCategory = (category: AssetCategoryRow) =>
         parentId: category.parent_id,
         sortOrder: category.sort_order,
     });
+
+const toBookariaMarker = (marker: BookariaMarkerRow): BookariaMarker =>
+    BookariaMarkerSchema.parse({
+        id: marker.id,
+        number: marker.number,
+        imageUrl: markerImageUrl(marker.image_public_id),
+        markerScore: marker.marker_score,
+        isActive: marker.is_active,
+        validatedAt: marker.validated_at?.toISOString() ?? null,
+    });
+
+const toAdminJob = (job: AdminJobRow): AdminJob =>
+    AdminJobSchema.parse({
+        id: job.id,
+        type: job.type,
+        status: job.status,
+        progress: job.progress,
+        ref: { type: job.ref_type, id: job.ref_id },
+        result: job.result,
+        error: job.error ? { code: 'JOB_FAILED', message: job.error } : null,
+        createdAt: job.created_at.toISOString(),
+        finishedAt: job.finished_at?.toISOString() ?? null,
+        attempts: job.attempts,
+        createdBy:
+            job.created_by_id && job.created_by_display_name
+                ? { id: job.created_by_id, displayName: job.created_by_display_name }
+                : null,
+    });
+
+const toAuditLog = (log: AuditLogRow): AuditLog =>
+    AuditLogSchema.parse({
+        id: Number(log.id),
+        actor: { id: log.actor_id, displayName: log.actor_display_name },
+        action: log.action,
+        target: { type: log.target_type, id: log.target_id },
+        detail: log.detail,
+        createdAt: log.created_at.toISOString(),
+    });
+
+function markerImageUrl(publicId: string): string {
+    if (/^https?:\/\//i.test(publicId)) return publicId;
+    if (!env.CLOUDINARY_URL) {
+        throw new AppError('INTERNAL_ERROR', 'Chưa cấu hình CLOUDINARY_URL để dựng URL marker.');
+    }
+    const cloudName = new URL(env.CLOUDINARY_URL).hostname;
+    const path = publicId.split('/').map(encodeURIComponent).join('/');
+    return `https://res.cloudinary.com/${cloudName}/image/upload/${path}`;
+}
 
 function slugify(name: string): string {
     return (

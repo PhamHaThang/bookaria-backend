@@ -534,7 +534,7 @@ export const routes: Route[] = [
         summary: 'Chấm lại marker của trang Custom (202 + `jobId`)',
         params: params.pageId,
         responses: { 202: dataResponse(JobStartedSchema) },
-        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'VALIDATION_ERROR'],
     },
     {
         id: 'putPagesByPageIdMarker',
@@ -1010,6 +1010,7 @@ export const routes: Route[] = [
         summary: 'Thêm marker vào bộ',
         body: CreateBookariaMarkerBodySchema,
         responses: { 201: dataResponse(BookariaMarkerSchema) },
+        errors: ['MARKER_DUPLICATE'],
     },
     {
         id: 'patchAdminBookariaMarkersByMarkerId',
@@ -1039,7 +1040,7 @@ export const routes: Route[] = [
         summary: 'Chạy lại tác vụ lỗi',
         params: params.jobId,
         responses: { 202: dataResponse(JobStartedSchema) },
-        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'VALIDATION_ERROR'],
     },
     {
         id: 'getAdminAuditLogs',

@@ -14008,6 +14008,27 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "`MARKER_DUPLICATE`: Số hoặc seed marker đã tồn tại.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "MARKER_DUPLICATE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "MARKER_DUPLICATE",
+                                                "message": "Số hoặc seed marker đã tồn tại.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -17928,6 +17949,7 @@
                                     "ACCOUNT_LOCKED",
                                     "RATE_LIMITED",
                                     "MARKER_POOL_EXHAUSTED",
+                                    "MARKER_DUPLICATE",
                                     "INTERNAL_ERROR"
                                 ]
                             },

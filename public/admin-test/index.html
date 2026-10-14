@@ -60,6 +60,10 @@
                             <span aria-hidden="true">▦</span>
                             Thư viện
                         </button>
+                        <button class="nav-link" data-view="markers" type="button">
+                            <span aria-hidden="true">▣</span>
+                            Marker
+                        </button>
                     </nav>
                 </aside>
 
@@ -397,6 +401,74 @@
                                 <button id="library-next-page" class="secondary" type="button">
                                     Trang sau
                                 </button>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section id="markers-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Bookaria marker</p>
+                                <h2>Bộ marker</h2>
+                                <p class="muted">Thêm marker đã build và bật/tắt marker cho page mới.</p>
+                            </div>
+                            <button id="refresh-markers" class="secondary" type="button">Làm mới</button>
+                        </div>
+
+                        <div class="library-panels">
+                            <section class="card">
+                                <h3>Thêm marker</h3>
+                                <form id="create-marker-form" class="form-grid">
+                                    <label>
+                                        Number
+                                        <input name="number" type="number" min="1" required />
+                                    </label>
+                                    <label>
+                                        Seed
+                                        <input name="seed" type="number" step="1" required />
+                                    </label>
+                                    <label>
+                                        Image public ID
+                                        <input name="imagePublicId" maxlength="300" placeholder="bookaria/markers/001" required />
+                                    </label>
+                                    <label>
+                                        Mind public ID
+                                        <input name="mindPublicId" maxlength="300" placeholder="bookaria/markers/001.mind" required />
+                                    </label>
+                                    <label>
+                                        Marker score
+                                        <input name="markerScore" type="number" min="0" max="5" step="1" placeholder="Không bắt buộc" />
+                                    </label>
+                                    <button type="submit">Thêm marker</button>
+                                </form>
+                            </section>
+                            <section class="card">
+                                <h3>Quy tắc</h3>
+                                <p class="hint">Number và seed phải duy nhất. Marker tắt vẫn giữ nguyên ở các page cũ, nhưng không thể được gán cho page mới.</p>
+                            </section>
+                        </div>
+
+                        <section class="card table-card">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Danh sách marker</h3>
+                                    <p id="markers-meta" class="muted"></p>
+                                </div>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Number</th>
+                                            <th>Ảnh</th>
+                                            <th>Score</th>
+                                            <th>Đã kiểm tra</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="markers-body"></tbody>
+                                </table>
                             </div>
                         </section>
                     </section>

@@ -3,8 +3,11 @@ import { getAuth } from '../../middlewares';
 import {
     AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
+    AdminJobsQuerySchema,
     AdminUpdateUserBodySchema,
     AdminUsersQuerySchema,
+    AuditLogsQuerySchema,
+    CreateBookariaMarkerBodySchema,
     CreateCategoryBodySchema,
     CreateLibraryAssetBodySchema,
     IdSchema,
@@ -12,6 +15,7 @@ import {
     ModerationNoteBodySchema,
     PaginationQuerySchema,
     TakedownBodySchema,
+    UpdateBookariaMarkerBodySchema,
     UpdateCategoryBodySchema,
     UpdateLibraryAssetBodySchema,
 } from '../../schema';
@@ -110,6 +114,45 @@ export const adminController = {
         res.status(204).end();
     }),
 
+    getBookariaMarkers: asyncHandler(async (req: Request, res: Response) => {
+        const query = PaginationQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getBookariaMarkers(query);
+        res.json({ data: rows, meta });
+    }),
+
+    createBookariaMarker: asyncHandler(async (req: Request, res: Response) => {
+        const body = CreateBookariaMarkerBodySchema.parse(req.body);
+        const marker = await adminService.createBookariaMarker(getAuth(res), body);
+        res.status(201).json({ data: marker });
+    }),
+
+    updateBookariaMarker: asyncHandler(async (req: Request, res: Response) => {
+        const body = UpdateBookariaMarkerBodySchema.parse(req.body);
+        const marker = await adminService.updateBookariaMarker(
+            getAuth(res),
+            markerIdOf(req.params),
+            body,
+        );
+        res.json({ data: marker });
+    }),
+
+    getJobs: asyncHandler(async (req: Request, res: Response) => {
+        const query = AdminJobsQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getJobs(query);
+        res.json({ data: rows, meta });
+    }),
+
+    retryJob: asyncHandler(async (req: Request, res: Response) => {
+        const jobId = await adminService.retryJob(getAuth(res), jobIdOf(req.params));
+        res.status(202).json({ data: { jobId } });
+    }),
+
+    getAuditLogs: asyncHandler(async (req: Request, res: Response) => {
+        const query = AuditLogsQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getAuditLogs(query);
+        res.json({ data: rows, meta });
+    }),
+
     getUsers: asyncHandler(async (req: Request, res: Response) => {
         const query = AdminUsersQuerySchema.parse(req.query);
         const { rows, meta } = await adminService.getUsers(query);
@@ -155,5 +198,17 @@ function assetIdOf(params: { assetId?: string }): string {
 function categoryIdOf(params: { categoryId?: string }): string {
     const parsed = IdSchema.safeParse(params.categoryId);
     if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy danh mục.');
+    return parsed.data;
+}
+
+function markerIdOf(params: { markerId?: string }): string {
+    const parsed = IdSchema.safeParse(params.markerId);
+    if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy marker.');
+    return parsed.data;
+}
+
+function jobIdOf(params: { jobId?: string }): string {
+    const parsed = IdSchema.safeParse(params.jobId);
+    if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy job.');
     return parsed.data;
 }

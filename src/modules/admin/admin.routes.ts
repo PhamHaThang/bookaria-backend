@@ -20,6 +20,12 @@ export const adminRouter = () => {
     router.post('/asset-categories', adminController.createCategory);
     router.patch('/asset-categories/:categoryId', adminController.updateCategory);
     router.delete('/asset-categories/:categoryId', adminController.deleteCategory);
+    router.get('/bookaria-markers', adminController.getBookariaMarkers);
+    router.post('/bookaria-markers', adminController.createBookariaMarker);
+    router.patch('/bookaria-markers/:markerId', adminController.updateBookariaMarker);
+    router.get('/jobs', adminController.getJobs);
+    router.post('/jobs/:jobId/retry', adminController.retryJob);
+    router.get('/audit-logs', adminController.getAuditLogs);
     router.get('/users', adminController.getUsers);
     router.post('/users', adminController.createUser);
     router.get('/users/:userId', adminController.getUser);

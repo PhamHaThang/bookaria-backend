@@ -216,21 +216,26 @@ export const CreateBookariaMarkerBodySchema = z.object({
     seed: z.int(),
     markerScore: MarkerScoreSchema.optional(),
 });
+export type CreateBookariaMarkerBody = z.infer<typeof CreateBookariaMarkerBodySchema>;
 
 export const UpdateBookariaMarkerBodySchema = z.object({ isActive: z.boolean() });
+export type UpdateBookariaMarkerBody = z.infer<typeof UpdateBookariaMarkerBodySchema>;
 
 // --- Jobs and audit ------------------------------------------------------------------------------
 export const AdminJobsQuerySchema = PaginationQuerySchema.extend({
     status: JobStatusSchema.optional(),
     type: JobTypeSchema.optional(),
 });
+export type AdminJobsQuery = z.infer<typeof AdminJobsQuerySchema>;
 
 export const AdminJobSchema = JobSchema.extend({
     attempts: z.int().min(0).max(3),
     createdBy: UserRefSchema.nullable(),
 });
+export type AdminJob = z.infer<typeof AdminJobSchema>;
 
 export const AuditLogsQuerySchema = PaginationQuerySchema.extend({
     action: AuditActionSchema.optional(),
     actorId: IdSchema.optional(),
 });
+export type AuditLogsQuery = z.infer<typeof AuditLogsQuerySchema>;

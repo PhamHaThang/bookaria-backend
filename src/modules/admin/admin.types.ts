@@ -2,8 +2,11 @@ import type {
     AssetStatus,
     AssetType,
     AuditAction,
+    AuditTargetType,
     BookStatus,
     BookVisibility,
+    JobStatus,
+    JobType,
     MarkerMode,
     ReportReason,
     ReportStatus,
@@ -44,6 +47,17 @@ export interface AssetUsageCountsRow {
     cover_count: number;
     page_image_count: number;
     page_asset_count: number;
+}
+
+export interface BookariaMarkerRow {
+    id: string;
+    number: number;
+    image_public_id: string;
+    seed: string;
+    mind_public_id: string;
+    validated_at: Date | null;
+    marker_score: number | null;
+    is_active: boolean;
 }
 
 export interface AdminDashboardMetricsRow {
@@ -141,6 +155,7 @@ export interface AdminUserRow {
 export interface AdminBookRow {
     id: string;
     title: string;
+    cover_url: string | null;
     status: BookStatus;
     visibility: BookVisibility;
     taken_down: boolean;
@@ -160,4 +175,31 @@ export interface CurrentAdminRow {
     role: UserRole;
     status: UserStatus;
     session_active: boolean;
+}
+
+export interface AdminJobRow {
+    id: string;
+    type: JobType;
+    status: JobStatus;
+    progress: number;
+    ref_type: 'BOOK' | 'PAGE' | 'ASSET';
+    ref_id: string;
+    result: Record<string, unknown> | null;
+    error: string | null;
+    attempts: number;
+    created_at: Date;
+    finished_at: Date | null;
+    created_by_id: string | null;
+    created_by_display_name: string | null;
+}
+
+export interface AuditLogRow {
+    id: string;
+    actor_id: string;
+    actor_display_name: string;
+    action: AuditAction;
+    target_type: AuditTargetType;
+    target_id: string;
+    detail: Record<string, unknown> | null;
+    created_at: Date;
 }
