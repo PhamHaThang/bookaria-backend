@@ -1,4 +1,87 @@
-import type { BookStatus, BookVisibility, UserRole, UserStatus } from '../../schema';
+import type {
+    AuditAction,
+    BookStatus,
+    BookVisibility,
+    MarkerMode,
+    ReportReason,
+    ReportStatus,
+    UserRole,
+    UserStatus,
+} from '../../schema';
+
+export interface AdminDashboardMetricsRow {
+    users: number;
+    published_books: number;
+    storage_used_bytes: string;
+    failed_jobs_24h: number;
+    open_reports: number;
+}
+
+export interface PublishedPerDayRow {
+    date: string;
+    count: number;
+}
+
+export interface AuditActionTodayRow {
+    action: AuditAction;
+    count: number;
+}
+
+export interface ModerationQueueRow {
+    book_id: string;
+    book_title: string;
+    author_id: string;
+    author_display_name: string;
+    report_count: number;
+    reasons: ReportReason[];
+    last_reported_at: Date;
+}
+
+export interface ModerationBookRow {
+    id: string;
+    title: string;
+    description: string | null;
+    cover_url: string | null;
+    status: BookStatus;
+    visibility: BookVisibility;
+    taken_down: boolean;
+    taken_down_reason: string | null;
+    page_count: number;
+    report_count: number;
+    updated_at: Date;
+    author_id: string;
+    author_display_name: string;
+}
+
+export interface ModerationPageRow {
+    id: string;
+    order_index: number;
+    title: string | null;
+    thumbnail_url: string | null;
+    marker_mode: MarkerMode;
+    marker_number: number | null;
+    marker_score: number | null;
+    object_count: number;
+}
+
+export interface ModerationReportRow {
+    id: string;
+    reason: ReportReason;
+    note: string | null;
+    status: ReportStatus;
+    created_at: Date;
+    handled_at: Date | null;
+}
+
+export interface LockedModerationBookRow {
+    id: string;
+    owner_id: string;
+    title: string;
+    visibility: BookVisibility;
+    visibility_before_lock: BookVisibility | null;
+    taken_down_at: Date | null;
+    owner_status: UserStatus;
+}
 
 export interface AdminUserRow {
     id: string;

@@ -36,6 +36,45 @@ async function createAdmin() {
     return { ...admin, token: await login(admin.email) };
 }
 
+async function createReportedBook(ownerId: string, reasons = ['COPYRIGHT', 'OTHER']) {
+    const marker = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+    const asset = await pool.query<{ id: string }>(
+        `INSERT INTO assets
+            (owner_id, type, name, original_public_id, resource_type, thumbnail_url,
+             format, size_bytes, status)
+         VALUES ($1, 'IMAGE', 'Ảnh trang', $2, 'image', $3, 'jpg', 1024, 'READY')
+         RETURNING id`,
+        [ownerId, `page-${marker}`, `https://example.com/${marker}.jpg`],
+    );
+    const assetId = (asset.rows[0] as { id: string }).id;
+    const title = `Sách kiểm duyệt ${marker}`;
+    const book = await pool.query<{ id: string }>(
+        `INSERT INTO books (owner_id, title, description, cover_asset_id, visibility)
+         VALUES ($1, $2, 'Mô tả kiểm duyệt', $3, 'PUBLIC') RETURNING id`,
+        [ownerId, title, assetId],
+    );
+    const bookId = (book.rows[0] as { id: string }).id;
+    await pool.query(
+        `INSERT INTO pages (book_id, order_index, title, image_asset_id, marker_mode)
+         VALUES ($1, 0, 'Trang đầu', $2, 'NONE')`,
+        [bookId, assetId],
+    );
+    await pool.query(
+        `UPDATE books
+         SET status = 'PUBLISHED', slug = $2, first_published_at = now()
+         WHERE id = $1`,
+        [bookId, `moderation-${marker}`],
+    );
+    for (const [index, reason] of reasons.entries()) {
+        await pool.query(
+            `INSERT INTO reports (book_id, reason, note, reporter_fingerprint)
+             VALUES ($1, $2, $3, $4)`,
+            [bookId, reason, `Báo cáo ${index + 1}`, `${marker}-${index}`],
+        );
+    }
+    return { bookId, title };
+}
+
 suite('quản lý người dùng của admin', () => {
     it('chặn tác giả và không tin role ADMIN đã cũ trong access token', async () => {
         const author = await register('Author');
@@ -47,6 +86,64 @@ suite('quản lý người dùng của admin', () => {
         await pool.query(`UPDATE users SET role = 'AUTHOR' WHERE id = $1`, [admin.userId]);
         const stale = await request(app).get('/api/v1/admin/users').set(bearer(admin.token));
         expect(stale.status).toBe(403);
+    });
+
+    it('trả thống kê dashboard và hành vi quản trị trong ngày', async () => {
+        const admin = await createAdmin();
+        const email = uniqueEmail('Dashboard');
+        const created = await request(app)
+            .post('/api/v1/admin/users')
+            .set(bearer(admin.token))
+            .send({ email, password: PASSWORD, displayName: 'Dashboard User' });
+        expect(created.status).toBe(201);
+
+        const storageUsedBytes = 123_456;
+        await pool.query(`UPDATE users SET storage_used_bytes = $2 WHERE id = $1`, [
+            created.body.data.id,
+            storageUsedBytes,
+        ]);
+        const marker = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+        const book = await pool.query<{ id: string }>(
+            `INSERT INTO books (owner_id, title, status, slug, first_published_at)
+             VALUES ($1, 'Sách dashboard', 'PUBLISHED', $2, now()) RETURNING id`,
+            [created.body.data.id, `dashboard-${marker}`],
+        );
+        const bookId = (book.rows[0] as { id: string }).id;
+        await Promise.all([
+            pool.query(
+                `INSERT INTO jobs
+                    (type, status, ref_type, ref_id, error, created_at, finished_at)
+                 VALUES ('PUBLISH_BOOK', 'FAILED', 'BOOK', $1, 'Test dashboard', now(), now())`,
+                [bookId],
+            ),
+            pool.query(
+                `INSERT INTO reports (book_id, reason, reporter_fingerprint)
+                 VALUES ($1, 'OTHER', $2)`,
+                [bookId, `dashboard-${marker}`],
+            ),
+        ]);
+
+        const response = await request(app).get('/api/v1/admin/dashboard').set(bearer(admin.token));
+        expect(response.status).toBe(200);
+        expect(response.body.data).toMatchObject({
+            users: expect.any(Number),
+            publishedBooks: expect.any(Number),
+            storageUsedBytes: expect.any(Number),
+            failedJobs24h: expect.any(Number),
+            openReports: expect.any(Number),
+        });
+        expect(response.body.data.users).toBeGreaterThanOrEqual(2);
+        expect(response.body.data.publishedBooks).toBeGreaterThanOrEqual(1);
+        expect(response.body.data.storageUsedBytes).toBeGreaterThanOrEqual(storageUsedBytes);
+        expect(response.body.data.failedJobs24h).toBeGreaterThanOrEqual(1);
+        expect(response.body.data.openReports).toBeGreaterThanOrEqual(1);
+        expect(response.body.data.publishedPerDay).toHaveLength(7);
+        expect(response.body.data.publishedPerDay.at(-1).count).toBeGreaterThanOrEqual(1);
+        expect(response.body.data.auditActionsToday).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ action: 'CREATE_USER', count: expect.any(Number) }),
+            ]),
+        );
     });
 
     it('tạo người dùng đăng nhập được, ghi audit và chặn email trùng', async () => {
@@ -311,5 +408,209 @@ suite('quản lý người dùng của admin', () => {
             .send({ role: 'AUTHOR', reason: 'Không hợp lệ' });
         expect(response.status).toBe(422);
         expect(response.body.error.code).toBe('SELF_ACTION');
+    });
+});
+
+suite('kiểm duyệt của admin', () => {
+    it('trả hàng chờ gộp theo sách, danh sách chủ động và chi tiết trang/báo cáo', async () => {
+        const admin = await createAdmin();
+        const author = await register('ModerationAuthor');
+        const { bookId, title } = await createReportedBook(author.userId);
+
+        const queue = await request(app).get('/api/v1/admin/moderation').set(bearer(admin.token));
+        expect(queue.status).toBe(200);
+        expect(queue.body.data).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    book: expect.objectContaining({ id: bookId, title }),
+                    reportCount: 2,
+                    reasons: expect.arrayContaining(['COPYRIGHT', 'OTHER']),
+                }),
+            ]),
+        );
+
+        const books = await request(app)
+            .get(`/api/v1/admin/books?q=${encodeURIComponent(title)}`)
+            .set(bearer(admin.token));
+        expect(books.status).toBe(200);
+        expect(books.body.meta.total).toBe(1);
+        expect(books.body.data[0]).toMatchObject({
+            id: bookId,
+            visibility: 'PUBLIC',
+            reportCount: 2,
+            pageCount: 1,
+            author: { id: author.userId },
+        });
+
+        const detail = await request(app)
+            .get(`/api/v1/admin/books/${bookId}`)
+            .set(bearer(admin.token));
+        expect(detail.status).toBe(200);
+        expect(detail.body.data.book).toMatchObject({
+            id: bookId,
+            description: 'Mô tả kiểm duyệt',
+            pages: [
+                expect.objectContaining({
+                    orderIndex: 0,
+                    title: 'Trang đầu',
+                    markerMode: 'NONE',
+                    objectCount: 0,
+                }),
+            ],
+        });
+        expect(detail.body.data.reports).toHaveLength(2);
+    });
+
+    it('gỡ và khôi phục sách cùng báo cáo, thông báo và audit trong transaction', async () => {
+        const admin = await createAdmin();
+        const author = await register('TakedownAuthor');
+        const { bookId } = await createReportedBook(author.userId);
+
+        const takenDown = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/takedown`)
+            .set(bearer(admin.token))
+            .send({ reason: 'Vi phạm bản quyền' });
+        expect(takenDown.status).toBe(200);
+        expect(takenDown.body.data).toEqual({
+            book: { id: bookId, visibility: 'PRIVATE', takenDown: true },
+            resolvedReports: 2,
+        });
+
+        const repeated = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/takedown`)
+            .set(bearer(admin.token))
+            .send({ reason: 'Không ghi đè' });
+        expect(repeated.body.data.resolvedReports).toBe(0);
+
+        const removed = await pool.query<{
+            visibility: string;
+            visibility_before_lock: string;
+            taken_down_reason: string;
+            actioned_reports: number;
+            notifications: number;
+            audits: number;
+        }>(
+            `SELECT b.visibility, b.visibility_before_lock, b.taken_down_reason,
+                (SELECT count(*)::int FROM reports
+                 WHERE book_id = b.id AND status = 'ACTIONED') AS actioned_reports,
+                (SELECT count(*)::int FROM notifications
+                 WHERE user_id = b.owner_id AND type = 'BOOK_TAKEN_DOWN') AS notifications,
+                (SELECT count(*)::int FROM audit_logs
+                 WHERE target_id = b.id AND action = 'TAKE_DOWN_BOOK') AS audits
+             FROM books b WHERE b.id = $1`,
+            [bookId],
+        );
+        expect(removed.rows[0]).toEqual({
+            visibility: 'PRIVATE',
+            visibility_before_lock: 'PUBLIC',
+            taken_down_reason: 'Vi phạm bản quyền',
+            actioned_reports: 2,
+            notifications: 1,
+            audits: 1,
+        });
+
+        const reinstated = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/reinstate`)
+            .set(bearer(admin.token))
+            .send({ note: 'Đã xác minh quyền sử dụng' });
+        expect(reinstated.status).toBe(200);
+        expect(reinstated.body.data.book).toMatchObject({
+            id: bookId,
+            visibility: 'PUBLIC',
+            takenDown: false,
+        });
+
+        const restored = await pool.query<{
+            visibility: string;
+            visibility_before_lock: string | null;
+            taken_down_at: Date | null;
+            taken_down_reason: string | null;
+            notifications: number;
+            audits: number;
+        }>(
+            `SELECT b.visibility, b.visibility_before_lock, b.taken_down_at, b.taken_down_reason,
+                (SELECT count(*)::int FROM notifications
+                 WHERE user_id = b.owner_id AND type = 'BOOK_REINSTATED') AS notifications,
+                (SELECT count(*)::int FROM audit_logs
+                 WHERE target_id = b.id AND action = 'REINSTATE_BOOK') AS audits
+             FROM books b WHERE b.id = $1`,
+            [bookId],
+        );
+        expect(restored.rows[0]).toEqual({
+            visibility: 'PUBLIC',
+            visibility_before_lock: null,
+            taken_down_at: null,
+            taken_down_reason: null,
+            notifications: 1,
+            audits: 1,
+        });
+    });
+
+    it('khôi phục sách vẫn giữ PRIVATE khi tác giả đang bị khóa', async () => {
+        const admin = await createAdmin();
+        const author = await register('LockedBookAuthor');
+        const { bookId } = await createReportedBook(author.userId, []);
+        await request(app)
+            .post(`/api/v1/admin/books/${bookId}/takedown`)
+            .set(bearer(admin.token))
+            .send({ reason: 'Kiểm tra' });
+        await pool.query(`UPDATE users SET status = 'LOCKED' WHERE id = $1`, [author.userId]);
+
+        const response = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/reinstate`)
+            .set(bearer(admin.token))
+            .send({});
+        expect(response.status).toBe(200);
+        expect(response.body.data.book.visibility).toBe('PRIVATE');
+        const book = await pool.query<{ visibility_before_lock: string }>(
+            `SELECT visibility_before_lock FROM books WHERE id = $1`,
+            [bookId],
+        );
+        expect(book.rows[0]?.visibility_before_lock).toBe('PUBLIC');
+    });
+
+    it('bỏ qua toàn bộ báo cáo OPEN và chỉ ghi audit khi có thay đổi', async () => {
+        const admin = await createAdmin();
+        const author = await register('DismissAuthor');
+        const { bookId } = await createReportedBook(author.userId, ['OTHER']);
+
+        const dismissed = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/reports/dismiss`)
+            .set(bearer(admin.token))
+            .send({ note: 'Không vi phạm' });
+        expect(dismissed.status).toBe(200);
+        expect(dismissed.body.data.dismissedReports).toBe(1);
+
+        const repeated = await request(app)
+            .post(`/api/v1/admin/books/${bookId}/reports/dismiss`)
+            .set(bearer(admin.token))
+            .send({ note: 'Không còn báo cáo' });
+        expect(repeated.body.data.dismissedReports).toBe(0);
+
+        const state = await pool.query<{
+            status: string;
+            handled_by: string;
+            resolution_note: string;
+            taken_down_at: Date | null;
+            audit_count: number;
+            target_type: string;
+        }>(
+            `SELECT r.status, r.handled_by, r.resolution_note, b.taken_down_at,
+                (SELECT count(*)::int FROM audit_logs
+                 WHERE target_id = b.id AND action = 'DISMISS_REPORT') AS audit_count,
+                (SELECT target_type FROM audit_logs
+                 WHERE target_id = b.id AND action = 'DISMISS_REPORT' LIMIT 1) AS target_type
+             FROM reports r JOIN books b ON b.id = r.book_id
+             WHERE r.book_id = $1`,
+            [bookId],
+        );
+        expect(state.rows[0]).toEqual({
+            status: 'DISMISSED',
+            handled_by: admin.userId,
+            resolution_note: 'Không vi phạm',
+            taken_down_at: null,
+            audit_count: 1,
+            target_type: 'BOOK',
+        });
     });
 });

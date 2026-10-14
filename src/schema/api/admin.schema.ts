@@ -38,7 +38,9 @@ export const AdminDashboardSchema = z.object({
     failedJobs24h: z.int().min(0),
     openReports: z.int().min(0),
     publishedPerDay: z.array(z.object({ date: z.iso.date(), count: z.int().min(0) })),
+    auditActionsToday: z.array(z.object({ action: AuditActionSchema, count: z.int().min(1) })),
 });
+export type AdminDashboard = z.infer<typeof AdminDashboardSchema>;
 
 // --- Users ------------------------------------------------------------------------
 export const AdminUsersQuerySchema = PaginationQuerySchema.extend({
@@ -101,12 +103,14 @@ export type AdminUpdateUserResult = z.infer<typeof AdminUpdateUserResultSchema>;
 
 export const AdminBooksQuerySchema = PaginationQuerySchema.extend({
     q: z.string().trim().max(100).optional(),
-    visibility: BookVisibilitySchema.optional(),
+    visibility: BookVisibilitySchema.default('PUBLIC'),
 });
+export type AdminBooksQuery = z.infer<typeof AdminBooksQuerySchema>;
 export const AdminBookItemSchema = BookSummarySchema.extend({
     author: UserRefSchema,
     reportCount: z.int().min(0),
 });
+export type AdminBookItem = z.infer<typeof AdminBookItemSchema>;
 export const ReportItemSchema = z.object({
     id: IdSchema,
     reason: ReportReasonSchema,
@@ -115,31 +119,41 @@ export const ReportItemSchema = z.object({
     createdAt: IsoDateTimeSchema,
     handledAt: IsoDateTimeSchema.nullable(),
 });
+export type ReportItem = z.infer<typeof ReportItemSchema>;
+
+export const AdminPageSummarySchema = PageSummarySchema.extend({
+    thumbnailUrl: HttpUrlSchema.nullable(),
+});
 
 export const AdminBookDetailSchema = z.object({
     book: BookSummarySchema.extend({
         author: UserRefSchema,
         description: z.string().nullable(),
         takenDownReason: z.string().nullable(),
-        pages: z.array(PageSummarySchema),
+        pages: z.array(AdminPageSummarySchema),
     }),
     reports: z.array(ReportItemSchema),
 });
+export type AdminBookDetail = z.infer<typeof AdminBookDetailSchema>;
 
 export const TakedownBodySchema = z.object({
     reason: z.string().trim().min(1, { error: 'Cần nhập lý do gỡ sách' }).max(1000),
 });
+export type TakedownBody = z.infer<typeof TakedownBodySchema>;
 
 export const TakedownResultSchema = z.object({
     book: z.object({ id: IdSchema, visibility: BookVisibilitySchema, takenDown: z.boolean() }),
     resolvedReports: z.int().min(0),
 });
+export type TakedownResult = z.infer<typeof TakedownResultSchema>;
 export const ModerationNoteBodySchema = z.object({
     note: z.string().trim().max(1000).optional(),
 });
+export type ModerationNoteBody = z.infer<typeof ModerationNoteBodySchema>;
 export const DismissReportsResultSchema = z.object({
     dismissedReports: z.int().min(0),
 });
+export type DismissReportsResult = z.infer<typeof DismissReportsResultSchema>;
 
 // --- Shared library ------------------------------------------------------------------------------
 

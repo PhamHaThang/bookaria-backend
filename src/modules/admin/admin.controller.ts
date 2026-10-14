@@ -1,10 +1,14 @@
 import type { NextFunction, Request, Response } from 'express';
 import { getAuth } from '../../middlewares';
 import {
+    AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
     AdminUpdateUserBodySchema,
     AdminUsersQuerySchema,
     IdSchema,
+    ModerationNoteBodySchema,
+    PaginationQuerySchema,
+    TakedownBodySchema,
 } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { adminService } from './admin.service';
@@ -13,6 +17,44 @@ export const adminController = {
     authorize: asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
         await adminService.assertAdmin(getAuth(res));
         next();
+    }),
+
+    getDashboard: asyncHandler(async (_req: Request, res: Response) => {
+        res.json({ data: await adminService.getDashboard() });
+    }),
+
+    getModerationQueue: asyncHandler(async (req: Request, res: Response) => {
+        const query = PaginationQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getModerationQueue(query);
+        res.json({ data: rows, meta });
+    }),
+
+    getModerationBooks: asyncHandler(async (req: Request, res: Response) => {
+        const query = AdminBooksQuerySchema.parse(req.query);
+        const { rows, meta } = await adminService.getModerationBooks(query);
+        res.json({ data: rows, meta });
+    }),
+
+    getModerationBook: asyncHandler(async (req: Request, res: Response) => {
+        res.json({ data: await adminService.getModerationBook(bookIdOf(req.params)) });
+    }),
+
+    takeDownBook: asyncHandler(async (req: Request, res: Response) => {
+        const body = TakedownBodySchema.parse(req.body);
+        const result = await adminService.takeDownBook(getAuth(res), bookIdOf(req.params), body);
+        res.json({ data: result });
+    }),
+
+    reinstateBook: asyncHandler(async (req: Request, res: Response) => {
+        const body = ModerationNoteBodySchema.parse(req.body);
+        const book = await adminService.reinstateBook(getAuth(res), bookIdOf(req.params), body);
+        res.json({ data: { book } });
+    }),
+
+    dismissReports: asyncHandler(async (req: Request, res: Response) => {
+        const body = ModerationNoteBodySchema.parse(req.body);
+        const result = await adminService.dismissReports(getAuth(res), bookIdOf(req.params), body);
+        res.json({ data: result });
     }),
 
     getUsers: asyncHandler(async (req: Request, res: Response) => {
@@ -42,5 +84,11 @@ export const adminController = {
 function userIdOf(params: { userId?: string }): string {
     const parsed = IdSchema.safeParse(params.userId);
     if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy người dùng.');
+    return parsed.data;
+}
+
+function bookIdOf(params: { bookId?: string }): string {
+    const parsed = IdSchema.safeParse(params.bookId);
+    if (!parsed.success) throw new AppError('NOT_FOUND', 'Không tìm thấy sách.');
     return parsed.data;
 }
