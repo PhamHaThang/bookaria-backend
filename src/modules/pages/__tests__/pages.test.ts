@@ -582,4 +582,219 @@ suite('pages (tích hợp)', () => {
             expect(res.status).toBe(404);
         });
     });
+    describe('marker: GET/PUT /pages/:pageId/marker, POST /pages/:pageId/marker/rescore', () => {
+        const valid = { x: 0, y: 0, size: 0.2143 };
+
+        async function pageWith(token: string, userId: string) {
+            const bookId = await createBook(token);
+            const img = await createAsset(userId);
+            const page = (await addPage(token, bookId, { imageAssetId: img })).body.data.page;
+            return { bookId, pageId: page.id as string, number: page.markerNumber as number };
+        }
+        async function makeCustom(pageId: string, userId: string) {
+            await pool.query(
+                `UPDATE pages SET marker_mode = 'CUSTOM_MARKER', bookaria_marker_id = NULL,
+                 bookaria_marker_transform = NULL, marker_mind_public_id = $2 WHERE id = $1`,
+                [pageId, `bookaria/${userId}/cu.mind`],
+            );
+        }
+        const putMarker = (token: string, pageId: string, body: Record<string, unknown>) =>
+            request(app).put(`/api/v1/pages/${pageId}/marker`).set(auth(token)).send(body);
+
+        it('GET: trang Bookaria có số và vị trí; trang marker riêng chưa chấm điểm có cảnh báo', async () => {
+            const { token, userId } = await signUp();
+            const a = await pageWith(token, userId);
+            const info = await request(app)
+                .get(`/api/v1/pages/${a.pageId}/marker`)
+                .set(auth(token));
+            expect(info.status).toBe(200);
+            expect(info.body.data).toMatchObject({
+                markerMode: 'BOOKARIA_MARKER',
+                markerNumber: a.number,
+            });
+            expect(info.body.data.bookariaMarker.transform.size).toBeGreaterThan(0);
+
+            await makeCustom(a.pageId, userId);
+            const custom = await request(app)
+                .get(`/api/v1/pages/${a.pageId}/marker`)
+                .set(auth(token));
+            expect(custom.body.data).toMatchObject({
+                markerMode: 'CUSTOM_MARKER',
+                markerNumber: null,
+                bookariaMarker: null,
+            });
+            expect(custom.body.data.markerWarnings).toContain('NOT_SCORED');
+        });
+
+        it('GET: trang của người khác -> 404', async () => {
+            const a = await signUp();
+            const b = await signUp();
+            const { pageId } = await pageWith(a.token, a.userId);
+            const res = await request(app).get(`/api/v1/pages/${pageId}/marker`).set(auth(b.token));
+            expect(res.status).toBe(404);
+        });
+
+        it('PUT Bookaria + transform hợp lệ: lưu vị trí, giữ nguyên số marker', async () => {
+            const { token, userId } = await signUp();
+            const { pageId, number } = await pageWith(token, userId);
+            const res = await putMarker(token, pageId, {
+                mode: 'BOOKARIA_MARKER',
+                transform: valid,
+            });
+            expect(res.status).toBe(200);
+            expect(res.body.data).toMatchObject({
+                markerMode: 'BOOKARIA_MARKER',
+                markerNumber: number,
+                transform: valid,
+            });
+        });
+
+        it('PUT Bookaria không có transform trên trang đã có marker: không đổi số', async () => {
+            const { token, userId } = await signUp();
+            const { pageId, number } = await pageWith(token, userId);
+            const res = await putMarker(token, pageId, { mode: 'BOOKARIA_MARKER' });
+            expect(res.status).toBe(200);
+            expect(res.body.data.markerNumber).toBe(number);
+        });
+
+        it('PUT Bookaria: marker quá nhỏ hoặc sát mép -> 400 gắn vào transform', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const small = await putMarker(token, pageId, {
+                mode: 'BOOKARIA_MARKER',
+                transform: { x: 0, y: 0, size: 0.05 },
+            });
+            expect(small.status).toBe(400);
+            expect(small.body.error.details[0].path).toBe('transform');
+
+            const edge = await putMarker(token, pageId, {
+                mode: 'BOOKARIA_MARKER',
+                transform: { x: 0.49, y: 0, size: 0.2143 },
+            });
+            expect(edge.status).toBe(400);
+        });
+
+        it('PUT Bookaria từ trang không AR: cấp marker và áp dụng đúng transform đã gửi', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            await request(app)
+                .patch(`/api/v1/pages/${pageId}`)
+                .set(auth(token))
+                .send({ noAr: true });
+
+            const res = await putMarker(token, pageId, {
+                mode: 'BOOKARIA_MARKER',
+                transform: valid,
+            });
+            expect(res.status).toBe(200);
+            expect(res.body.data.markerNumber).toEqual(expect.any(Number));
+            expect(res.body.data.transform).toEqual(valid);
+        });
+
+        it('PUT marker riêng: 202 kèm jobId, trang chuyển sang CUSTOM_MARKER, sách được đánh dấu sửa', async () => {
+            const { token, userId } = await signUp();
+            const { bookId, pageId } = await pageWith(token, userId);
+            const mind = `bookaria/${userId}/${unique()}.mind`;
+            rawFiles.set(mind, 2000);
+            const before = await pool.query('SELECT updated_at FROM books WHERE id = $1', [bookId]);
+
+            const res = await putMarker(token, pageId, {
+                mode: 'CUSTOM_MARKER',
+                markerMindPublicId: mind,
+            });
+            expect(res.status).toBe(202);
+            expect(res.body.data).toMatchObject({
+                markerMode: 'CUSTOM_MARKER',
+                markerNumber: null,
+                markerScore: null,
+                jobId: expect.any(String),
+            });
+
+            const { rows } = await pool.query(
+                'SELECT marker_mode, marker_mind_public_id, bookaria_marker_id FROM pages WHERE id = $1',
+                [pageId],
+            );
+            expect(rows[0]).toEqual({
+                marker_mode: 'CUSTOM_MARKER',
+                marker_mind_public_id: mind,
+                bookaria_marker_id: null,
+            });
+            const after = await pool.query('SELECT updated_at FROM books WHERE id = $1', [bookId]);
+            expect(after.rows[0].updated_at.getTime()).toBeGreaterThan(
+                before.rows[0].updated_at.getTime(),
+            );
+        });
+
+        it('PUT marker riêng: file .mind không có hoặc của người khác -> 400; đang chấm điểm -> 409', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+
+            const missing = await putMarker(token, pageId, {
+                mode: 'CUSTOM_MARKER',
+                markerMindPublicId: `bookaria/${userId}/${unique()}.mind`,
+            });
+            expect(missing.status).toBe(400);
+            expect(missing.body.error.details[0].path).toBe('markerMindPublicId');
+
+            const foreign = `bookaria/00000000-0000-0000-0000-000000000000/${unique()}.mind`;
+            rawFiles.set(foreign, 1000);
+            const other = await putMarker(token, pageId, {
+                mode: 'CUSTOM_MARKER',
+                markerMindPublicId: foreign,
+            });
+            expect(other.status).toBe(400);
+
+            const mind = `bookaria/${userId}/${unique()}.mind`;
+            rawFiles.set(mind, 1000);
+            const first = await putMarker(token, pageId, {
+                mode: 'CUSTOM_MARKER',
+                markerMindPublicId: mind,
+            });
+            expect(first.status).toBe(202);
+            const again = await putMarker(token, pageId, {
+                mode: 'CUSTOM_MARKER',
+                markerMindPublicId: mind,
+            });
+            expect(again.status).toBe(409);
+            expect(again.body.error.code).toBe('JOB_IN_PROGRESS');
+        });
+
+        it('PUT: trang của người khác -> 404; body sai -> 400', async () => {
+            const a = await signUp();
+            const b = await signUp();
+            const { pageId } = await pageWith(a.token, a.userId);
+            const foreign = await putMarker(b.token, pageId, { mode: 'BOOKARIA_MARKER' });
+            expect(foreign.status).toBe(404);
+            const bad = await putMarker(a.token, pageId, { mode: 'KHAC' });
+            expect(bad.status).toBe(400);
+        });
+
+        it('rescore: chỉ trang marker riêng; 202 kèm jobId; đang chấm điểm -> 409', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const url = `/api/v1/pages/${pageId}/marker/rescore`;
+
+            const notCustom = await request(app).post(url).set(auth(token));
+            expect(notCustom.status).toBe(400);
+            expect(notCustom.body.error.details[0].path).toBe('markerMode');
+
+            await makeCustom(pageId, userId);
+            const ok = await request(app).post(url).set(auth(token));
+            expect(ok.status).toBe(202);
+            expect(ok.body.data.jobId).toEqual(expect.any(String));
+
+            const busy = await request(app).post(url).set(auth(token));
+            expect(busy.status).toBe(409);
+        });
+
+        it('rescore: trang của người khác -> 404', async () => {
+            const a = await signUp();
+            const b = await signUp();
+            const { pageId } = await pageWith(a.token, a.userId);
+            const res = await request(app)
+                .post(`/api/v1/pages/${pageId}/marker/rescore`)
+                .set(auth(b.token));
+            expect(res.status).toBe(404);
+        });
+    });
 });

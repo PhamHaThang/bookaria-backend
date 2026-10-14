@@ -5,6 +5,7 @@ import {
     IdSchema,
     ReorderPagesBodySchema,
     ReplacePageImageBodySchema,
+    UpdateMarkerBodySchema,
     UpdatePageBodySchema,
 } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
@@ -68,6 +69,28 @@ export const pagesController = {
         const pageId = idOf(req.params.pageId, 'trang');
         await pagesService.deletePage(getAuth(res).userId, pageId);
         res.status(204).end();
+    }),
+
+    // --- Marker ---
+    getPageMarker: asyncHandler(async (req: Request, res: Response) => {
+        const pageId = idOf(req.params.pageId, 'trang');
+        const marker = await pagesService.getPageMarker(getAuth(res).userId, pageId);
+        res.json({
+            data: marker,
+        });
+    }),
+    updatePageMarker: asyncHandler(async (req: Request, res: Response) => {
+        const pageId = idOf(req.params.pageId, 'trang');
+        const body = UpdateMarkerBodySchema.parse(req.body);
+        const result = await pagesService.updatePageMarker(getAuth(res).userId, pageId, body);
+        res.status(result.status).json({
+            data: result.data,
+        });
+    }),
+    rescorePageMarker: asyncHandler(async (req: Request, res: Response) => {
+        const pageId = idOf(req.params.pageId, 'trang');
+        const result = await pagesService.rescoreMarker(getAuth(res).userId, pageId);
+        res.status(202).json({ data: result });
     }),
 };
 

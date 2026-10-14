@@ -6,13 +6,13 @@ export const bookPagesRouter = () => {
     const router = Router({ mergeParams: true });
     router.use(requireAuth);
 
-    // [GET] /api/books/:bookId/pages
+    // [GET] /api/v1/books/:bookId/pages
     router.get('/', pagesController.getBookPages);
 
-    // [POST] /api/books/:bookId/pages
+    // [POST] /api/v1/books/:bookId/pages
     router.post('/', pagesController.addPage);
 
-    // [PATCH] /api/books/:bookId/pages/reorder
+    // [PATCH] /api/v1/books/:bookId/pages/reorder
     router.patch('/reorder', pagesController.reorderPages);
     return router;
 };
@@ -20,19 +20,28 @@ export const pagesRouter = () => {
     const router = Router();
     router.use(requireAuth);
 
-    // [GET] /api/pages/:pageId
+    // [GET] /pages/:pageId
     router.get('/:pageId', pagesController.getPage);
 
-    // [PATCH] /api/pages/:pageId
+    // [PATCH] /pages/:pageId
     router.patch('/:pageId', pagesController.updatePage);
 
-    // [POST] /api/pages/:pageId/duplicate
+    // [POST] /pages/:pageId/duplicate
     router.post('/:pageId/duplicate', pagesController.duplicatePage);
 
-    // [PUT] /api/pages/:pageId/image
+    // [PUT] /pages/:pageId/image
     router.put('/:pageId/image', pagesController.replacePageImage);
 
-    // [DELETE] /api/pages/:pageId
+    // [GET] /pages/:pageId/marker
+    router.get('/:pageId/marker', pagesController.getPageMarker);
+
+    // [PUT] /pages/:pageId/marker
+    router.put('/:pageId/marker', pagesController.updatePageMarker);
+
+    // [POST] /pages/:pageId/marker/rescore
+    router.post('/:pageId/marker/rescore', pagesController.rescorePageMarker);
+
+    // [DELETE] /pages/:pageId
     router.delete('/:pageId', pagesController.deletePage);
     return router;
 };

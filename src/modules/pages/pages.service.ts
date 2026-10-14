@@ -2,10 +2,15 @@ import { pool, type Queryable, withTransaction } from '../../db';
 import {
     type AddPageBody,
     AddPageResultSchema,
+    BookariaMarkerResultSchema,
+    CustomMarkerResultSchema,
+    checkMarkerPlacement,
     defaultMarkerTransform,
     MARKER_RULES,
+    MarkerInfoSchema,
     MarkerReportSchema,
     type MarkerTransform,
+    MarkerTransformSchema,
     type MarkerWarning,
     type Page,
     PageSchema,
@@ -17,6 +22,7 @@ import {
     type ReplacePageImageBody,
     SceneSchema,
     sceneAssetIds,
+    type UpdateMarkerBody,
     type UpdatePageBody,
 } from '../../schema';
 import { AppError, fieldError } from '../../utils';
@@ -123,7 +129,7 @@ export const pagesService = {
 
             if (body.settings !== undefined) {
                 await lockAudios(db, userId, body.settings);
-                const stored = await pagesRepository.loadScene(db, pageId);
+                const stored = await pagesRepository.loadScene(db, pageId, { lock: true });
                 if (!stored) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
                 const settings = mergeSettings(
                     PageSettingsSchema.parse(stored?.settings),
@@ -153,6 +159,12 @@ export const pagesService = {
     },
 
     async replacePageImage(userId: string, pageId: string, body: ReplacePageImageBody) {
+        // Kiểm tra file `.mind` (gọi mạng) trước khi mở transaction, để không giữ khoá sách khi chờ.
+        const current = await pagesRepository.getPageById(pool, userId, pageId);
+        const mindChecked =
+            current?.marker_mode === 'CUSTOM_MARKER' && body.markerMindPublicId
+                ? await assetsService.isMarkerFileOf(userId, body.markerMindPublicId)
+                : undefined;
         return withTransaction(async (db) => {
             const book = await pagesRepository.lockBookOfPage(db, userId, pageId);
             if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
@@ -171,7 +183,8 @@ export const pagesService = {
                         'Trang dùng marker riêng cần file .mind biên dịch từ ảnh mới.',
                     );
                 }
-                const isMarkerMindValid = await assetsService.isMarkerFileOf(userId, mind);
+                const isMarkerMindValid =
+                    mindChecked ?? (await assetsService.isMarkerFileOf(userId, mind));
                 if (!isMarkerMindValid) {
                     throw fieldError(
                         'markerMindPublicId',
@@ -201,7 +214,7 @@ export const pagesService = {
             const pageRow = await pagesRepository.getPageById(db, userId, pageId);
             if (!pageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
 
-            const stored = await pagesRepository.loadScene(db, pageId);
+            const stored = await pagesRepository.loadScene(db, pageId, { lock: true });
             const scene = SceneSchema.parse(stored?.scene);
             const settings = PageSettingsSchema.parse(stored?.settings);
 
@@ -243,6 +256,140 @@ export const pagesService = {
             await pagesRepository.deletePage(db, pageId);
             await pagesRepository.closeGapAfter(db, book.id, pageRow.order_index);
             await pagesRepository.updateBookUpdatedAt(db, book.id);
+        });
+    },
+
+    async getPageMarker(userId: string, pageId: string) {
+        const row = await pagesRepository.getPageById(pool, userId, pageId);
+        if (!row) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+
+        const bookGeometry = await pagesRepository.getBookGeometry(pool, row.book_id);
+        const transform = MarkerTransformSchema.safeParse(row.marker_transform);
+        const warnings: MarkerWarning[] = warningsOf(row);
+
+        if (bookGeometry && row.marker_mode === 'BOOKARIA_MARKER' && transform.success) {
+            warnings.push(
+                ...checkMarkerPlacement(transform.data, getBookPageGeometry(bookGeometry)).map(
+                    (i) => i.code,
+                ),
+            );
+        }
+        return MarkerInfoSchema.parse({
+            markerMode: row.marker_mode,
+            markerNumber: row.marker_number,
+            bookariaMarker:
+                row.marker_number !== null && transform.success
+                    ? { number: row.marker_number, transform: transform.data }
+                    : null,
+            markerScore: row.marker_score,
+            markerReport: MarkerReportSchema.safeParse(row.marker_report).data ?? null,
+            markerWarnings: warnings,
+        });
+    },
+    /**
+     * Chọn marker cho trang.
+     * - BOOKARIA_MARKER: giữ nguyên số nếu trang đã có (chỉ đổi vị trí), chưa có thì lấy số trống
+     *   thấp nhất. Vị trí vi phạm quy tắc về kích thước hoặc sát mép sẽ bị từ chối.
+     * - CUSTOM_MARKER: ảnh của trang là marker; file `.mind` phải là của chính tác giả. Điểm số
+     *   được tính sau bởi một tác vụ nên trả về 202 kèm `jobId`.
+     */
+    async updatePageMarker(userId: string, pageId: string, body: UpdateMarkerBody) {
+        let mindChecked: boolean | undefined;
+        if (body.mode === 'CUSTOM_MARKER') {
+            if (!(await pagesRepository.getPageById(pool, userId, pageId))) {
+                throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            }
+            mindChecked = await assetsService.isMarkerFileOf(userId, body.markerMindPublicId);
+        }
+        return withTransaction(async (db) => {
+            const book = await pagesRepository.lockBookOfPage(db, userId, pageId);
+            if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            await ensureNotPublishing(db, book.id);
+
+            const pageRow = await pagesRepository.getPageById(db, userId, pageId);
+            if (!pageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+
+            if (body.mode === 'CUSTOM_MARKER') {
+                const isMarkerFile =
+                    mindChecked ??
+                    (await assetsService.isMarkerFileOf(userId, body.markerMindPublicId));
+                if (!isMarkerFile) {
+                    throw fieldError(
+                        'markerMindPublicId',
+                        'Không tìm thấy file .mind này trong thư mục tải lên của bạn.',
+                    );
+                }
+                const hasOpenScoreJob = await pagesRepository.hasOpenScoreJob(db, pageId);
+                if (hasOpenScoreJob) throw new AppError('JOB_IN_PROGRESS');
+
+                await pagesRepository.setCustomMarker(db, pageId, body.markerMindPublicId);
+                const jobId = await pagesRepository.insertScoreJob(db, pageId, userId);
+                await pagesRepository.updateBookUpdatedAt(db, book.id);
+                return {
+                    status: 202 as const,
+                    data: CustomMarkerResultSchema.parse({
+                        markerMode: 'CUSTOM_MARKER',
+                        markerNumber: null,
+                        markerScore: null,
+                        jobId,
+                    }),
+                };
+            }
+
+            if (body.transform) {
+                const issues = checkMarkerPlacement(body.transform, getBookPageGeometry(book));
+                if (issues.length > 0) {
+                    throw fieldError('transform', issues.map((i) => i.message).join(' '));
+                }
+            }
+
+            if (pageRow.marker_mode === 'BOOKARIA_MARKER') {
+                if (body.transform)
+                    await pagesRepository.setMarkerTransform(db, pageId, body.transform);
+            } else {
+                const marker = await prepareMarkerForPage(
+                    db,
+                    book,
+                    book.id,
+                    pageRow.order_index,
+                    body.transform,
+                );
+                if (!marker) throw new AppError('MARKER_POOL_EXHAUSTED');
+                await pagesRepository.setBookariaMarker(db, pageId, marker);
+            }
+            await pagesRepository.updateBookUpdatedAt(db, book.id);
+            const updatedPageRow = await pagesRepository.getPageById(db, userId, pageId);
+            const transform = MarkerTransformSchema.safeParse(updatedPageRow?.marker_transform);
+            if (!updatedPageRow || updatedPageRow.marker_number === null || !transform.success)
+                throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            return {
+                status: 200 as const,
+                data: BookariaMarkerResultSchema.parse({
+                    markerMode: 'BOOKARIA_MARKER',
+                    markerNumber: updatedPageRow.marker_number,
+                    transform: transform.data,
+                }),
+            };
+        });
+    },
+    async rescoreMarker(userId: string, pageId: string) {
+        return withTransaction(async (db) => {
+            const book = await pagesRepository.lockBookOfPage(db, userId, pageId);
+            if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            await ensureNotPublishing(db, book.id);
+
+            const pageRow = await pagesRepository.getPageById(db, userId, pageId);
+            if (!pageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            if (pageRow.marker_mode !== 'CUSTOM_MARKER') {
+                throw fieldError('markerMode', 'Chỉ trang dùng marker riêng mới cần chấm điểm.');
+            }
+            const hasOpenScoreJob = await pagesRepository.hasOpenScoreJob(db, pageId);
+            if (hasOpenScoreJob) throw new AppError('JOB_IN_PROGRESS');
+
+            const jobId = await pagesRepository.insertScoreJob(db, pageId, userId);
+            return {
+                jobId,
+            };
         });
     },
 };
@@ -325,7 +472,7 @@ async function lockPageImage(db: Queryable, userId: string, assetId: string) {
     }
     throw fieldError('imageAssetId', 'Tài nguyên này không phải ảnh đã sẵn sàng.');
 }
-function getBookPageGeometry(book: EditableBook) {
+function getBookPageGeometry(book: Pick<EditableBook, 'page_format' | 'page_aspect'>) {
     return {
         format: book.page_format,
         aspect: Number(book.page_aspect),
@@ -352,7 +499,7 @@ function mergeSettings(old: PageSettings, patch: PageSettingsPatch) {
         ...Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined)),
     });
 }
-// Một Page chỉ có sử dụng audio của user hoặc trỏng thư viện
+// Âm thanh của trang phải là audio của chính người dùng hoặc của thư viện chung.
 async function lockAudios(db: Queryable, userId: string, patch: PageSettingsPatch) {
     for (const key of ['backgroundAudioAssetId', 'narrationAssetId'] as const) {
         const id = patch[key];

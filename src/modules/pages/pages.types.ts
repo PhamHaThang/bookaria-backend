@@ -8,7 +8,7 @@ export interface PageRow {
     marker_mode: 'BOOKARIA_MARKER' | 'CUSTOM_MARKER' | 'NONE';
     marker_score: number | null;
     marker_report: unknown;
-    /** The number printed on the marker, when the page uses a Bookaria marker. */
+    /** Số in trên marker, khi trang dùng marker Bookaria. */
     marker_number: number | null;
     marker_transform: unknown;
     object_count: number;
@@ -16,7 +16,7 @@ export interface PageRow {
     revision: number;
     updated_at: Date;
     image_asset_id: string;
-    /** The page picture, from its asset (the columns the addresses are built from). */
+    /** Ảnh của trang, lấy từ tài nguyên (các cột dùng để dựng địa chỉ ảnh). */
     img_resource_type: 'image' | 'video' | 'raw';
     img_original_public_id: string;
     img_optimized_public_id: string | null;
@@ -30,9 +30,9 @@ export interface NewPage {
     orderIndex: number;
     title: string | null;
     imageAssetId: string;
-    /** Null: the page has no Bookaria marker (mode NONE). */
+    /** `null`: trang không có marker Bookaria (chế độ NONE). */
     marker: { id: string; transform: unknown } | null;
-    /** The copy of another page keeps its scene and settings; a new page starts empty. */
+    /** Bản sao của trang khác giữ nguyên cảnh và cài đặt; trang mới bắt đầu từ trống. */
     scene?: unknown;
     settings?: unknown;
 }

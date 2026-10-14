@@ -1,4 +1,5 @@
-// Permissions: a page belongs to a book and a book to one author. Every function that takes a `userId` says `b.owner_id = $n` through the book
+// Phân quyền: trang thuộc về một sách, sách thuộc về một tác giả. Mọi hàm nhận `userId` đều kiểm
+// tra quyền sở hữu qua sách (`b.owner_id = $n`).
 
 import type { Queryable } from '../../db';
 import type { EditableBook } from '../books/books.types';
@@ -178,7 +179,7 @@ export const pagesRepository = {
         await db.query(`UPDATE books SET updated_at = NOW() WHERE id = $1`, [bookId]);
     },
 
-    // --- Assets a page uses ---
+    // --- Tài nguyên mà trang sử dụng ---
     async replacePageAssets(db: Queryable, pageId: string, newAssetIds: string[]): Promise<void> {
         await db.query(
             `DELETE FROM page_assets WHERE page_id = $1 AND asset_id <> ALL($2::uuid[])`,
@@ -218,6 +219,7 @@ export const pagesRepository = {
         );
         return (rows[0] as { id: string }).id;
     },
+    /** Trang marker riêng nhận file `.mind` mới; điểm số và báo cáo cũ không còn đúng nên bị xoá. */
     async setCustomMarkerFile(
         db: Queryable,
         pageId: string,
@@ -230,5 +232,40 @@ export const pagesRepository = {
             WHERE id = $1`,
             [pageId, mindPublicId],
         );
+    },
+    /** Trang chuyển sang marker riêng: ảnh của trang là marker, `.mind` là file đã biên dịch. */
+    async setCustomMarker(db: Queryable, pageId: string, mindPublicId: string): Promise<void> {
+        await db.query(
+            `UPDATE pages
+            SET marker_mode = 'CUSTOM_MARKER', bookaria_marker_id = NULL, bookaria_marker_transform = NULL, marker_mind_public_id = $2, marker_score = NULL, marker_features = NULL, marker_report = NULL
+            WHERE id = $1`,
+            [pageId, mindPublicId],
+        );
+    },
+    async setMarkerTransform(db: Queryable, pageId: string, transform: unknown): Promise<void> {
+        await db.query(`UPDATE pages SET bookaria_marker_transform = $2::jsonb WHERE id = $1`, [
+            pageId,
+            JSON.stringify(transform),
+        ]);
+    },
+    /** Trang có tác vụ chấm điểm marker đang chờ hoặc chạy không? Nếu có thì chưa cho đổi marker. */
+    async hasOpenScoreJob(db: Queryable, pageId: string): Promise<boolean> {
+        const { rows } = await db.query<{ open: boolean }>(
+            `SELECT EXISTS(
+                SELECT 1 FROM jobs WHERE status IN ('QUEUED', 'RUNNING') AND type = 'SCORE_MARKER' AND ref_type = 'PAGE' AND ref_id = $1)
+            AS open`,
+            [pageId],
+        );
+        return rows[0]?.open === true;
+    },
+    async getBookGeometry(
+        db: Queryable,
+        bookId: string,
+    ): Promise<Pick<EditableBook, 'page_format' | 'page_aspect'> | undefined> {
+        const { rows } = await db.query<Pick<EditableBook, 'page_format' | 'page_aspect'>>(
+            `SELECT page_format, page_aspect FROM books WHERE id = $1`,
+            [bookId],
+        );
+        return rows[0];
     },
 };
