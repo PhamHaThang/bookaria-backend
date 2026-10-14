@@ -7,60 +7,60 @@ import {
     UpdateAssetBodySchema,
     UploadSignatureBodySchema,
 } from '../../schema';
-import { AppError } from '../../utils';
+import { AppError, asyncHandler } from '../../utils';
 import { assetCategoriesService, assetsService } from './assets.service';
 
 export const assetController = {
-    createUploadSignature: async (req: Request, res: Response) => {
+    createUploadSignature: asyncHandler(async (req: Request, res: Response) => {
         const body = UploadSignatureBodySchema.parse(req.body);
         const result = await assetsService.createUploadSignature(getAuth(res).userId, body);
         res.status(200).json({
             data: result,
         });
-    },
-    completeUpload: async (req: Request, res: Response) => {
+    }),
+    completeUpload: asyncHandler(async (req: Request, res: Response) => {
         const assetId = assetIdOf(req.params);
         const body = CompleteAssetBodySchema.parse(req.body);
         const result = await assetsService.completeUpload(getAuth(res).userId, assetId, body);
         res.status(result.status).json(result.body);
-    },
-    getAssets: async (req: Request, res: Response) => {
+    }),
+    getAssets: asyncHandler(async (req: Request, res: Response) => {
         const userId = getAuth(res).userId;
         const query = ListAssetsQuerySchema.parse(req.query);
         const result = await assetsService.getAssets(userId, query);
         res.status(200).json(result);
-    },
-    getAssetById: async (req: Request, res: Response) => {
+    }),
+    getAssetById: asyncHandler(async (req: Request, res: Response) => {
         const userId = getAuth(res).userId;
         const assetId = assetIdOf(req.params);
         const asset = await assetsService.getAsset(userId, assetId);
         res.status(200).json({ data: asset });
-    },
-    updateAsset: async (req: Request, res: Response) => {
+    }),
+    updateAsset: asyncHandler(async (req: Request, res: Response) => {
         const userId = getAuth(res).userId;
         const assetId = assetIdOf(req.params);
         const body = UpdateAssetBodySchema.parse(req.body);
         const asset = await assetsService.updateAsset(userId, assetId, body);
         res.status(200).json({ data: asset });
-    },
-    deleteAsset: async (req: Request, res: Response) => {
+    }),
+    deleteAsset: asyncHandler(async (req: Request, res: Response) => {
         const userId = getAuth(res).userId;
         const assetId = assetIdOf(req.params);
         await assetsService.deleteAsset(userId, assetId);
         res.status(204).end();
-    },
-    getAssetUsages: async (req: Request, res: Response) => {
+    }),
+    getAssetUsages: asyncHandler(async (req: Request, res: Response) => {
         const userId = getAuth(res).userId;
         const assetId = assetIdOf(req.params);
         const usages = await assetsService.getAssetUsages(userId, assetId);
         res.status(200).json({ data: usages });
-    },
+    }),
 };
 export const assetCategoriesController = {
-    getAssetCategories: async (_req: Request, res: Response) => {
+    getAssetCategories: asyncHandler(async (_req: Request, res: Response) => {
         const categories = await assetCategoriesService.getCategories();
         res.status(200).json({ data: categories });
-    },
+    }),
 };
 
 // --- Helpers -----------------------------------------------------
