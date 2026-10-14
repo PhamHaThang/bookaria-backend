@@ -268,4 +268,41 @@ export const pagesRepository = {
         );
         return rows[0];
     },
+    async lockSceneRevision(
+        db: Queryable,
+        pageId: string,
+    ): Promise<
+        | {
+              revision: number;
+              scene: unknown;
+          }
+        | undefined
+    > {
+        const { rows } = await db.query<{ revision: number; scene: unknown }>(
+            `SELECT revision, scene FROM pages WHERE id = $1 FOR UPDATE`,
+            [pageId],
+        );
+        return rows[0];
+    },
+    async updateSceneAndRevision(
+        db: Queryable,
+        pageId: string,
+        scene: unknown,
+    ): Promise<{ revision: number; updated_at: Date }> {
+        const { rows } = await db.query<{ revision: number; updated_at: Date }>(
+            `UPDATE pages SET scene = $2::jsonb, revision = revision + 1
+            WHERE id = $1 RETURNING revision, updated_at`,
+            [pageId, JSON.stringify(scene)],
+        );
+        return rows[0] as { revision: number; updated_at: Date };
+    },
+    async getAssetBytesByIds(db: Queryable, assetIds: string[]): Promise<number> {
+        if (assetIds.length === 0) return 0;
+        const { rows } = await db.query<{ total: number }>(
+            `SELECT COALESCE(SUM(size_bytes), 0) AS total FROM assets
+            WHERE id = ANY($1::uuid[])`,
+            [assetIds],
+        );
+        return Number(rows[0]?.total ?? 0);
+    },
 };

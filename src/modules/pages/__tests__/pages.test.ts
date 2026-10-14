@@ -797,4 +797,186 @@ suite('pages (tích hợp)', () => {
             expect(res.status).toBe(404);
         });
     });
+    describe('cảnh: PATCH /pages/:pageId/scene', () => {
+        const emptyScene = { schemaVersion: 1, objects: [], interactions: [] };
+        const textObject = (id: string, position: number[] = [0, 0, 0]) => ({
+            id,
+            type: 'text',
+            text: 'Xin chào',
+            transform: { position },
+        });
+
+        async function pageWith(token: string, userId: string) {
+            const bookId = await createBook(token);
+            const img = await createAsset(userId);
+            const pageId = (await addPage(token, bookId, { imageAssetId: img })).body.data.page
+                .id as string;
+            return { bookId, pageId };
+        }
+        async function createModel(userId: string, status: 'READY' | 'PROCESSING' = 'READY') {
+            const { rows } = await pool.query(
+                `INSERT INTO assets (owner_id, type, name, original_public_id, resource_type, format, size_bytes, status)
+                 VALUES ($1, 'MODEL', 'mo-hinh', $2, 'image', 'glb', 5000, $3) RETURNING id`,
+                [userId, `bookaria/${userId}/${unique()}`, status],
+            );
+            return rows[0].id as string;
+        }
+        const save = (token: string, pageId: string, revision: number, scene: unknown) =>
+            request(app)
+                .patch(`/api/v1/pages/${pageId}/scene`)
+                .set(auth(token))
+                .send({ revision, scene });
+
+        it('lưu cảnh: tăng revision, cập nhật số đối tượng và đọc lại được', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+
+            const res = await save(token, pageId, 0, {
+                ...emptyScene,
+                objects: [textObject('t1')],
+            });
+            expect(res.status).toBe(200);
+            expect(res.body.data.revision).toBe(1);
+            expect(res.body.data.updatedAt).toEqual(expect.any(String));
+
+            const page = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(page.body.data.revision).toBe(1);
+            expect(page.body.data.objectCount).toBe(1);
+            expect(page.body.data.scene.objects[0].id).toBe('t1');
+        });
+
+        it('revision cũ (hai tab cùng sửa): 409 REVISION_CONFLICT kèm cảnh hiện tại', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            await save(token, pageId, 0, { ...emptyScene, objects: [textObject('a')] });
+
+            const stale = await save(token, pageId, 0, {
+                ...emptyScene,
+                objects: [textObject('b')],
+            });
+            expect(stale.status).toBe(409);
+            expect(stale.body.error.code).toBe('REVISION_CONFLICT');
+            expect(stale.body.error.details.currentRevision).toBe(1);
+            expect(stale.body.error.details.scene.objects[0].id).toBe('a');
+
+            const page = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(page.body.data.scene.objects[0].id).toBe('a');
+        });
+
+        it('đổi tên trang không làm đổi revision của cảnh', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            await save(token, pageId, 0, { ...emptyScene, objects: [textObject('a')] });
+            await request(app)
+                .patch(`/api/v1/pages/${pageId}`)
+                .set(auth(token))
+                .send({ title: 'Đổi tên' });
+
+            const ok = await save(token, pageId, 1, { ...emptyScene, objects: [textObject('b')] });
+            expect(ok.status).toBe(200);
+            expect(ok.body.data.revision).toBe(2);
+        });
+
+        it('tài nguyên của người khác, sai loại hoặc chưa sẵn sàng -> 400 gắn đúng vị trí', async () => {
+            const a = await signUp();
+            const b = await signUp();
+            const { pageId } = await pageWith(a.token, a.userId);
+            const foreignModel = await createModel(b.userId);
+            const image = await createAsset(a.userId);
+            const processing = await createModel(a.userId, 'PROCESSING');
+            const model = (id: string, assetId: string) => ({
+                id,
+                type: 'model',
+                assetId,
+                transform: {},
+            });
+
+            const foreign = await save(a.token, pageId, 0, {
+                ...emptyScene,
+                objects: [model('m1', foreignModel)],
+            });
+            expect(foreign.status).toBe(400);
+            expect(foreign.body.error.details[0].path).toBe('scene.objects.0.assetId');
+
+            const wrongKind = await save(a.token, pageId, 0, {
+                ...emptyScene,
+                objects: [textObject('t'), model('m1', image)],
+            });
+            expect(wrongKind.status).toBe(400);
+            expect(wrongKind.body.error.details[0].path).toBe('scene.objects.1.assetId');
+
+            const notReady = await save(a.token, pageId, 0, {
+                ...emptyScene,
+                objects: [model('m1', processing)],
+            });
+            expect(notReady.status).toBe(400);
+        });
+
+        it('tài nguyên dùng trong cảnh được giữ lại (409 khi xoá), bỏ khỏi cảnh thì xoá được', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const model = await createModel(userId);
+
+            const used = await save(token, pageId, 0, {
+                ...emptyScene,
+                objects: [{ id: 'm1', type: 'model', assetId: model, transform: {} }],
+            });
+            expect(used.status).toBe(200);
+
+            const blocked = await request(app).delete(`/api/v1/assets/${model}`).set(auth(token));
+            expect(blocked.status).toBe(409);
+            expect(blocked.body.error.code).toBe('ASSET_IN_USE');
+
+            await save(token, pageId, 1, emptyScene);
+            const freed = await request(app).delete(`/api/v1/assets/${model}`).set(auth(token));
+            expect(freed.status).toBe(204);
+        });
+
+        it('cảnh báo mềm: quá nhiều đối tượng và đối tượng nằm ngoài trang vẫn lưu được', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const many = Array.from({ length: 21 }, (_, i) => textObject(`t${i}`));
+            many.push(textObject('xa', [3, 0, 0]));
+
+            const res = await save(token, pageId, 0, { ...emptyScene, objects: many });
+            expect(res.status).toBe(200);
+            const codes = res.body.data.warnings.map((w: { code: string }) => w.code);
+            expect(codes).toContain('TOO_MANY_OBJECTS');
+            expect(codes).toContain('OBJECT_OFF_PAGE');
+        });
+
+        it('cảnh sai (mã đối tượng trùng, thiếu trường) -> 400', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const dup = await save(token, pageId, 0, {
+                ...emptyScene,
+                objects: [textObject('a'), textObject('a')],
+            });
+            expect(dup.status).toBe(400);
+            expect(dup.body.error.code).toBe('VALIDATION_ERROR');
+
+            const missing = await request(app)
+                .patch(`/api/v1/pages/${pageId}/scene`)
+                .set(auth(token))
+                .send({ scene: emptyScene });
+            expect(missing.status).toBe(400);
+        });
+
+        it('trang của người khác -> 404; sách đang xuất bản -> 409', async () => {
+            const a = await signUp();
+            const b = await signUp();
+            const { bookId, pageId } = await pageWith(a.token, a.userId);
+
+            expect((await save(b.token, pageId, 0, emptyScene)).status).toBe(404);
+
+            await pool.query(
+                `INSERT INTO jobs (type, status, ref_type, ref_id, created_by)
+                 VALUES ('PUBLISH_BOOK', 'RUNNING', 'BOOK', $1, $2)`,
+                [bookId, a.userId],
+            );
+            const busy = await save(a.token, pageId, 0, emptyScene);
+            expect(busy.status).toBe(409);
+            expect(busy.body.error.code).toBe('JOB_IN_PROGRESS');
+        });
+    });
 });

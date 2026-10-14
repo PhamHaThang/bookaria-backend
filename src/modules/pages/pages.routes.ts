@@ -41,6 +41,9 @@ export const pagesRouter = () => {
     // [POST] /pages/:pageId/marker/rescore
     router.post('/:pageId/marker/rescore', pagesController.rescorePageMarker);
 
+    // [PATCH] /pages/:pageId/scene
+    router.patch('/:pageId/scene', pagesController.saveScene);
+
     // [DELETE] /pages/:pageId
     router.delete('/:pageId', pagesController.deletePage);
     return router;

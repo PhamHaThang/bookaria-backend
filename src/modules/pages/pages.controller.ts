@@ -5,6 +5,7 @@ import {
     IdSchema,
     ReorderPagesBodySchema,
     ReplacePageImageBodySchema,
+    SaveSceneBodySchema,
     UpdateMarkerBodySchema,
     UpdatePageBodySchema,
 } from '../../schema';
@@ -91,6 +92,14 @@ export const pagesController = {
         const pageId = idOf(req.params.pageId, 'trang');
         const result = await pagesService.rescoreMarker(getAuth(res).userId, pageId);
         res.status(202).json({ data: result });
+    }),
+    saveScene: asyncHandler(async (req: Request, res: Response) => {
+        const pageId = idOf(req.params.pageId, 'trang');
+        const body = SaveSceneBodySchema.parse(req.body);
+        const result = await pagesService.saveScene(getAuth(res).userId, pageId, body);
+        res.json({
+            data: result,
+        });
     }),
 };
 

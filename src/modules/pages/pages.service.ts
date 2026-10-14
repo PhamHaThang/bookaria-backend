@@ -6,6 +6,8 @@ import {
     CustomMarkerResultSchema,
     checkMarkerPlacement,
     defaultMarkerTransform,
+    ERROR_MESSAGES,
+    getSceneWarnings,
     MARKER_RULES,
     MarkerInfoSchema,
     MarkerReportSchema,
@@ -20,6 +22,10 @@ import {
     PageSummarySchema,
     type ReorderPagesBody,
     type ReplacePageImageBody,
+    type SaveSceneBody,
+    type SaveSceneResult,
+    SaveSceneResultSchema,
+    type Scene,
     SceneSchema,
     sceneAssetIds,
     type UpdateMarkerBody,
@@ -30,7 +36,7 @@ import { assetsService, pageImageUrls, toAssetRef } from '../assets/assets.servi
 import { booksRepository } from '../books/books.repository';
 import type { EditableBook } from '../books/books.types';
 import { pagesRepository } from './pages.repository';
-import type { PageRow } from './pages.types';
+import { type AssetKind, KIND_OF_OBJECT, type PageRow } from './pages.types';
 
 export const pagesService = {
     async getPageSummaries(db: Queryable, bookId: string) {
@@ -392,6 +398,50 @@ export const pagesService = {
             };
         });
     },
+    async saveScene(userId: string, pageId: string, body: SaveSceneBody): Promise<SaveSceneResult> {
+        return withTransaction(async (db) => {
+            const book = await pagesRepository.lockBookOfPage(db, userId, pageId);
+            if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            await ensureNotPublishing(db, book.id);
+
+            const current = await pagesRepository.lockSceneRevision(db, pageId);
+            if (!current) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            if (current.revision !== body.revision) {
+                throw new AppError('REVISION_CONFLICT', ERROR_MESSAGES.REVISION_CONFLICT, {
+                    currentRevision: current.revision,
+                    scene: current.scene,
+                });
+            }
+
+            const assetUses = getAssetUsesInScene(body.scene).sort((a, b) =>
+                a.id.localeCompare(b.id),
+            );
+            for (const use of assetUses) {
+                if (!(await assetsService.lockAssetForUse(db, userId, use.id, use.kind))) {
+                    throw fieldError(
+                        use.path,
+                        `Không tìm thấy tài nguyên ${use.kind.toLowerCase()} này trong thư viện của bạn.`,
+                    );
+                }
+            }
+
+            const stored = await pagesRepository.loadScene(db, pageId);
+            const settings = PageSettingsSchema.parse(stored?.settings);
+            const assetIds = sceneAssetIds(body.scene, settings);
+            await pagesRepository.replacePageAssets(db, pageId, assetIds);
+            const saved = await pagesRepository.updateSceneAndRevision(db, pageId, body.scene);
+            await pagesRepository.updateBookUpdatedAt(db, book.id);
+
+            return SaveSceneResultSchema.parse({
+                revision: saved.revision,
+                updatedAt: saved.updated_at.toISOString(),
+                warnings: getSceneWarnings(body.scene, {
+                    pageAspect: Number(book.page_aspect),
+                    assetBytes: await pagesRepository.getAssetBytesByIds(db, assetIds),
+                }),
+            });
+        });
+    },
 };
 // --- Helpers ----------------------------------------------------------------------------------------------
 function toPageImageUrls(r: PageRow) {
@@ -513,4 +563,25 @@ async function lockAudios(db: Queryable, userId: string, patch: PageSettingsPatc
             );
         }
     }
+}
+function getAssetUsesInScene(scene: Scene) {
+    const uses: { id: string; kind: AssetKind; path: string }[] = [];
+    scene.objects.forEach((o, i) => {
+        const kind = KIND_OF_OBJECT[o.type];
+        if ('assetId' in o && kind) {
+            uses.push({ id: o.assetId, kind, path: `scene.objects.${i}.assetId` });
+        }
+    });
+    scene.interactions.forEach((rule, i) => {
+        rule.actions.forEach((a, j) => {
+            if ((a.type === 'playAudio' || a.type === 'stopAudio') && a.assetId) {
+                uses.push({
+                    id: a.assetId,
+                    kind: 'AUDIO',
+                    path: `scene.interactions.${i}.actions.${j}.assetId`,
+                });
+            }
+        });
+    });
+    return uses;
 }

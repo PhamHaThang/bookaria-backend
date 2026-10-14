@@ -1,4 +1,4 @@
-import type { AssetType, CloudinaryResourceType } from '../../schema';
+import type { AssetType, CloudinaryResourceType, SceneObjectType } from '../../schema';
 
 export interface PageRow {
     id: string;
@@ -46,3 +46,11 @@ export interface PageAssetRow {
     thumbnail_url: string | null;
     meta: Record<string, unknown>;
 }
+
+export type AssetKind = 'MODEL' | 'IMAGE' | 'AUDIO' | 'VIDEO';
+export const KIND_OF_OBJECT: Partial<Record<SceneObjectType, AssetKind>> = {
+    model: 'MODEL',
+    image: 'IMAGE',
+    video: 'VIDEO',
+    audio: 'AUDIO',
+};
