@@ -124,6 +124,7 @@ export const pagesService = {
         return withTransaction(async (db) => {
             const book = await pagesRepository.lockBookOfPage(db, userId, pageId);
             if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
+            await ensureNotPublishing(db, book.id);
             const pageRow = await pagesRepository.getPageById(db, userId, pageId);
             if (!pageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
 

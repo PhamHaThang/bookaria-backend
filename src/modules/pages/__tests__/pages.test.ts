@@ -307,6 +307,38 @@ suite('pages (tích hợp)', () => {
     });
 
     describe('PATCH /pages/:pageId', () => {
+        it('job xuất bản đang mở chặn sửa tên, cài đặt và AR của trang', async () => {
+            const { token, userId } = await signUp();
+            const bookId = await createBook(token);
+            const imageAssetId = await createAsset(userId);
+            const pageId = (await addPage(token, bookId, { imageAssetId, title: 'Cũ' })).body.data
+                .page.id;
+            await pool.query(
+                `INSERT INTO jobs (type, status, ref_type, ref_id, created_by)
+                 VALUES ('PUBLISH_BOOK', 'QUEUED', 'BOOK', $1, $2)`,
+                [bookId, userId],
+            );
+
+            for (const body of [
+                { title: 'Mới' },
+                { settings: { lighting: 'warm' } },
+                { noAr: true },
+            ]) {
+                const res = await request(app)
+                    .patch(`/api/v1/pages/${pageId}`)
+                    .set(auth(token))
+                    .send(body);
+                expect(res.status).toBe(409);
+                expect(res.body.error.code).toBe('JOB_IN_PROGRESS');
+            }
+            const page = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(page.body.data).toMatchObject({
+                title: 'Cũ',
+                markerMode: 'BOOKARIA_MARKER',
+                settings: { lighting: 'neutral' },
+            });
+        });
+
         it('đổi tên (chuỗi rỗng thành null) và không đụng revision của cảnh', async () => {
             const { token, userId } = await signUp();
             const bookId = await createBook(token);
