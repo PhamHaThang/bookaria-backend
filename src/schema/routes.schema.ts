@@ -714,7 +714,7 @@ export const routes: Route[] = [
         summary: 'Gỡ xuất bản, chuyển về Riêng tư',
         params: params.bookId,
         responses: { 200: dataResponse(BookSummarySchema) },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
     },
     {
         id: 'getBooksByBookIdShare',

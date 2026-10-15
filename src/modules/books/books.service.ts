@@ -199,7 +199,7 @@ export const booksService = {
 // --- Helpers ---------------------------------------------------------------------
 const blankToNull = (value: string | null | undefined) =>
     value === undefined || value === null || value === '' ? null : value;
-const toSummary = (b: BookRow) =>
+export const toSummary = (b: BookRow) =>
     BookSummarySchema.parse({
         id: b.id,
         title: b.title,

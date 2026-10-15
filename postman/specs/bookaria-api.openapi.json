@@ -8432,6 +8432,27 @@
                             }
                         }
                     },
+                    "409": {
+                        "description": "`JOB_IN_PROGRESS`: Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "JOB_IN_PROGRESS": {
+                                        "value": {
+                                            "error": {
+                                                "code": "JOB_IN_PROGRESS",
+                                                "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
