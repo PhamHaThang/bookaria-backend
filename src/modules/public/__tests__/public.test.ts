@@ -456,7 +456,12 @@ suite('POST /public/events', () => {
         request(app)
             .post('/api/v1/public/events')
             .send(body as object);
-    const stored = () => rows('SELECT * FROM view_events ORDER BY id');
+    const stored = () =>
+        rows(`SELECT ve.* FROM view_events ve
+              JOIN books b ON b.id = ve.book_id
+              JOIN users u ON u.id = b.owner_id
+              WHERE u.email LIKE 'publictest-%@example.com'
+              ORDER BY ve.id`);
 
     it('accepts a batch with 202 and no body, and keeps each event', async () => {
         const s = await shelve();

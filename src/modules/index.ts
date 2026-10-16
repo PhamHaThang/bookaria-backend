@@ -7,6 +7,7 @@ import { meRouter } from './me/me.routes';
 import { bookPagesRouter, pagesRouter } from './pages/pages.routes';
 import { publicRouter } from './public/public.routes';
 import { publishRouter } from './publish/publish.routes';
+import { statsRouter } from './stats/stats.routes';
 
 export interface ApiRouterOptions {
     rateLimit: boolean;
@@ -19,6 +20,7 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use('/me', meRouter({ rateLimit: options.rateLimit }));
     router.use('/books/:bookId/pages', bookPagesRouter());
     router.use('/books/:bookId', publishRouter());
+    router.use('/books/:bookId', statsRouter());
     router.use('/books', bookRouter());
     router.use('/pages', pagesRouter());
     router.use('/assets', assetsRouter({ rateLimit: options.rateLimit }));

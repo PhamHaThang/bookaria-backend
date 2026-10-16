@@ -119,6 +119,7 @@ export const TemplateSummarySchema = z.object({
 });
 export const StatsRangeSchema = z.enum(['7d', '30d', '90d']);
 export const StatsQuerySchema = z.object({ range: StatsRangeSchema.default('30d') });
+export type StatsQuery = z.infer<typeof StatsQuerySchema>;
 
 /** `GET /books/:bookId/stats`: anonymous counters only; no personal data is collected. */
 export const BookStatsSchema = z.object({
