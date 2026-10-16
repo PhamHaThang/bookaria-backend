@@ -20,6 +20,7 @@ export const PublicBooksQuerySchema = PaginationQuerySchema.extend({
     language: LanguageSchema.optional(),
     sort: z.enum(['newest', 'popular']).default('newest'),
 });
+export type PublicBooksQuery = z.infer<typeof PublicBooksQuerySchema>;
 
 /** A book card on the discovery page and on an author profile. */
 export const PublicBookCardSchema = z.object({

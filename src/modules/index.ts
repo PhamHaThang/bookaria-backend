@@ -5,6 +5,7 @@ import { bookRouter } from './books/books.routes';
 import { healthRouter } from './health/health.routes';
 import { meRouter } from './me/me.routes';
 import { bookPagesRouter, pagesRouter } from './pages/pages.routes';
+import { publicRouter } from './public/public.routes';
 import { publishRouter } from './publish/publish.routes';
 
 export interface ApiRouterOptions {
@@ -22,5 +23,6 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use('/pages', pagesRouter());
     router.use('/assets', assetsRouter({ rateLimit: options.rateLimit }));
     router.use('/asset-categories', assetCategoriesRouter());
+    router.use('/public', publicRouter({ rateLimit: options.rateLimit }));
     return router;
 }
