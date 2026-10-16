@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
+import { pageWidthMm } from '../../../schema';
 import { PAGE_ASPECT } from '../books.constants';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -48,11 +49,25 @@ suite('books (tích hợp)', () => {
             });
 
             const { rows } = await pool.query(
-                'SELECT page_format, page_aspect::float AS aspect, language FROM books WHERE id = $1',
+                'SELECT page_format, page_aspect::float AS aspect, page_width_mm::float AS width, language FROM books WHERE id = $1',
                 [res.body.data.book.id],
             );
-            expect(rows[0]).toMatchObject({ page_format: 'A4', language: 'vi' });
+            expect(rows[0]).toMatchObject({ page_format: 'A4', width: 210, language: 'vi' });
             expect(rows[0].aspect).toBeCloseTo(PAGE_ASPECT.A4, 4);
+        });
+
+        it('lưu đúng chiều rộng khổ A5 và vuông', async () => {
+            const { token } = await signUp();
+            for (const format of ['A5', 'SQUARE'] as const) {
+                const res = await createBook(token, { pageFormat: format });
+                expect(res.status).toBe(201);
+                const { rows } = await pool.query(
+                    'SELECT page_width_mm::float AS width FROM books WHERE id = $1',
+                    [res.body.data.book.id],
+                );
+                expect(rows[0].width).toBe(pageWidthMm(format));
+            }
+            expect(pageWidthMm('SQUARE')).toBe(210);
         });
 
         it('khổ CUSTOM phải có pageAspect; có thì lưu đúng tỉ lệ', async () => {
@@ -225,10 +240,10 @@ suite('books (tích hợp)', () => {
                 .send({ pageFormat: 'SQUARE' });
             expect(square.status).toBe(200);
             const { rows } = await pool.query(
-                'SELECT page_format, page_aspect::float AS aspect FROM books WHERE id = $1',
+                'SELECT page_format, page_aspect::float AS aspect, page_width_mm::float AS width FROM books WHERE id = $1',
                 [id],
             );
-            expect(rows[0]).toMatchObject({ page_format: 'SQUARE', aspect: 1 });
+            expect(rows[0]).toMatchObject({ page_format: 'SQUARE', aspect: 1, width: 210 });
         });
 
         it('body rỗng -> 400; sách người khác -> 404', async () => {

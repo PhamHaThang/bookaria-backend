@@ -131,15 +131,36 @@ export const booksRepository = {
             topic: string | null;
             pageFormat: string;
             pageAspect: number;
+            pageWidthMm: number;
         },
     ): Promise<string> {
-        const { title, description, ageMax, ageMin, language, topic, pageFormat, pageAspect } =
-            book;
+        const {
+            title,
+            description,
+            ageMax,
+            ageMin,
+            language,
+            topic,
+            pageFormat,
+            pageAspect,
+            pageWidthMm,
+        } = book;
         const { rows } = await db.query<{ id: string }>(
-            `INSERT INTO books (owner_id, title, description, age_min, age_max, language, topic, page_format, page_aspect)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+            `INSERT INTO books (owner_id, title, description, age_min, age_max, language, topic, page_format, page_aspect, page_width_mm)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             RETURNING id`,
-            [ownerId, title, description, ageMin, ageMax, language, topic, pageFormat, pageAspect],
+            [
+                ownerId,
+                title,
+                description,
+                ageMin,
+                ageMax,
+                language,
+                topic,
+                pageFormat,
+                pageAspect,
+                pageWidthMm,
+            ],
         );
         return (rows[0] as { id: string }).id;
     },

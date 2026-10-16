@@ -11,6 +11,7 @@ import {
     type ListBooksQuery,
     type PaginationMeta,
     type PaginationQuery,
+    pageWidthMm,
     TrashBookItemSchema,
     type UpdateBookBody,
 } from '../../schema';
@@ -91,6 +92,7 @@ export const booksService = {
                 body.pageFormat === 'CUSTOM'
                     ? (body.pageAspect as number)
                     : PAGE_ASPECT[body.pageFormat],
+            pageWidthMm: pageWidthMm(body.pageFormat),
         });
         const book = await booksRepository.getBookSummary(pool, userId, id);
         if (!book) throw new AppError('NOT_FOUND');
@@ -153,7 +155,11 @@ export const booksService = {
                 } else if (body.pageFormat !== undefined) {
                     changes.page_aspect = PAGE_ASPECT[format];
                 } // else: a ratio sent for a fixed format is ignored, like at creation
-                if (body.pageFormat !== undefined) changes.page_format = body.pageFormat;
+                if (body.pageFormat !== undefined) {
+                    changes.page_format = body.pageFormat;
+                    if (body.pageFormat !== currentBook.page_format)
+                        changes.page_width_mm = pageWidthMm(body.pageFormat);
+                }
             }
             // Update the book if there are any changes
             if (Object.keys(changes).length > 0)
