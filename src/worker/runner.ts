@@ -9,6 +9,7 @@ import {
 } from '../modules/jobs/jobs.types';
 import { notificationsService } from '../modules/notifications/notifications.service';
 import { JobResultsSchema, type JobType } from '../schema';
+import { onJobFailed } from './handlers/failure';
 
 export const MAX_ATTEMPTS = 3;
 
@@ -21,8 +22,7 @@ export async function failJob(jobId: string, error: PublicError): Promise<void> 
     await withTransaction(async (db) => {
         const job = await jobsRepository.lockJob(db, jobId);
         if (!job || job.status === 'SUCCEEDED' || job.status === 'FAILED') return;
-        await jobsRepository.markJobAsFailed(db, jobId, error);
-        await notifyFailure(db, job);
+        await settleFailedJob(db, job, error);
     });
 }
 
@@ -31,11 +31,10 @@ export async function failAbandonedJob(jobId: string, seconds: number): Promise<
     return withTransaction(async (db) => {
         const job = await jobsRepository.lockAbandonedJob(db, jobId, MAX_ATTEMPTS, seconds);
         if (!job) return false;
-        await jobsRepository.markJobAsFailed(db, jobId, {
+        await settleFailedJob(db, job, {
             code: 'ABANDONED',
             message: 'Tác vụ quá hạn sau lần thử cuối.',
         });
-        await notifyFailure(db, job);
         return true;
     });
 }
@@ -68,6 +67,7 @@ export async function runJob(
         return 'failed';
     }
 
+    let commit: ((db: Queryable) => Promise<void>) | undefined;
     // 2. Chạy handler, ghi kết quả hoặc lỗi.
     try {
         if (signal.aborted) throw new JobError('INTERRUPTED', 'Worker đã dừng.', true);
@@ -78,6 +78,10 @@ export async function runJob(
                 if (!Number.isFinite(percent)) throw new RangeError('Tiến độ phải là số hữu hạn');
                 const progress = Math.min(99, Math.max(0, Math.round(percent)));
                 await jobsRepository.setProgress(pool, jobId, claimed.attempts, progress);
+            },
+            onSuccess: (callback) => {
+                if (commit) throw new Error('Only one success callback may be registered');
+                commit = callback;
             },
         });
 
@@ -90,6 +94,9 @@ export async function runJob(
         // Lần thử cũ không được ghi đè kết quả của lần mới.
         return await withTransaction(async (db): Promise<RunOutcome> => {
             if (!(await isCurrentAttempt(db, claimed))) return 'skipped';
+            if (signal.aborted) throw new JobError('INTERRUPTED', 'Worker đã dừng.', true);
+            if (commit) await commit(db);
+            if (signal.aborted) throw new JobError('INTERRUPTED', 'Worker đã dừng.', true);
             await jobsRepository.markJobAsSucceeded(db, jobId, checked.data);
             if (NOTIFY_ON_SUCCESS.has(claimed.type)) await notifySuccess(db, claimed);
             return 'done';
@@ -107,8 +114,7 @@ export async function runJob(
                 await jobsRepository.markJobAsRetryable(db, jobId, error);
                 return 'retry';
             }
-            await jobsRepository.markJobAsFailed(db, jobId, error);
-            await notifyFailure(db, claimed);
+            await settleFailedJob(db, claimed, error);
             return 'failed';
         });
         if (disposition === 'retry') {
@@ -121,6 +127,12 @@ export async function runJob(
 async function isCurrentAttempt(db: Queryable, job: JobRow): Promise<boolean> {
     const current = await jobsRepository.lockJob(db, job.id);
     return current?.status === 'RUNNING' && current.attempts === job.attempts;
+}
+
+async function settleFailedJob(db: Queryable, job: JobRow, error: PublicError): Promise<void> {
+    await jobsRepository.markJobAsFailed(db, job.id, error);
+    await onJobFailed(db, job, error.message);
+    await notifyFailure(db, job);
 }
 
 async function notifyFailure(db: Queryable, job: JobRow): Promise<void> {

@@ -1,3 +1,4 @@
+import type { Queryable } from '../../db';
 import type { JobRefType, JobStatus, JobType } from '../../schema';
 
 export interface JobRow {
@@ -26,6 +27,7 @@ export interface JobContext {
     job: JobRow;
     setProgress(percent: number): Promise<void>;
     signal: AbortSignal;
+    onSuccess(commit: (db: Queryable) => Promise<void>): void;
 }
 
 export type JobHandler = (ctx: JobContext) => Promise<Record<string, unknown>>;

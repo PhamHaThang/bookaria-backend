@@ -5,8 +5,13 @@ import { AssetTypeSchema } from './enums.schema';
 export const AssetMetaSchema = z.looseObject({
     /** 3D models: triangle count after optimisation. */
     triangles: z.int().min(0).optional(),
+    originalTriangles: z.int().min(0).optional(),
     /** 3D models: names of the animation clips. */
     animations: z.array(z.string()).optional(),
+    geometryCompression: z.literal('draco').optional(),
+    warnings: z.array(z.string().min(1)).max(20).optional(),
+    /** Number of bytes downloaded by the Viewer for this asset. */
+    downloadBytes: BytesSchema.positive().optional(),
     /** Images and videos. */
     width: z.int().positive().optional(),
     height: z.int().positive().optional(),

@@ -16735,11 +16735,34 @@
                         "minimum": 0,
                         "maximum": 9007199254740991
                     },
+                    "originalTriangles": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
                     "animations": {
                         "type": "array",
                         "items": {
                             "type": "string"
                         }
+                    },
+                    "geometryCompression": {
+                        "type": "string",
+                        "enum": ["draco"]
+                    },
+                    "warnings": {
+                        "maxItems": 20,
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "downloadBytes": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true,
+                        "maximum": 9007199254740991
                     },
                     "width": {
                         "type": "integer",
