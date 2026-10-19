@@ -9,6 +9,23 @@ const PAGE_COLUMNS = `p.id, p.book_id, p.order_index, p.title, p.marker_mode, p.
 
 const PAGE_JOINS = `FROM pages p JOIN assets a ON a.id = p.image_asset_id LEFT JOIN bookaria_markers m ON m.id = p.bookaria_marker_id`;
 
+/**
+ * Xóa các tham chiếu đến trang được chỉ định trong các báo cáo marker của các trang khác.
+ */
+async function clearMarkerReferences(db: Queryable, pageId: string): Promise<void> {
+    await db.query(
+        `UPDATE pages peer SET marker_report = jsonb_set(peer.marker_report, '{similarPages}',
+            COALESCE((SELECT jsonb_agg(link) FROM jsonb_array_elements(
+                CASE WHEN jsonb_typeof(peer.marker_report->'similarPages')='array'
+                     THEN peer.marker_report->'similarPages' ELSE '[]'::jsonb END
+            ) link WHERE link->>'pageId' <> $1::text), '[]'::jsonb))
+         WHERE peer.book_id = (SELECT book_id FROM pages WHERE id=$1::uuid)
+           AND peer.id <> $1::uuid
+           AND peer.marker_report->'similarPages' @> jsonb_build_array(jsonb_build_object('pageId', $1::text))`,
+        [pageId],
+    );
+}
+
 export const pagesRepository = {
     async getPages(db: Queryable, bookId: string): Promise<PageRow[]> {
         const { rows } = await db.query<PageRow>(
@@ -160,6 +177,7 @@ export const pagesRepository = {
             transform: unknown;
         } | null,
     ): Promise<void> {
+        await clearMarkerReferences(db, pageId);
         await db.query(
             `UPDATE pages
             SET marker_mode = $2, bookaria_marker_id = $3, bookaria_marker_transform = $4::jsonb, marker_mind_public_id = NULL, marker_score = NULL, marker_features = NULL, marker_report = NULL
@@ -173,6 +191,7 @@ export const pagesRepository = {
         );
     },
     async deletePage(db: Queryable, pageId: string): Promise<void> {
+        await clearMarkerReferences(db, pageId);
         await db.query(`DELETE FROM pages WHERE id = $1`, [pageId]);
     },
     async updateBookUpdatedAt(db: Queryable, bookId: string): Promise<void> {
@@ -211,6 +230,11 @@ export const pagesRepository = {
         return rows[0]?.open === true;
     },
     async insertScoreJob(db: Queryable, pageId: string, userId: string): Promise<string> {
+        await clearMarkerReferences(db, pageId);
+        await db.query(
+            'UPDATE pages SET marker_score=NULL, marker_features=NULL, marker_report=NULL WHERE id=$1',
+            [pageId],
+        );
         const { rows } = await db.query<{ id: string }>(
             `INSERT INTO jobs (type, ref_type, ref_id, created_by)
             VALUES ('SCORE_MARKER', 'PAGE', $1, $2)
@@ -225,6 +249,7 @@ export const pagesRepository = {
         pageId: string,
         mindPublicId: string | null,
     ): Promise<void> {
+        await clearMarkerReferences(db, pageId);
         await db.query(
             `UPDATE pages
             SET marker_mind_public_id = $2, marker_score = NULL, marker_features = NULL,
@@ -235,6 +260,7 @@ export const pagesRepository = {
     },
     /** Trang chuyển sang marker riêng: ảnh của trang là marker, `.mind` là file đã biên dịch. */
     async setCustomMarker(db: Queryable, pageId: string, mindPublicId: string): Promise<void> {
+        await clearMarkerReferences(db, pageId);
         await db.query(
             `UPDATE pages
             SET marker_mode = 'CUSTOM_MARKER', bookaria_marker_id = NULL, bookaria_marker_transform = NULL, marker_mind_public_id = $2, marker_score = NULL, marker_features = NULL, marker_report = NULL

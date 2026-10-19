@@ -183,6 +183,9 @@ export const pagesService = {
 
             let jobId: string | undefined;
             if (pageRow.marker_mode === 'CUSTOM_MARKER') {
+                if (await pagesRepository.hasOpenScoreJob(db, pageId)) {
+                    throw new AppError('JOB_IN_PROGRESS');
+                }
                 const mind = body.markerMindPublicId;
                 if (!mind) {
                     throw fieldError(
