@@ -26,6 +26,8 @@ export function createApp(options: AppOptions = {}) {
             // Không ghi token và cookie vào log.
             redact: {
                 paths: [
+                    'req.url',
+                    'req.headers.referer',
                     'req.headers.authorization',
                     'req.headers.cookie',
                     'res.headers["set-cookie"]',

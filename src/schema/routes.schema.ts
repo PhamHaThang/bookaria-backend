@@ -86,7 +86,6 @@ import {
 import {
     CreatePreviewBodySchema,
     JobStartedSchema,
-    PreviewLinkSchema,
     PrintPdfBodySchema,
     PublishBodySchema,
     PublishCheckSchema,
@@ -133,6 +132,7 @@ export interface Route {
     params?: z.ZodObject;
     query?: z.ZodObject;
     body?: z.ZodType;
+    responseContentType?: string;
     responses: Record<number, z.ZodType | null>; // null = no body
     errors?: ErrorCode[]; // route-specific error codes
 }
@@ -651,11 +651,11 @@ export const routes: Route[] = [
         method: 'POST',
         path: '/books/:bookId/previews',
         access: 'author',
-        summary: 'Tạo liên kết xem trước 24 giờ (cả sách hoặc một trang)',
+        summary: 'Xếp job tạo preview 24 giờ (cả sách hoặc một trang)',
         params: params.bookId,
         body: CreatePreviewBodySchema,
-        responses: { 201: dataResponse(PreviewLinkSchema) },
-        errors: ['NOT_FOUND'],
+        responses: { 202: dataResponse(JobStartedSchema) },
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'RATE_LIMITED'],
     },
     {
         id: 'getBooksByBookIdPublishCheck',
@@ -783,10 +783,24 @@ export const routes: Route[] = [
         method: 'GET',
         path: '/public/previews/:token',
         access: 'public',
-        summary: 'Manifest của bản xem trước',
+        summary: 'Manifest preview còn hạn (no-store)',
         params: params.token,
         responses: { 200: dataResponse(ManifestSchema) },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'RATE_LIMITED'],
+    },
+    {
+        id: 'getPublicPreviewGroup',
+        method: 'GET',
+        path: '/public/previews/:token/groups/:group',
+        access: 'public',
+        summary: 'Nhóm .mind của preview còn hạn (binary, no-store)',
+        params: z.object({
+            token: z.string().regex(/^[A-Za-z0-9_-]{32}$/),
+            group: z.string().regex(/^(0|[1-9]\d{0,3})$/),
+        }),
+        responseContentType: 'application/octet-stream',
+        responses: { 200: z.string().meta({ format: 'binary' }) },
+        errors: ['NOT_FOUND', 'RATE_LIMITED'],
     },
     {
         id: 'postPublicEvents',

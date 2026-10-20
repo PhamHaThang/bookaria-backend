@@ -86,7 +86,7 @@ export type PublishBody = z.infer<typeof PublishBodySchema>;
 
 export const JobStartedSchema = z.object({ jobId: IdSchema });
 
-/** `POST /books/:bookId/previews`: a temporary link, valid 24 hours, for the whole book or one page. */
+/** `POST /books/:bookId/previews` (202): enqueue a 24-hour preview of a book or page. */
 export const CreatePreviewBodySchema = z.discriminatedUnion('scope', [
     z.object({ scope: z.literal('BOOK') }),
     z.object({ scope: z.literal('PAGE'), pageId: IdSchema }),

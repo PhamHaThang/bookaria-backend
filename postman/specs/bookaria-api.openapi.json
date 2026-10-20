@@ -7351,7 +7351,7 @@
             "post": {
                 "operationId": "postBooksByBookIdPreviews",
                 "tags": ["books"],
-                "summary": "Tạo liên kết xem trước 24 giờ (cả sách hoặc một trang)",
+                "summary": "Xếp job tạo preview 24 giờ (cả sách hoặc một trang)",
                 "security": [
                     {
                         "bearerAuth": []
@@ -7404,8 +7404,8 @@
                     }
                 },
                 "responses": {
-                    "201": {
-                        "description": "Đã tạo",
+                    "202": {
+                        "description": "Đã nhận (công việc nền đã bắt đầu)",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -7414,25 +7414,12 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
-                                                "token": {
+                                                "jobId": {
                                                     "type": "string",
-                                                    "maxLength": 32
-                                                },
-                                                "url": {
-                                                    "type": "string",
-                                                    "format": "uri"
-                                                },
-                                                "scope": {
-                                                    "type": "string",
-                                                    "enum": ["BOOK", "PAGE"]
-                                                },
-                                                "expiresAt": {
-                                                    "type": "string",
-                                                    "format": "date-time",
-                                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                    "format": "uuid"
                                                 }
                                             },
-                                            "required": ["token", "url", "scope", "expiresAt"],
+                                            "required": ["jobId"],
                                             "additionalProperties": false
                                         }
                                     },
@@ -7506,6 +7493,48 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`JOB_IN_PROGRESS`: Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "JOB_IN_PROGRESS": {
+                                        "value": {
+                                            "error": {
+                                                "code": "JOB_IN_PROGRESS",
+                                                "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -9514,7 +9543,7 @@
             "get": {
                 "operationId": "getPublicPreviewsByToken",
                 "tags": ["public"],
-                "summary": "Manifest của bản xem trước",
+                "summary": "Manifest preview còn hạn (no-store)",
                 "security": [],
                 "parameters": [
                     {
@@ -9580,6 +9609,152 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/public/previews/{token}/groups/{group}": {
+            "get": {
+                "operationId": "getPublicPreviewGroup",
+                "tags": ["public"],
+                "summary": "Nhóm .mind của preview còn hạn (binary, no-store)",
+                "security": [],
+                "parameters": [
+                    {
+                        "name": "token",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^[A-Za-z0-9_-]{32}$"
+                        }
+                    },
+                    {
+                        "name": "group",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "pattern": "^(0|[1-9]\\d{0,3})$"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/octet-stream": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }

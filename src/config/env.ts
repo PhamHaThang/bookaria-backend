@@ -34,6 +34,7 @@ const envSchema = z
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
         VIEWER_URL: z.httpUrl().default('http://viewer.localhost:5174'),
+        PUBLIC_API_URL: z.httpUrl().default('http://api.localhost:4000'),
         GOOGLE_CLIENT_ID: z.string().default(''),
         CLOUDINARY_URL: z
             .string()

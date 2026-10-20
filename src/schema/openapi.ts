@@ -245,7 +245,9 @@ function operation(route: Route, inDefs: Definitions, outDefs: Definitions): Jso
             ...(schema
                 ? {
                       content: {
-                          'application/json': { schema: jsonSchema(schema, 'output', outDefs) },
+                          [route.responseContentType ?? 'application/json']: {
+                              schema: jsonSchema(schema, 'output', outDefs),
+                          },
                       },
                   }
                 : {}),
