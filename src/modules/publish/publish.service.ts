@@ -1,4 +1,6 @@
+import { env } from '../../config';
 import { pool, type Queryable, withTransaction } from '../../db';
+import { getMediaStorage } from '../../lib';
 import {
     BookSummarySchema,
     ERROR_MESSAGES,
@@ -13,12 +15,15 @@ import {
     type PublishError,
     type PublishWarning,
     SceneSchema,
+    ShareInfoSchema,
     VersionSchema,
 } from '../../schema';
 import { AppError, fieldError } from '../../utils';
 import { booksRepository } from '../books/books.repository';
 import { toSummary } from '../books/books.service';
+import { viewerLink } from './publish.link';
 import { publishRepository } from './publish.repository';
+import { readPublishSnapshot, snapshotHash } from './publish.snapshot';
 import type { CheckAsset, CheckInput, PublishableBook } from './publish.types';
 
 export const LARGE_DOWNLOAD_BYTES = 50 * MB;
@@ -90,8 +95,14 @@ export const publishService = {
                 });
             }
 
+            const snapshot = await readPublishSnapshot(db, userId, bookId, true);
+            if (!snapshot) throw new AppError('NOT_FOUND');
             return {
-                jobId: await publishRepository.insertPublishJob(db, bookId, userId, { visibility }),
+                jobId: await publishRepository.insertPublishJob(db, bookId, userId, {
+                    visibility,
+                    snapshotHash: snapshotHash(snapshot),
+                    acceptWarnings: body.acceptWarnings,
+                }),
             };
         });
     },
@@ -132,6 +143,24 @@ export const publishService = {
         const row = await booksRepository.getBookSummary(pool, userId, bookId);
         if (!row) throw new AppError('NOT_FOUND', 'Không tìm thấy sách');
         return BookSummarySchema.parse(toSummary(row));
+    },
+    //
+    async getShareInfo(userId: string, bookId: string) {
+        const row = await publishRepository.getShareInfo(pool, userId, bookId);
+        if (!row) throw new AppError('NOT_FOUND', 'Sách chưa có bản xuất bản khả dụng.');
+        const media = getMediaStorage();
+        if (!media) throw new AppError('INTERNAL_ERROR');
+
+        if (!row.manifest_public_id.endsWith('/manifest.json'))
+            throw new AppError('NOT_FOUND', 'Bản cũ chưa có QR; cần xuất bản lại.');
+        const prefix = row.manifest_public_id.slice(0, -'manifest.json'.length),
+            url = viewerLink(env.VIEWER_URL, row.slug);
+        return ShareInfoSchema.parse({
+            url,
+            qrPngUrl: media.deliveryUrl({ resourceType: 'raw', publicId: `${prefix}qr.png` }),
+            qrSvgUrl: media.deliveryUrl({ resourceType: 'raw', publicId: `${prefix}qr.svg` }),
+            embedHtml: `<iframe src="${url}" title="Bookaria" allow="camera; fullscreen" loading="lazy"></iframe>`,
+        });
     },
 };
 

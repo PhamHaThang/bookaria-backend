@@ -62,6 +62,8 @@ export const publishRepository = {
         userId: string,
         payload: {
             visibility: 'UNLISTED' | 'PUBLIC';
+            snapshotHash: string;
+            acceptWarnings: boolean;
         },
     ): Promise<string> {
         const { rows } = await db.query<{ id: string }>(
@@ -91,5 +93,17 @@ export const publishRepository = {
             WHERE id = $1`,
             [bookId],
         );
+    },
+    // Lấy thông tin chia sẻ của sách
+    async getShareInfo(db: Queryable, ownerId: string, bookId: string) {
+        const { rows } = await db.query<{ slug: string; manifest_public_id: string }>(
+            `
+        SELECT b.slug,v.manifest_public_id FROM books b JOIN book_versions v ON v.id=b.current_version_id
+        JOIN users u ON u.id=b.owner_id WHERE b.id=$1 AND b.owner_id=$2 AND b.deleted_at IS NULL
+        AND b.taken_down_at IS NULL AND b.visibility<>'PRIVATE' AND b.slug IS NOT NULL
+        AND u.status='ACTIVE'`,
+            [bookId, ownerId],
+        );
+        return rows[0];
     },
 };

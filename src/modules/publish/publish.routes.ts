@@ -15,6 +15,9 @@ export const publishRouter = () => {
     // [GET] /books/:bookId/versions
     router.get('/versions', publishController.getBookVersions);
 
+    // [GET] /books/:bookId/share
+    router.get('/share', publishController.getShareInfo);
+
     // [POST] /books/:bookId/unpublish
     router.post('/unpublish', publishController.unpublishBook);
 

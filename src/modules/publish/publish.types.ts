@@ -1,4 +1,5 @@
 import type { AssetStatus, MarkerMode } from '../../schema';
+import type { AssetRow } from '../assets/assets.types';
 
 export interface CheckAsset {
     id: string;
@@ -59,3 +60,40 @@ export type BookVersions = {
     published_by: string | null;
     published_by_name: string | null;
 };
+
+export interface PublishSnapshot {
+    book: {
+        id: string;
+        owner_id: string;
+        title: string;
+        slug: string | null;
+        page_aspect: string;
+        current_version_id: string | null;
+        deleted_at: string | null;
+        taken_down_at: string | null;
+    };
+    author: { status: string; email_verified_at: string | null };
+    version: number;
+    pages: {
+        id: string;
+        order_index: number;
+        title: string | null;
+        image_asset_id: string;
+        marker_mode: MarkerMode;
+        marker_score: number | null;
+        marker_report: unknown;
+        marker_mind_public_id: string | null;
+        bookaria_marker_id: string | null;
+        bookaria_marker_transform: unknown;
+        scene: unknown;
+        settings: unknown;
+    }[];
+    assets: (AssetRow & { deleted_at: string | null })[];
+    markers: {
+        id: string;
+        number: number;
+        mind_public_id: string;
+        validated_at: string | null;
+        is_active: boolean;
+    }[];
+}

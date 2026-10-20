@@ -9,7 +9,9 @@ const envSchema = z
         DATABASE_URL: z.string().default('postgresql://bookaria:bookaria@localhost:5432/bookaria'),
         DATABASE_SSL: z.stringbool().default(false),
         JWT_SECRET: z.string().min(32).default(DEV_JWT_SECRET),
-        CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:5174'),
+        CORS_ORIGINS: z
+            .string()
+            .default('http://localhost:5173,http://localhost:5174,http://viewer.localhost:5174'),
         SMTP_URL: z
             .string()
             .regex(/^(smtps?:\/\/.+)?$/, {
@@ -31,6 +33,7 @@ const envSchema = z
         ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(900),
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
+        VIEWER_URL: z.httpUrl().default('http://viewer.localhost:5174'),
         GOOGLE_CLIENT_ID: z.string().default(''),
         CLOUDINARY_URL: z
             .string()
