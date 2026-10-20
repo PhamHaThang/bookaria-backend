@@ -281,7 +281,13 @@ export const assetsService = {
                     usages: toUsages(usages),
                 });
             }
-            // Not "in use" in the sense of a page, so the delete goes ahead and tidies up after itself.
+            if (await assetsRepository.isAssetInPublishedVersion(db, assetId)) {
+                throw new AppError(
+                    'ASSET_IN_USE',
+                    'Tài nguyên còn được một phiên bản sách sử dụng.',
+                );
+            }
+            // Không còn trang hoặc phiên bản nào dùng asset này.
             await assetsRepository.clearCoverImageFromBooks(db, assetId);
             await assetsRepository.clearAvatar(db, userId, asset.thumbnail_url);
             await assetsRepository.softDeleteAsset(db, assetId);

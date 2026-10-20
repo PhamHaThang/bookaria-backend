@@ -280,6 +280,13 @@ export const assetsRepository = {
         );
         return rows;
     },
+    async isAssetInPublishedVersion(db: Queryable, assetId: string): Promise<boolean> {
+        const { rows } = await db.query<{ used: boolean }>(
+            'SELECT EXISTS (SELECT 1 FROM version_assets WHERE asset_id = $1) AS used',
+            [assetId],
+        );
+        return rows[0]?.used ?? false;
+    },
     async clearCoverImageFromBooks(db: Queryable, assetId: string): Promise<void> {
         await db.query(`UPDATE books SET cover_asset_id = NULL WHERE cover_asset_id = $1`, [
             assetId,
