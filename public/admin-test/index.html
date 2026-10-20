@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="vi">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Bookaria Admin API Test</title>
+        <link rel="stylesheet" href="./styles.css" />
+        <script src="./app.js" defer></script>
+    </head>
+    <body>
+        <main class="shell">
+            <header class="page-header">
+                <div>
+                    <p class="eyebrow">Bookaria</p>
+                    <h1>Admin API Test</h1>
+                    <p class="muted">Trang nội bộ để thử dashboard và API quản trị.</p>
+                </div>
+                <button id="logout-button" class="secondary hidden" type="button">Đăng xuất</button>
+            </header>
+
+            <p id="message" class="message hidden" role="status"></p>
+
+            <section id="login-section" class="card narrow">
+                <h2>Đăng nhập quản trị</h2>
+                <form id="login-form" class="form-grid">
+                    <label>
+                        Email
+                        <input name="email" type="email" value="admin@gmail.com" required />
+                    </label>
+                    <label>
+                        Mật khẩu
+                        <input name="password" type="password" required />
+                    </label>
+                    <label class="check-row">
+                        <input name="remember" type="checkbox" />
+                        Ghi nhớ phiên refresh
+                    </label>
+                    <button type="submit">Đăng nhập</button>
+                </form>
+                <p class="hint">Seed dev mặc định dùng mật khẩu <code>admin123</code>.</p>
+            </section>
+
+            <section id="app-section" class="app-layout hidden">
+                <aside class="sidebar card" aria-label="Điều hướng nhanh">
+                    <p class="sidebar-title">Quick access</p>
+                    <nav class="quick-nav">
+                        <button class="nav-link active" data-view="dashboard" type="button">
+                            <span aria-hidden="true">◫</span>
+                            Dashboard
+                        </button>
+                        <button class="nav-link" data-view="users" type="button">
+                            <span aria-hidden="true">◎</span>
+                            Người dùng
+                        </button>
+                        <button class="nav-link" data-view="moderation" type="button">
+                            <span aria-hidden="true">◇</span>
+                            Kiểm duyệt
+                        </button>
+                        <button class="nav-link" data-view="library" type="button">
+                            <span aria-hidden="true">▦</span>
+                            Thư viện
+                        </button>
+                        <button class="nav-link" data-view="markers" type="button">
+                            <span aria-hidden="true">▣</span>
+                            Marker
+                        </button>
+                        <button class="nav-link" data-view="audit" type="button">
+                            <span aria-hidden="true">⏱</span>
+                            Nhật ký
+                        </button>
+                    </nav>
+                </aside>
+
+                <div class="workspace">
+                    <section id="dashboard-view" class="view">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Tổng quan</p>
+                                <h2>Dashboard</h2>
+                                <p id="dashboard-updated" class="muted"></p>
+                            </div>
+                            <button id="refresh-dashboard" class="secondary" type="button">
+                                Làm mới
+                            </button>
+                        </div>
+
+                        <div class="metric-grid" aria-live="polite">
+                            <article class="metric-card">
+                                <span>Người dùng</span>
+                                <strong id="metric-users">—</strong>
+                            </article>
+                            <article class="metric-card">
+                                <span>Sách đã xuất bản</span>
+                                <strong id="metric-books">—</strong>
+                            </article>
+                            <article class="metric-card">
+                                <span>Dung lượng đã dùng</span>
+                                <strong id="metric-storage">—</strong>
+                            </article>
+                            <article class="metric-card warning">
+                                <span>Job lỗi · 24 giờ</span>
+                                <strong id="metric-jobs">—</strong>
+                            </article>
+                            <article class="metric-card danger-metric">
+                                <span>Báo cáo đang mở</span>
+                                <strong id="metric-reports">—</strong>
+                            </article>
+                        </div>
+
+                        <div class="dashboard-panels">
+                            <section class="card dashboard-card">
+                                <div class="section-heading">
+                                    <div>
+                                        <h3>Sách xuất bản theo ngày</h3>
+                                        <p class="muted">7 ngày gần nhất</p>
+                                    </div>
+                                </div>
+                                <div id="published-chart" class="bar-chart"></div>
+                            </section>
+
+                            <section class="card dashboard-card">
+                                <div class="section-heading">
+                                    <div>
+                                        <h3>Hành vi hôm nay</h3>
+                                        <p class="muted">Tổng hợp từ audit log</p>
+                                    </div>
+                                </div>
+                                <ul id="audit-actions" class="audit-list"></ul>
+                            </section>
+                        </div>
+                    </section>
+
+                    <section id="moderation-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Nội dung</p>
+                                <h2>Kiểm duyệt</h2>
+                                <p class="muted">Thử hàng chờ báo cáo và API xử lý sách.</p>
+                            </div>
+                            <button id="refresh-moderation" class="secondary" type="button">
+                                Làm mới
+                            </button>
+                        </div>
+
+                        <section class="card table-card">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Hàng chờ báo cáo</h3>
+                                    <p id="moderation-queue-meta" class="muted"></p>
+                                </div>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sách</th>
+                                            <th>Tác giả</th>
+                                            <th>Báo cáo</th>
+                                            <th>Lý do</th>
+                                            <th>Gần nhất</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="moderation-queue-body"></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section class="card table-card">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Sách kiểm duyệt chủ động</h3>
+                                    <p id="moderation-books-meta" class="muted"></p>
+                                </div>
+                            </div>
+                            <form id="moderation-filters" class="moderation-filters">
+                                <label>
+                                    Tìm kiếm
+                                    <input name="q" type="search" placeholder="Tên sách hoặc tác giả" />
+                                </label>
+                                <label>
+                                    Hiển thị
+                                    <select name="visibility">
+                                        <option value="PUBLIC">PUBLIC</option>
+                                        <option value="PRIVATE">PRIVATE</option>
+                                        <option value="UNLISTED">UNLISTED</option>
+                                    </select>
+                                </label>
+                                <button type="submit">Lọc</button>
+                            </form>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Sách</th>
+                                            <th>Tác giả</th>
+                                            <th>Trạng thái</th>
+                                            <th>Hiển thị</th>
+                                            <th>Báo cáo mở</th>
+                                            <th>Cập nhật</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="moderation-books-body"></tbody>
+                                </table>
+                            </div>
+                        </section>
+
+                        <section id="moderation-detail" class="card hidden" aria-live="polite">
+                            <div class="section-heading">
+                                <div>
+                                    <p class="eyebrow">Chi tiết</p>
+                                    <h2 id="moderation-detail-title">Sách</h2>
+                                </div>
+                                <button id="close-moderation-detail" class="secondary" type="button">
+                                    Đóng
+                                </button>
+                            </div>
+                            <div class="detail-actions">
+                                <button id="takedown-book" class="danger" type="button">Gỡ sách</button>
+                                <button id="reinstate-book" type="button">Khôi phục sách</button>
+                                <button id="dismiss-reports" class="secondary" type="button">
+                                    Bỏ qua báo cáo mở
+                                </button>
+                            </div>
+                            <dl id="moderation-detail-meta" class="details"></dl>
+                            <h3>Trang</h3>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Thứ tự</th>
+                                            <th>Tiêu đề</th>
+                                            <th>Thumbnail</th>
+                                            <th>Marker</th>
+                                            <th>Score</th>
+                                            <th>Objects</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="moderation-pages-body"></tbody>
+                                </table>
+                            </div>
+                            <h3 class="subsection-title">Báo cáo</h3>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Lý do</th>
+                                            <th>Ghi chú</th>
+                                            <th>Trạng thái</th>
+                                            <th>Tạo lúc</th>
+                                            <th>Xử lý lúc</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="moderation-reports-body"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section id="library-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Tài nguyên chung</p>
+                                <h2>Thư viện</h2>
+                                <p class="muted">Thử API asset dùng chung và cây category.</p>
+                            </div>
+                            <button id="refresh-library" class="secondary" type="button">
+                                Làm mới
+                            </button>
+                        </div>
+
+                        <div class="library-panels">
+                            <section class="card">
+                                <h3>Đưa asset vào thư viện</h3>
+                                <p class="hint">Asset phải được upload hoàn tất và đang ở trạng thái READY.</p>
+                                <form id="create-library-asset-form" class="form-grid">
+                                    <label>
+                                        Asset ID
+                                        <input name="assetId" required />
+                                    </label>
+                                    <label>
+                                        Tên hiển thị
+                                        <input name="name" maxlength="150" required />
+                                    </label>
+                                    <label>
+                                        License
+                                        <input name="license" maxlength="50" placeholder="CC-BY-4.0" required />
+                                    </label>
+                                    <label>
+                                        Tác giả gốc
+                                        <input name="authorName" maxlength="150" required />
+                                    </label>
+                                    <label>
+                                        Category ID
+                                        <input name="categoryId" placeholder="Không bắt buộc" />
+                                    </label>
+                                    <label>
+                                        URL nguồn
+                                        <input name="sourceUrl" type="url" placeholder="https://..." />
+                                    </label>
+                                    <label>
+                                        Tags
+                                        <input name="tags" placeholder="nature, tree, free" />
+                                    </label>
+                                    <button type="submit">Thêm vào thư viện</button>
+                                </form>
+                            </section>
+
+                            <section class="card">
+                                <h3>Category API</h3>
+                                <form id="create-category-form" class="compact-form">
+                                    <strong>Tạo category</strong>
+                                    <label>
+                                        Tên
+                                        <input name="name" maxlength="100" required />
+                                    </label>
+                                    <label>
+                                        Parent ID
+                                        <input name="parentId" placeholder="Không bắt buộc" />
+                                    </label>
+                                    <button type="submit">Tạo category</button>
+                                </form>
+                                <form id="update-category-form" class="compact-form">
+                                    <strong>Sửa category</strong>
+                                    <label>
+                                        Category ID
+                                        <input name="categoryId" required />
+                                    </label>
+                                    <label>
+                                        Tên mới
+                                        <input name="name" maxlength="100" placeholder="Không đổi" />
+                                    </label>
+                                    <label>
+                                        Parent ID
+                                        <input name="parentId" placeholder="Trống: không đổi; null: về gốc" />
+                                    </label>
+                                    <label>
+                                        Thứ tự
+                                        <input name="sortOrder" type="number" min="-32768" max="32767" placeholder="Không đổi" />
+                                    </label>
+                                    <button type="submit">Lưu category</button>
+                                </form>
+                                <form id="delete-category-form" class="compact-form">
+                                    <strong>Xóa category rỗng</strong>
+                                    <label>
+                                        Category ID
+                                        <input name="categoryId" required />
+                                    </label>
+                                    <button class="danger" type="submit">Xóa category</button>
+                                </form>
+                                <output id="category-result" class="hint"></output>
+                            </section>
+                        </div>
+
+                        <section class="card table-card">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Asset thư viện</h3>
+                                    <p id="library-assets-meta" class="muted"></p>
+                                </div>
+                            </div>
+                            <form id="library-filters" class="library-filters">
+                                <label>
+                                    Tìm kiếm
+                                    <input name="q" type="search" placeholder="Tên asset" />
+                                </label>
+                                <label>
+                                    Loại
+                                    <select name="type">
+                                        <option value="">Tất cả</option>
+                                        <option value="MODEL">MODEL</option>
+                                        <option value="IMAGE">IMAGE</option>
+                                        <option value="AUDIO">AUDIO</option>
+                                        <option value="VIDEO">VIDEO</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Category ID
+                                    <input name="categoryId" placeholder="Không bắt buộc" />
+                                </label>
+                                <button type="submit">Lọc</button>
+                            </form>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Asset</th>
+                                            <th>Loại</th>
+                                            <th>License</th>
+                                            <th>Tác giả gốc</th>
+                                            <th>Category</th>
+                                            <th>Dung lượng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="library-assets-body"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination">
+                                <button id="library-previous-page" class="secondary" type="button">
+                                    Trang trước
+                                </button>
+                                <span id="library-page-label"></span>
+                                <button id="library-next-page" class="secondary" type="button">
+                                    Trang sau
+                                </button>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section id="markers-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Bookaria marker</p>
+                                <h2>Bộ marker</h2>
+                                <p class="muted">Thêm marker đã build và bật/tắt marker cho page mới.</p>
+                            </div>
+                            <button id="refresh-markers" class="secondary" type="button">Làm mới</button>
+                        </div>
+
+                        <div class="library-panels">
+                            <section class="card">
+                                <h3>Thêm marker</h3>
+                                <form id="create-marker-form" class="form-grid">
+                                    <label>
+                                        Number
+                                        <input name="number" type="number" min="1" required />
+                                    </label>
+                                    <label>
+                                        Seed
+                                        <input name="seed" type="number" step="1" required />
+                                    </label>
+                                    <label>
+                                        Image public ID
+                                        <input name="imagePublicId" maxlength="300" placeholder="bookaria/markers/001" required />
+                                    </label>
+                                    <label>
+                                        Mind public ID
+                                        <input name="mindPublicId" maxlength="300" placeholder="bookaria/markers/001.mind" required />
+                                    </label>
+                                    <label>
+                                        Marker score
+                                        <input name="markerScore" type="number" min="0" max="5" step="1" placeholder="Không bắt buộc" />
+                                    </label>
+                                    <button type="submit">Thêm marker</button>
+                                </form>
+                            </section>
+                            <section class="card">
+                                <h3>Quy tắc</h3>
+                                <p class="hint">Number và seed phải duy nhất. Marker tắt vẫn giữ nguyên ở các page cũ, nhưng không thể được gán cho page mới.</p>
+                            </section>
+                        </div>
+
+                        <section class="card table-card">
+                            <div class="section-heading">
+                                <div>
+                                    <h3>Danh sách marker</h3>
+                                    <p id="markers-meta" class="muted"></p>
+                                </div>
+                            </div>
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Number</th>
+                                            <th>Ảnh</th>
+                                            <th>Score</th>
+                                            <th>Đã kiểm tra</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="markers-body"></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </section>
+
+                    <section id="users-view" class="view hidden">
+                        <div class="card">
+                            <div class="section-heading">
+                                <h2>Người dùng</h2>
+                                <button id="open-create-user" type="button">Thêm người dùng</button>
+                            </div>
+                            <form id="filters-form" class="filters">
+                                <label>
+                                    Tìm kiếm
+                                    <input name="q" type="search" placeholder="Email hoặc tên" />
+                                </label>
+                                <label>
+                                    Vai trò
+                                    <select name="role">
+                                        <option value="">Tất cả</option>
+                                        <option value="AUTHOR">AUTHOR</option>
+                                        <option value="ADMIN">ADMIN</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Trạng thái
+                                    <select name="status">
+                                        <option value="">Tất cả</option>
+                                        <option value="ACTIVE">ACTIVE</option>
+                                        <option value="LOCKED">LOCKED</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Sắp xếp
+                                    <select name="sort">
+                                        <option value="-createdAt">Ngày tạo: mới nhất</option>
+                                        <option value="createdAt">Ngày tạo: cũ nhất</option>
+                                        <option value="-updatedAt">Cập nhật: mới nhất</option>
+                                        <option value="updatedAt">Cập nhật: cũ nhất</option>
+                                        <option value="displayName">Tên: A–Z</option>
+                                        <option value="-displayName">Tên: Z–A</option>
+                                        <option value="email">Email: A–Z</option>
+                                        <option value="-email">Email: Z–A</option>
+                                        <option value="-storageUsedBytes">Dung lượng: cao nhất</option>
+                                        <option value="storageUsedBytes">Dung lượng: thấp nhất</option>
+                                    </select>
+                                </label>
+                                <button type="submit">Lọc</button>
+                            </form>
+                        </div>
+
+                        <div class="card table-card">
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Người dùng</th>
+                                            <th>Vai trò</th>
+                                            <th>Trạng thái</th>
+                                            <th>Sách</th>
+                                            <th>Dung lượng</th>
+                                            <th>Cập nhật</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-body"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination">
+                                <button id="previous-page" class="secondary" type="button">
+                                    Trang trước
+                                </button>
+                                <span id="page-label"></span>
+                                <button id="next-page" class="secondary" type="button">
+                                    Trang sau
+                                </button>
+                            </div>
+                        </div>
+
+                        <section id="detail-card" class="card hidden" aria-live="polite">
+                            <div class="section-heading">
+                                <h2>Chi tiết người dùng</h2>
+                                <button id="close-detail" class="secondary" type="button">
+                                    Đóng
+                                </button>
+                            </div>
+                            <dl id="user-detail" class="details"></dl>
+                            <h3>Sách</h3>
+                            <ul id="book-list" class="book-list"></ul>
+                        </section>
+                    </section>
+
+                    <section id="audit-view" class="view hidden">
+                        <div class="section-heading view-heading">
+                            <div>
+                                <p class="eyebrow">Hệ thống</p>
+                                <h2>Nhật ký quản trị</h2>
+                                <p id="audit-logs-meta" class="muted"></p>
+                            </div>
+                            <button id="refresh-audit" class="secondary" type="button">
+                                Làm mới
+                            </button>
+                        </div>
+
+                        <div class="card">
+                            <form id="audit-filters" class="audit-filters">
+                                <label>
+                                    Hành động
+                                    <select name="action">
+                                        <option value="">Tất cả hành động</option>
+                                        <option value="CREATE_USER">CREATE_USER</option>
+                                        <option value="LOCK_USER">LOCK_USER</option>
+                                        <option value="UNLOCK_USER">UNLOCK_USER</option>
+                                        <option value="CHANGE_ROLE">CHANGE_ROLE</option>
+                                        <option value="SET_QUOTA">SET_QUOTA</option>
+                                        <option value="TAKE_DOWN_BOOK">TAKE_DOWN_BOOK</option>
+                                        <option value="REINSTATE_BOOK">REINSTATE_BOOK</option>
+                                        <option value="RESOLVE_REPORT">RESOLVE_REPORT</option>
+                                        <option value="DISMISS_REPORT">DISMISS_REPORT</option>
+                                        <option value="CREATE_LIBRARY_ASSET">CREATE_LIBRARY_ASSET</option>
+                                        <option value="UPDATE_LIBRARY_ASSET">UPDATE_LIBRARY_ASSET</option>
+                                        <option value="DELETE_ASSET">DELETE_ASSET</option>
+                                        <option value="MANAGE_CATEGORY">MANAGE_CATEGORY</option>
+                                        <option value="MANAGE_MARKER">MANAGE_MARKER</option>
+                                        <option value="RETRY_JOB">RETRY_JOB</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Loại đối tượng
+                                    <select name="targetType">
+                                        <option value="">Tất cả loại</option>
+                                        <option value="USER">USER</option>
+                                        <option value="BOOK">BOOK</option>
+                                        <option value="ASSET">ASSET</option>
+                                        <option value="REPORT">REPORT</option>
+                                        <option value="JOB">JOB</option>
+                                        <option value="CATEGORY">CATEGORY</option>
+                                        <option value="MARKER">MARKER</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    ID đối tượng
+                                    <input name="targetId" placeholder="UUID đối tượng" />
+                                </label>
+                                <label>
+                                    ID Quản trị viên
+                                    <input name="actorId" placeholder="UUID actor" />
+                                </label>
+                                <button type="submit">Lọc</button>
+                                <button id="reset-audit-filters" class="secondary" type="button">
+                                    Đặt lại
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="card table-card">
+                            <div class="table-wrap">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Thời gian</th>
+                                            <th>Quản trị viên</th>
+                                            <th>Hành động</th>
+                                            <th>Đối tượng</th>
+                                            <th>Thao tác</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="audit-logs-body"></tbody>
+                                </table>
+                            </div>
+                            <div class="pagination">
+                                <button id="audit-previous-page" class="secondary" type="button">
+                                    Trang trước
+                                </button>
+                                <span id="audit-page-label"></span>
+                                <button id="audit-next-page" class="secondary" type="button">
+                                    Trang sau
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </section>
+        </main>
+
+        <dialog id="create-user-dialog">
+            <form id="create-user-form" class="form-grid">
+                <div class="section-heading">
+                    <h2>Thêm người dùng</h2>
+                    <button
+                        id="close-create-user"
+                        class="icon-button"
+                        type="button"
+                        aria-label="Đóng"
+                    >
+                        ×
+                    </button>
+                </div>
+                <label>
+                    Họ tên
+                    <input name="displayName" maxlength="100" required />
+                </label>
+                <label>
+                    Email
+                    <input name="email" type="email" required />
+                </label>
+                <label>
+                    Mật khẩu ban đầu
+                    <input name="password" type="password" minlength="8" maxlength="72" required />
+                </label>
+                <button type="submit">Tạo người dùng</button>
+            </form>
+        </dialog>
+
+        <dialog id="edit-dialog">
+            <form id="edit-form" class="form-grid">
+                <div class="section-heading">
+                    <h2>Cập nhật người dùng</h2>
+                    <button id="close-edit" class="icon-button" type="button" aria-label="Đóng">×</button>
+                </div>
+                <p id="edit-user-label" class="muted"></p>
+                <label>
+                    Vai trò
+                    <select name="role">
+                        <option value="AUTHOR">AUTHOR</option>
+                        <option value="ADMIN">ADMIN</option>
+                    </select>
+                </label>
+                <label>
+                    Trạng thái
+                    <select name="status">
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="LOCKED">LOCKED</option>
+                    </select>
+                </label>
+                <label>
+                    Hạn mức (MB)
+                    <input name="quotaMb" type="number" min="1" step="1" required />
+                </label>
+                <label>
+                    Lý do đổi vai trò/trạng thái
+                    <textarea name="reason" maxlength="500" rows="3"></textarea>
+                </label>
+                <button type="submit">Lưu thay đổi</button>
+            </form>
+        </dialog>
+
+        <dialog id="audit-detail-dialog">
+            <div class="form-grid">
+                <div class="section-heading">
+                    <h2>Chi tiết nhật ký #<span id="audit-detail-id"></span></h2>
+                    <button id="close-audit-detail" class="icon-button" type="button" aria-label="Đóng">×</button>
+                </div>
+                <dl id="audit-detail-meta" class="details"></dl>
+                <h3>Dữ liệu chi tiết (Detail)</h3>
+                <pre id="audit-detail-json" class="json-box"></pre>
+            </div>
+        </dialog>
+    </body>
+</html>

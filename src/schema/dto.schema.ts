@@ -63,6 +63,7 @@ export const AdminUserSchema = MeSchema.extend({
     status: UserStatusSchema,
     bookCount: z.int().min(0),
     lastLoginAt: IsoDateTimeSchema.nullable(),
+    updatedAt: IsoDateTimeSchema,
 });
 export type AdminUser = z.infer<typeof AdminUserSchema>;
 

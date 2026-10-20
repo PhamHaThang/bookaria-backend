@@ -3,6 +3,7 @@ import {
     AdminBookDetailSchema,
     AdminBookItemSchema,
     AdminBooksQuerySchema,
+    AdminCreateUserBodySchema,
     AdminDashboardSchema,
     AdminJobSchema,
     AdminJobsQuerySchema,
@@ -150,6 +151,7 @@ const params = {
     slug: z.object({ slug: SlugSchema }),
     token: z.object({ token: z.string().min(1).max(32) }),
     bookVersion: z.object({ bookId: IdSchema, versionNo: z.coerce.number().int().positive() }),
+    logId: z.object({ logId: z.coerce.number().int().positive() }),
 };
 
 /**
@@ -533,7 +535,7 @@ export const routes: Route[] = [
         summary: 'Chấm lại marker của trang Custom (202 + `jobId`)',
         params: params.pageId,
         responses: { 202: dataResponse(JobStartedSchema) },
-        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'VALIDATION_ERROR'],
     },
     {
         id: 'putPagesByPageIdMarker',
@@ -842,6 +844,16 @@ export const routes: Route[] = [
         responses: { 200: pagedResponse(AdminUserSchema) },
     },
     {
+        id: 'postAdminUsers',
+        method: 'POST',
+        path: '/admin/users',
+        access: 'admin',
+        summary: 'Tạo tài khoản người dùng bằng mật khẩu ban đầu',
+        body: AdminCreateUserBodySchema,
+        responses: { 201: dataResponse(AdminUserSchema) },
+        errors: ['EMAIL_TAKEN'],
+    },
+    {
         id: 'getAdminUsersByUserId',
         method: 'GET',
         path: '/admin/users/:userId',
@@ -984,7 +996,7 @@ export const routes: Route[] = [
         params: params.categoryId,
         body: UpdateCategoryBodySchema,
         responses: { 200: dataResponse(AssetCategorySchema) },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'CATEGORY_CYCLE'],
     },
     {
         id: 'deleteAdminAssetCategoriesByCategoryId',
@@ -994,7 +1006,7 @@ export const routes: Route[] = [
         summary: 'Xoá danh mục rỗng',
         params: params.categoryId,
         responses: { 204: null },
-        errors: ['NOT_FOUND'],
+        errors: ['NOT_FOUND', 'CATEGORY_NOT_EMPTY'],
     },
     {
         id: 'getAdminBookariaMarkers',
@@ -1013,6 +1025,7 @@ export const routes: Route[] = [
         summary: 'Thêm marker vào bộ',
         body: CreateBookariaMarkerBodySchema,
         responses: { 201: dataResponse(BookariaMarkerSchema) },
+        errors: ['MARKER_DUPLICATE'],
     },
     {
         id: 'patchAdminBookariaMarkersByMarkerId',
@@ -1042,7 +1055,7 @@ export const routes: Route[] = [
         summary: 'Chạy lại tác vụ lỗi',
         params: params.jobId,
         responses: { 202: dataResponse(JobStartedSchema) },
-        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'VALIDATION_ERROR'],
     },
     {
         id: 'getAdminAuditLogs',
@@ -1052,6 +1065,16 @@ export const routes: Route[] = [
         summary: 'Nhật ký quản trị',
         query: AuditLogsQuerySchema,
         responses: { 200: pagedResponse(AuditLogSchema) },
+    },
+    {
+        id: 'getAdminAuditLogsByLogId',
+        method: 'GET',
+        path: '/admin/audit-logs/:logId',
+        access: 'admin',
+        summary: 'Chi tiết một nhật ký quản trị',
+        params: params.logId,
+        responses: { 200: dataResponse(AuditLogSchema) },
+        errors: ['NOT_FOUND'],
     },
 ];
 

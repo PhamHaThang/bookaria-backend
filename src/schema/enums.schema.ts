@@ -73,6 +73,7 @@ export type NotificationType = z.infer<typeof NotificationTypeSchema>;
 
 /** `audit_logs.action` is varchar(50). */
 export const AuditActionSchema = z.enum([
+    'CREATE_USER',
     'LOCK_USER',
     'UNLOCK_USER',
     'CHANGE_ROLE',

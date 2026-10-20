@@ -17,6 +17,8 @@ export const ErrorCodeSchema = z.enum([
     'EMAIL_TAKEN',
     'REVISION_CONFLICT',
     'ASSET_IN_USE',
+    'CATEGORY_NOT_EMPTY',
+    'CATEGORY_CYCLE',
     'JOB_IN_PROGRESS',
     'BOOK_UNAVAILABLE',
     'FILE_TOO_LARGE',
@@ -28,6 +30,7 @@ export const ErrorCodeSchema = z.enum([
     'ACCOUNT_LOCKED',
     'RATE_LIMITED',
     'MARKER_POOL_EXHAUSTED',
+    'MARKER_DUPLICATE',
     'INTERNAL_ERROR',
 ]);
 
@@ -49,6 +52,8 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
     EMAIL_TAKEN: 409,
     REVISION_CONFLICT: 409,
     ASSET_IN_USE: 409,
+    CATEGORY_NOT_EMPTY: 409,
+    CATEGORY_CYCLE: 422,
     JOB_IN_PROGRESS: 409,
     BOOK_UNAVAILABLE: 410,
     FILE_TOO_LARGE: 413,
@@ -58,6 +63,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
     LAST_ADMIN: 422,
     SELF_ACTION: 422,
     MARKER_POOL_EXHAUSTED: 422,
+    MARKER_DUPLICATE: 409,
     ACCOUNT_LOCKED: 423,
     RATE_LIMITED: 429,
     INTERNAL_ERROR: 500,
@@ -79,6 +85,8 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     EMAIL_TAKEN: 'Email này đã được đăng ký.',
     REVISION_CONFLICT: 'Trang đã được sửa ở nơi khác.',
     ASSET_IN_USE: 'Tài nguyên đang được dùng trong sách nên chưa xoá được.',
+    CATEGORY_NOT_EMPTY: 'Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.',
+    CATEGORY_CYCLE: 'Danh mục cha tạo thành một cây vòng lặp.',
     JOB_IN_PROGRESS: 'Đang có một tác vụ chạy cho sách này, vui lòng đợi.',
     BOOK_UNAVAILABLE: 'Sách này hiện không khả dụng.',
     FILE_TOO_LARGE: 'File vượt quá dung lượng cho phép.',
@@ -90,6 +98,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     ACCOUNT_LOCKED: 'Tài khoản đang bị khoá.',
     RATE_LIMITED: 'Bạn thao tác quá nhanh, vui lòng thử lại sau.',
     MARKER_POOL_EXHAUSTED: 'Sách đã dùng hết số marker Bookaria.',
+    MARKER_DUPLICATE: 'Số hoặc seed marker đã tồn tại.',
     INTERNAL_ERROR: 'Đã có lỗi xảy ra, vui lòng thử lại sau.',
 };
 

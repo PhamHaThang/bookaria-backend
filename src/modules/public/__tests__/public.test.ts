@@ -661,7 +661,12 @@ suite('POST /public/books/:slug/reports', () => {
         request(app)
             .post(`/api/v1/public/books/${slug}/reports`)
             .send(b as object);
-    const stored = () => rows('SELECT * FROM reports ORDER BY created_at');
+    const stored = () =>
+        rows(`SELECT r.* FROM reports r
+              JOIN books b ON b.id = r.book_id
+              JOIN users u ON u.id = b.owner_id
+              WHERE u.email LIKE 'publictest-%@example.com'
+              ORDER BY r.created_at`);
 
     it('records the report with 201 and keeps only a fingerprint of the device', async () => {
         const s = await shelve();

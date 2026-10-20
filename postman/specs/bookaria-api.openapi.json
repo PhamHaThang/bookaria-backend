@@ -10210,6 +10210,41 @@
                                                         "required": ["date", "count"],
                                                         "additionalProperties": false
                                                     }
+                                                },
+                                                "auditActionsToday": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "action": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "CREATE_USER",
+                                                                    "LOCK_USER",
+                                                                    "UNLOCK_USER",
+                                                                    "CHANGE_ROLE",
+                                                                    "SET_QUOTA",
+                                                                    "TAKE_DOWN_BOOK",
+                                                                    "REINSTATE_BOOK",
+                                                                    "RESOLVE_REPORT",
+                                                                    "DISMISS_REPORT",
+                                                                    "CREATE_LIBRARY_ASSET",
+                                                                    "UPDATE_LIBRARY_ASSET",
+                                                                    "DELETE_ASSET",
+                                                                    "MANAGE_CATEGORY",
+                                                                    "MANAGE_MARKER",
+                                                                    "RETRY_JOB"
+                                                                ]
+                                                            },
+                                                            "count": {
+                                                                "type": "integer",
+                                                                "minimum": 1,
+                                                                "maximum": 9007199254740991
+                                                            }
+                                                        },
+                                                        "required": ["action", "count"],
+                                                        "additionalProperties": false
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -10218,7 +10253,8 @@
                                                 "storageUsedBytes",
                                                 "failedJobs24h",
                                                 "openReports",
-                                                "publishedPerDay"
+                                                "publishedPerDay",
+                                                "auditActionsToday"
                                             ],
                                             "additionalProperties": false
                                         }
@@ -10362,6 +10398,27 @@
                         "schema": {
                             "type": "string",
                             "enum": ["ACTIVE", "LOCKED"]
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "default": "-createdAt",
+                            "type": "string",
+                            "enum": [
+                                "displayName",
+                                "-displayName",
+                                "email",
+                                "-email",
+                                "createdAt",
+                                "-createdAt",
+                                "updatedAt",
+                                "-updatedAt",
+                                "storageUsedBytes",
+                                "-storageUsedBytes"
+                            ]
                         }
                     }
                 ],
@@ -10507,6 +10564,186 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "operationId": "postAdminUsers",
+                "tags": ["admin"],
+                "summary": "Tạo tài khoản người dùng bằng mật khẩu ban đầu",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "minLength": 8
+                                    },
+                                    "displayName": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    },
+                                    "role": {
+                                        "default": "AUTHOR",
+                                        "type": "string",
+                                        "enum": ["AUTHOR", "ADMIN"]
+                                    },
+                                    "storageQuotaBytes": {
+                                        "default": 524288000,
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": true,
+                                        "maximum": 9007199254740991
+                                    }
+                                },
+                                "required": ["email", "password", "displayName"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Đã tạo",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AdminUser"
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`EMAIL_TAKEN`: Email này đã được đăng ký.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_TAKEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_TAKEN",
+                                                "message": "Email này đã được đăng ký.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/admin/users/{userId}": {
@@ -10610,6 +10847,11 @@
                                                     "format": "date-time",
                                                     "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                                                 },
+                                                "updatedAt": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                },
                                                 "books": {
                                                     "type": "array",
                                                     "items": {
@@ -10631,6 +10873,7 @@
                                                 "status",
                                                 "bookCount",
                                                 "lastLoginAt",
+                                                "updatedAt",
                                                 "books"
                                             ],
                                             "additionalProperties": false
@@ -11232,6 +11475,7 @@
                         "in": "query",
                         "required": false,
                         "schema": {
+                            "default": "PUBLIC",
                             "type": "string",
                             "enum": ["PUBLIC", "PRIVATE", "UNLISTED"]
                         }
@@ -11527,7 +11771,86 @@
                                                         "pages": {
                                                             "type": "array",
                                                             "items": {
-                                                                "$ref": "#/components/schemas/PageSummary"
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "orderIndex": {
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "maximum": 9007199254740991
+                                                                    },
+                                                                    "title": {
+                                                                        "nullable": true,
+                                                                        "type": "string"
+                                                                    },
+                                                                    "thumbnailUrl": {
+                                                                        "nullable": true,
+                                                                        "type": "string",
+                                                                        "format": "uri"
+                                                                    },
+                                                                    "markerMode": {
+                                                                        "type": "string",
+                                                                        "enum": [
+                                                                            "BOOKARIA_MARKER",
+                                                                            "CUSTOM_MARKER",
+                                                                            "NONE"
+                                                                        ]
+                                                                    },
+                                                                    "markerNumber": {
+                                                                        "nullable": true,
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true,
+                                                                        "maximum": 9007199254740991
+                                                                    },
+                                                                    "markerScore": {
+                                                                        "nullable": true,
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "maximum": 5
+                                                                    },
+                                                                    "markerWarnings": {
+                                                                        "type": "array",
+                                                                        "items": {
+                                                                            "anyOf": [
+                                                                                {
+                                                                                    "type": "string",
+                                                                                    "enum": [
+                                                                                        "LOW_SCORE",
+                                                                                        "NOT_SCORED",
+                                                                                        "NO_MARKER_AVAILABLE",
+                                                                                        "MARKER_TOO_SMALL",
+                                                                                        "MARKER_NEAR_EDGE"
+                                                                                    ]
+                                                                                },
+                                                                                {
+                                                                                    "type": "string",
+                                                                                    "pattern": "^SIMILAR_TO:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    },
+                                                                    "objectCount": {
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "maximum": 9007199254740991
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "id",
+                                                                    "orderIndex",
+                                                                    "title",
+                                                                    "thumbnailUrl",
+                                                                    "markerMode",
+                                                                    "markerNumber",
+                                                                    "markerScore",
+                                                                    "markerWarnings",
+                                                                    "objectCount"
+                                                                ],
+                                                                "additionalProperties": false
                                                             }
                                                         }
                                                     },
@@ -13262,8 +13585,8 @@
                                     },
                                     "sortOrder": {
                                         "type": "integer",
-                                        "minimum": -9007199254740991,
-                                        "maximum": 9007199254740991
+                                        "minimum": -32768,
+                                        "maximum": 32767
                                     }
                                 }
                             }
@@ -13373,6 +13696,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "`CATEGORY_CYCLE`: Danh mục cha tạo thành một cây vòng lặp.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "CATEGORY_CYCLE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "CATEGORY_CYCLE",
+                                                "message": "Danh mục cha tạo thành một cây vòng lặp.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13513,6 +13857,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`CATEGORY_NOT_EMPTY`: Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "CATEGORY_NOT_EMPTY": {
+                                        "value": {
+                                            "error": {
+                                                "code": "CATEGORY_NOT_EMPTY",
+                                                "message": "Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13852,6 +14217,27 @@
                                             "error": {
                                                 "code": "FORBIDDEN",
                                                 "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`MARKER_DUPLICATE`: Số hoặc seed marker đã tồn tại.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "MARKER_DUPLICATE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "MARKER_DUPLICATE",
+                                                "message": "Số hoặc seed marker đã tồn tại.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14585,6 +14971,7 @@
                         "schema": {
                             "type": "string",
                             "enum": [
+                                "CREATE_USER",
                                 "LOCK_USER",
                                 "UNLOCK_USER",
                                 "CHANGE_ROLE",
@@ -14604,6 +14991,24 @@
                     },
                     {
                         "name": "actorId",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "targetType",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["USER", "BOOK", "ASSET", "REPORT", "JOB", "CATEGORY", "MARKER"]
+                        }
+                    },
+                    {
+                        "name": "targetId",
                         "in": "query",
                         "required": false,
                         "schema": {
@@ -14724,6 +15129,164 @@
                                             "error": {
                                                 "code": "FORBIDDEN",
                                                 "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/audit-logs/{logId}": {
+            "get": {
+                "operationId": "getAdminAuditLogsByLogId",
+                "tags": ["admin"],
+                "summary": "Chi tiết một nhật ký quản trị",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "logId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "maximum": 9007199254740991
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/AuditLog"
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -17598,6 +18161,11 @@
                         "type": "string",
                         "format": "date-time",
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                 },
                 "required": [
@@ -17613,7 +18181,8 @@
                     "createdAt",
                     "status",
                     "bookCount",
-                    "lastLoginAt"
+                    "lastLoginAt",
+                    "updatedAt"
                 ],
                 "additionalProperties": false
             },
@@ -17708,6 +18277,7 @@
                     "action": {
                         "type": "string",
                         "enum": [
+                            "CREATE_USER",
                             "LOCK_USER",
                             "UNLOCK_USER",
                             "CHANGE_ROLE",
@@ -17782,6 +18352,8 @@
                                     "EMAIL_TAKEN",
                                     "REVISION_CONFLICT",
                                     "ASSET_IN_USE",
+                                    "CATEGORY_NOT_EMPTY",
+                                    "CATEGORY_CYCLE",
                                     "JOB_IN_PROGRESS",
                                     "BOOK_UNAVAILABLE",
                                     "FILE_TOO_LARGE",
@@ -17793,6 +18365,7 @@
                                     "ACCOUNT_LOCKED",
                                     "RATE_LIMITED",
                                     "MARKER_POOL_EXHAUSTED",
+                                    "MARKER_DUPLICATE",
                                     "INTERNAL_ERROR"
                                 ]
                             },

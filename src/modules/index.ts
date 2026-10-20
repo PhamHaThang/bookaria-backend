@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { adminRouter } from './admin/admin.routes';
 import { assetCategoriesRouter, assetsRouter } from './assets/assets.routes';
 import { authRouter } from './auth/auth.routes';
 import { bookRouter } from './books/books.routes';
@@ -33,5 +34,6 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use('/asset-categories', assetCategoriesRouter());
     router.use('/public/previews', publicPreviewRouter(options.rateLimit));
     router.use('/public', publicRouter({ rateLimit: options.rateLimit }));
+    router.use('/admin', adminRouter());
     return router;
 }
