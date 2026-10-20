@@ -19,6 +19,10 @@ npm-debug.log*
 coverage/
 .nyc_output/
 
+# Generated local PDF previews and review files
+/output/pdf/
+/tmp/
+
 # Caches
 .eslintcache
 .cache/

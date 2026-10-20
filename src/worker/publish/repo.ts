@@ -1,5 +1,6 @@
 import type { Queryable } from '../../db';
 import { JobError } from '../../modules/jobs/jobs.types';
+import { capturePrintSource } from '../../modules/print/print.source';
 import { readPublishSnapshot, snapshotHash } from '../../modules/publish/publish.snapshot';
 import type { PublishSnapshot } from '../../modules/publish/publish.types';
 import { PageSettingsSchema, PublishedSceneSchema, sceneAssetIds } from '../../schema';
@@ -29,8 +30,8 @@ export async function commitPublication(
             'Sách đã thay đổi. Bản cũ được giữ nguyên; hãy kiểm tra và xuất bản lại.',
         );
     await db.query(
-        `INSERT INTO book_versions (id,book_id,version_no,schema_version,manifest_public_id,mind_groups,page_count,ar_page_count,total_size_bytes,published_by)
-        VALUES ($1,$2,$3,1,$4,$5::jsonb,$6,$7,$8,$9)`,
+        `INSERT INTO book_versions (id,book_id,version_no,schema_version,manifest_public_id,mind_groups,page_count,ar_page_count,total_size_bytes,published_by,print_source)
+        VALUES ($1,$2,$3,1,$4,$5::jsonb,$6,$7,$8,$9,$10::jsonb)`,
         [
             files.versionId,
             snapshot.book.id,
@@ -41,6 +42,7 @@ export async function commitPublication(
             files.arCount,
             files.totalBytes,
             snapshot.book.owner_id,
+            JSON.stringify(capturePrintSource(snapshot)),
         ],
     );
     const assetIds = new Set(snapshot.pages.map((page) => page.image_asset_id));

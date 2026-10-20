@@ -735,7 +735,7 @@ export const routes: Route[] = [
         params: params.bookId,
         body: PrintPdfBodySchema,
         responses: { 202: dataResponse(JobStartedSchema) },
-        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS'],
+        errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'RATE_LIMITED'],
     },
     {
         id: 'getJobsByJobId',

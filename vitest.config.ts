@@ -2,6 +2,8 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
     test: {
+        // Các suite dùng chung database; tránh test cập nhật marker làm đổi snapshot của suite khác.
+        fileParallelism: false,
         env: {
             NODE_ENV: 'test',
             RATE_LIMIT_ENABLED: 'false',

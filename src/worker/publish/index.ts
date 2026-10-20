@@ -5,6 +5,7 @@ import { env } from '../../config';
 import { pool } from '../../db';
 import { parseCloudinaryUrl } from '../../lib/cloudinary';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
+import { capturePrintSource } from '../../modules/print/print.source';
 import { viewerLink } from '../../modules/publish/publish.link';
 import { readPublishSnapshot, snapshotHash } from '../../modules/publish/publish.snapshot';
 import { JobResultsSchema, type ManifestGroup } from '../../schema';
@@ -44,6 +45,8 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
         ctx.signal.throwIfAborted();
         try {
             assertPublishable(snapshot, payload.data.acceptWarnings);
+            // Kiểm tra dữ liệu in trước khi upload để tránh để lại file mồ côi vì nguồn in lỗi.
+            capturePrintSource(snapshot);
         } catch (error) {
             if (error instanceof JobError) throw error;
             throw new JobError(

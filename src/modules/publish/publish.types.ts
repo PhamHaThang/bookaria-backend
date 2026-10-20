@@ -68,6 +68,7 @@ export interface PublishSnapshot {
         title: string;
         slug: string | null;
         page_aspect: string;
+        page_width_mm: string;
         current_version_id: string | null;
         deleted_at: string | null;
         taken_down_at: string | null;
@@ -93,6 +94,7 @@ export interface PublishSnapshot {
         id: string;
         number: number;
         mind_public_id: string;
+        image_public_id: string;
         validated_at: string | null;
         is_active: boolean;
     }[];
