@@ -53,7 +53,9 @@ import {
     type UpdateLibraryAssetBody,
 } from '../../schema';
 import { AppError, buildPaginationMeta, lockedByAdminError, toOffset } from '../../utils';
+import { assetsRepository } from '../assets/assets.repository';
 import { adminRepository } from './admin.repository';
+import { retryFailedJob } from './admin.retry';
 import type {
     AdminBookRow,
     AdminJobRow,
@@ -393,6 +395,12 @@ export const adminService = {
             const asset = await adminRepository.lockLibraryAsset(db, assetId);
             if (!asset) throw new AppError('NOT_FOUND', 'Không tìm thấy tài nguyên thư viện.');
             const usage = await adminRepository.getAssetUsageCounts(db, assetId);
+            if (await assetsRepository.isAssetInPublishedVersion(db, assetId)) {
+                throw new AppError(
+                    'ASSET_IN_USE',
+                    'Tài nguyên còn được một phiên bản sách sử dụng.',
+                );
+            }
             if (usage.cover_count + usage.page_image_count + usage.page_asset_count > 0) {
                 throw new AppError('ASSET_IN_USE', undefined, {
                     covers: usage.cover_count,
@@ -594,38 +602,7 @@ export const adminService = {
     },
 
     async retryJob(actor: Auth, jobId: string): Promise<string> {
-        try {
-            return await withTransaction(async (db) => {
-                const job = await adminRepository.lockJob(db, jobId);
-                if (!job) throw new AppError('NOT_FOUND', 'Không tìm thấy job.');
-                if (job.status === 'QUEUED' || job.status === 'RUNNING') {
-                    throw new AppError('JOB_IN_PROGRESS');
-                }
-                if (job.status !== 'FAILED') {
-                    throw new AppError('VALIDATION_ERROR', 'Chỉ có thể chạy lại job FAILED.');
-                }
-                if (await adminRepository.hasOpenJobForRef(db, job.ref_type, job.ref_id, job.id)) {
-                    throw new AppError('JOB_IN_PROGRESS');
-                }
-                await adminRepository.retryJob(db, jobId);
-                await adminRepository.insertAuditLog(
-                    db,
-                    actor.userId,
-                    'RETRY_JOB',
-                    jobId,
-                    {
-                        type: job.type,
-                        ref: { type: job.ref_type, id: job.ref_id },
-                        reset: ['status', 'progress', 'attempts', 'result', 'error', 'timestamps'],
-                    },
-                    'JOB',
-                );
-                return jobId;
-            });
-        } catch (error) {
-            if (isUniqueViolation(error)) throw new AppError('JOB_IN_PROGRESS');
-            throw error;
-        }
+        return retryFailedJob(actor, jobId);
     },
 
     async getAuditLogs(query: AuditLogsQuery): Promise<{ rows: AuditLog[]; meta: PaginationMeta }> {
@@ -708,7 +685,7 @@ export const adminService = {
                     body.storageQuotaBytes !== Number(current.storage_quota_bytes);
 
                 if (
-                    actor.userId === userId &&
+                    actor.userId.toLowerCase() === current.id.toLowerCase() &&
                     ((statusChanged && body.status === 'LOCKED') ||
                         (roleChanged && body.role === 'AUTHOR'))
                 ) {

@@ -365,6 +365,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "429": {
                         "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
                         "content": {
@@ -1212,6 +1233,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -1337,6 +1379,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -1662,6 +1725,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -1779,6 +1863,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -1971,6 +2076,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -2249,6 +2375,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -2458,6 +2605,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -2585,6 +2753,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -2783,6 +2972,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -2915,6 +3125,27 @@
                                             "error": {
                                                 "code": "JOB_IN_PROGRESS",
                                                 "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -3096,6 +3327,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -3252,6 +3504,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -3387,6 +3660,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -3495,6 +3789,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -3785,6 +4100,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -3915,6 +4251,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4144,6 +4501,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -4323,6 +4701,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -4450,6 +4849,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4633,6 +5053,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -4744,6 +5185,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4920,6 +5382,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -5054,6 +5537,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -5280,6 +5784,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -5436,6 +5961,27 @@
                                             "error": {
                                                 "code": "JOB_IN_PROGRESS",
                                                 "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -5704,6 +6250,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -5898,6 +6465,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6132,6 +6720,27 @@
                                             "error": {
                                                 "code": "QUOTA_EXCEEDED",
                                                 "message": "Bạn đã dùng hết dung lượng lưu trữ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6415,6 +7024,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -6626,6 +7256,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -6753,6 +7404,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6935,6 +7607,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -7067,6 +7760,27 @@
                                             "error": {
                                                 "code": "ASSET_IN_USE",
                                                 "message": "Tài nguyên đang được dùng trong sách nên chưa xoá được.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7238,6 +7952,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -7315,6 +8050,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7514,6 +8270,27 @@
                                             "error": {
                                                 "code": "JOB_IN_PROGRESS",
                                                 "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7806,6 +8583,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -8042,6 +8840,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -8172,6 +8991,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -8318,6 +9158,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -8482,6 +9343,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -8633,6 +9515,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -8833,6 +9736,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "429": {
                         "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
                         "content": {
@@ -8989,6 +9913,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -10316,6 +11261,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -10542,6 +11508,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -10714,6 +11701,27 @@
                                             "error": {
                                                 "code": "EMAIL_TAKEN",
                                                 "message": "Email này đã được đăng ký.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -10978,6 +11986,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -11226,6 +12255,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -11396,6 +12446,27 @@
                                             "error": {
                                                 "code": "FORBIDDEN",
                                                 "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -11649,6 +12720,27 @@
                                             "error": {
                                                 "code": "FORBIDDEN",
                                                 "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -12026,6 +13118,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -12231,6 +13344,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -12402,6 +13536,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -12583,6 +13738,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -12796,6 +13972,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -12982,6 +14179,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13192,6 +14410,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -13345,6 +14584,27 @@
                                             "error": {
                                                 "code": "ASSET_IN_USE",
                                                 "message": "Tài nguyên đang được dùng trong sách nên chưa xoá được.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13513,6 +14773,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13725,6 +15006,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -13878,6 +15180,27 @@
                                             "error": {
                                                 "code": "CATEGORY_NOT_EMPTY",
                                                 "message": "Danh mục còn tài nguyên hoặc danh mục con nên chưa xoá được.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14056,6 +15379,27 @@
                                             "error": {
                                                 "code": "FORBIDDEN",
                                                 "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14246,6 +15590,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -14410,6 +15775,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14722,6 +16108,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -14750,7 +16157,7 @@
             "post": {
                 "operationId": "postAdminJobsByJobIdRetry",
                 "tags": ["admin"],
-                "summary": "Chạy lại tác vụ lỗi",
+                "summary": "Tạo job mới từ tác vụ lỗi; giữ lịch sử job cũ và trả jobId mới",
                 "security": [
                     {
                         "bearerAuth": []
@@ -14899,6 +16306,27 @@
                                             "error": {
                                                 "code": "JOB_IN_PROGRESS",
                                                 "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -15137,6 +16565,27 @@
                             }
                         }
                     },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "500": {
                         "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
                         "content": {
@@ -15287,6 +16736,27 @@
                                             "error": {
                                                 "code": "NOT_FOUND",
                                                 "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }

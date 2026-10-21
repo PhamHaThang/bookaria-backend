@@ -45,9 +45,12 @@ describe.skipIf(Boolean(process.env.SKIP_DB_TESTS))('migration upgrades', () => 
             const migrationFiles = (await readdir(migrationDir)).filter((file) =>
                 file.endsWith('.sql'),
             );
-            const latestMigration = '1792454400000_active-bookaria-markers.sql';
+            const lastPreMergeMigration = '1792368000000_version-print-source.sql';
+            const markerMigration = '1792454400000_active-bookaria-markers.sql';
+            expect(migrationFiles).toContain(lastPreMergeMigration);
+            expect(migrationFiles).toContain(markerMigration);
             for (const file of migrationFiles) {
-                if (file !== latestMigration) {
+                if (file <= lastPreMergeMigration) {
                     await copyFile(join(migrationDir, file), join(temporaryDir, file));
                 }
             }
@@ -60,19 +63,36 @@ describe.skipIf(Boolean(process.env.SKIP_DB_TESTS))('migration upgrades', () => 
                 log: () => {},
             });
 
-            await copyFile(
-                join(migrationDir, latestMigration),
-                join(temporaryDir, latestMigration),
-            );
             await expect(
                 runner({
                     databaseUrl: upgradeUrl,
-                    dir: temporaryDir,
+                    dir: migrationDir,
                     direction: 'up',
                     migrationsTable: 'pgmigrations',
                     log: () => {},
                 }),
             ).resolves.toBeDefined();
+
+            const upgraded = new pg.Client({ connectionString: upgradeUrl });
+            try {
+                await upgraded.connect();
+                const { rows } = await upgraded.query<{ name: string }>(
+                    `SELECT name FROM pgmigrations WHERE name = $1`,
+                    [markerMigration.slice(0, -4)],
+                );
+                expect(rows).toHaveLength(1);
+                const trigger = await upgraded.query<{ exists: boolean }>(
+                    `SELECT EXISTS (
+                        SELECT 1 FROM pg_trigger
+                        WHERE tgrelid = 'public.pages'::regclass
+                          AND tgname = 'pages_check_active_bookaria_marker_trg'
+                          AND NOT tgisinternal
+                    ) AS exists`,
+                );
+                expect(trigger.rows[0]?.exists).toBe(true);
+            } finally {
+                await upgraded.end();
+            }
         } finally {
             if (adminConnected) await admin.end();
             const cleanup = new pg.Client({ connectionString: adminUrl });

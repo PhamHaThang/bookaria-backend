@@ -1052,7 +1052,7 @@ export const routes: Route[] = [
         method: 'POST',
         path: '/admin/jobs/:jobId/retry',
         access: 'admin',
-        summary: 'Chạy lại tác vụ lỗi',
+        summary: 'Tạo job mới từ tác vụ lỗi; giữ lịch sử job cũ và trả jobId mới',
         params: params.jobId,
         responses: { 202: dataResponse(JobStartedSchema) },
         errors: ['NOT_FOUND', 'JOB_IN_PROGRESS', 'VALIDATION_ERROR'],
