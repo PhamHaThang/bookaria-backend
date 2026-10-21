@@ -176,7 +176,7 @@ function commonErrors(route: Route): ErrorCode[] {
     // Chỉ route dùng access token mới luôn có thể bị từ chối vì thiếu hay hết hạn. Route dùng cookie
     // (refresh, logout) tự khai báo lỗi ở `route.errors`: logout không bao giờ trả 401 (idempotent).
     if (route.access === 'author' || route.access === 'admin') {
-        codes.push('UNAUTHENTICATED', 'TOKEN_EXPIRED');
+        codes.push('UNAUTHENTICATED', 'TOKEN_EXPIRED', 'ACCOUNT_LOCKED');
     }
     if (route.access === 'admin') codes.push('FORBIDDEN');
     return codes;

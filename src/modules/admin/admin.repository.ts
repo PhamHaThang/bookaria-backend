@@ -380,21 +380,19 @@ export const adminRepository = {
         const { rows } = await db.query<{ id: string }>(
             `SELECT id FROM jobs
              WHERE ref_type = $1 AND ref_id = $2 AND id <> $3
-               AND status IN ('QUEUED', 'RUNNING')
-             FOR UPDATE`,
+               AND status IN ('QUEUED', 'RUNNING')`,
             [refType, refId, ignoredJobId],
         );
         return rows.length > 0;
     },
 
-    async retryJob(db: Queryable, jobId: string): Promise<void> {
-        await db.query(
-            `UPDATE jobs
-             SET status = 'QUEUED', progress = 0, attempts = 0, result = NULL, error = NULL,
-                 started_at = NULL, finished_at = NULL
-             WHERE id = $1`,
-            [jobId],
+    async insertRetryJob(db: Queryable, previousJobId: string): Promise<string> {
+        const { rows } = await db.query<{ id: string }>(
+            `INSERT INTO jobs (type, ref_type, ref_id, created_by, payload) SELECT type,ref_type,ref_id,created_by,payload FROM jobs WHERE id=$1 RETURNING id`,
+            [previousJobId],
         );
+        if (!rows[0]) throw new Error('Retry source job missing');
+        return rows[0].id;
     },
 
     async getAuditLogs(db: Queryable, query: AuditLogsQuery, offset: number) {

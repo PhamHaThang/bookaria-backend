@@ -1043,6 +1043,7 @@ suite('jobs và audit của admin', () => {
     it('lọc jobs, chỉ retry job FAILED, tránh job mở trùng và ghi audit để tra cứu', async () => {
         const admin = await createAdmin();
         const author = await register('JobAuthor');
+        const { bookId } = await createReportedBook(author.userId, []);
         const failed = await pool.query<{ id: string }>(
             `INSERT INTO jobs
                 (type, status, ref_type, ref_id, result, progress, attempts, error, created_by,
@@ -1052,7 +1053,7 @@ suite('jobs và audit của admin', () => {
                  $2::jsonb, $3, now(), now())
              RETURNING id`,
             [
-                author.userId,
+                bookId,
                 JSON.stringify({ code: 'JOB_FAILED', message: 'Không thể xuất bản' }),
                 author.userId,
             ],
@@ -1079,7 +1080,12 @@ suite('jobs và audit của admin', () => {
             .post(`/api/v1/admin/jobs/${failedJobId}/retry`)
             .set(bearer(admin.token));
         expect(retried.status).toBe(202);
-        expect(retried.body.data).toEqual({ jobId: failedJobId });
+        const retryJobId = retried.body.data.jobId as string;
+        expect(retryJobId).not.toBe(failedJobId);
+        expect(
+            (await pool.query('SELECT status,attempts FROM jobs WHERE id=$1', [failedJobId]))
+                .rows[0],
+        ).toEqual({ status: 'FAILED', attempts: 2 });
 
         const reset = await pool.query<{
             status: string;
@@ -1092,7 +1098,7 @@ suite('jobs và audit của admin', () => {
         }>(
             `SELECT status, progress, attempts, result, error, started_at, finished_at
              FROM jobs WHERE id = $1`,
-            [failedJobId],
+            [retryJobId],
         );
         expect(reset.rows[0]).toEqual({
             status: 'QUEUED',
@@ -1113,11 +1119,7 @@ suite('jobs và audit của admin', () => {
         const anotherFailed = await pool.query<{ id: string }>(
             `INSERT INTO jobs (type, status, ref_type, ref_id, error, created_by)
              VALUES ('PUBLISH_BOOK', 'FAILED', 'BOOK', $1, $2::jsonb, $3) RETURNING id`,
-            [
-                author.userId,
-                JSON.stringify({ code: 'JOB_FAILED', message: 'Lỗi lần hai' }),
-                author.userId,
-            ],
+            [bookId, JSON.stringify({ code: 'JOB_FAILED', message: 'Lỗi lần hai' }), author.userId],
         );
         const blocked = await request(app)
             .post(`/api/v1/admin/jobs/${anotherFailed.rows[0]?.id}/retry`)
