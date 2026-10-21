@@ -57,15 +57,15 @@ suite('auth (tích hợp)', () => {
     });
 
     describe('rate limit (createApp({ rateLimit: true }))', () => {
-        it('đăng nhập sai quá 5 lần/phút từ một IP -> 429 RATE_LIMITED', async () => {
+        it('đăng nhập sai quá 10 lần/phút từ một IP -> 429 RATE_LIMITED', async () => {
             const limited = createApp({ rateLimit: true });
             const attempt = () =>
                 request(limited)
                     .post('/api/v1/auth/login')
                     .send({ email: uniqueEmail(), password: 'sai-mat-khau-1' });
             const codes: number[] = [];
-            for (let i = 0; i < 6; i++) codes.push((await attempt()).status);
-            expect(codes).toEqual([401, 401, 401, 401, 401, 429]);
+            for (let i = 0; i < 11; i++) codes.push((await attempt()).status);
+            expect(codes).toEqual([...Array(10).fill(401), 429]);
         });
     });
 
@@ -332,7 +332,7 @@ suite('auth (tích hợp)', () => {
             const reset = await request(app)
                 .post('/api/v1/auth/reset-password')
                 .send({ token, newPassword: 'Matkhau-moi-456' });
-            expect(reset.status).toBe(200);
+            expect(reset.status).toBe(204);
 
             const oldSession = await withCookie(
                 request(app).post('/api/v1/auth/refresh'),

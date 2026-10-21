@@ -38,8 +38,16 @@ export function createApp(options: AppOptions = {}) {
     );
     app.use(helmet());
     app.use(cors({ origin: corsOrigins, credentials: true }));
-    app.use(express.json({ limit: '2mb' }));
-    app.use(express.urlencoded({ extended: true }));
+
+    const jsonDefault = express.json({ limit: '100kb' });
+    const jsonScene = express.json({ limit: '512kb' });
+    app.use((req, res, next) => {
+        if (req.method === 'PATCH' && /^\/api\/v1\/pages\/[^/]+\/scene\/?$/i.test(req.path)) {
+            return jsonScene(req, res, next);
+        }
+        return jsonDefault(req, res, next);
+    });
+    app.use(express.urlencoded({ extended: true, limit: '100kb' }));
     app.use(cookieParser());
 
     if (env.NODE_ENV !== 'production') {

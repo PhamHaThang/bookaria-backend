@@ -81,7 +81,7 @@ export const authController = {
     resetPassword: asyncHandler(async (req: Request, res: Response) => {
         const { token, newPassword } = ResetPasswordBodySchema.parse(req.body);
         await authService.resetPassword(token, newPassword);
-        res.json({ data: { reset: true } });
+        res.status(204).end();
     }),
 };
 function respondWithAuthResult(res: Response, status: number, authResult: AuthResult) {

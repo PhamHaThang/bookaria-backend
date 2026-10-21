@@ -25,8 +25,8 @@ const envSchema = z
         SEED_ADMIN_PASSWORD: z.string().min(8).max(72).optional(),
         BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
         /** Cookie chứa refresh token. SameSite=None (cần khi Studio và API khác site) bắt buộc phải có Secure. */
-        COOKIE_SECURE: z.stringbool().default(true),
-        COOKIE_SAMESITE: z.enum(['none', 'lax', 'strict']).default('none'),
+        COOKIE_SECURE: z.stringbool().optional(),
+        COOKIE_SAMESITE: z.enum(['none', 'lax', 'strict']).default('lax'),
         RATE_LIMIT_ENABLED: z.stringbool().default(true),
         /** Số reverse proxy đứng trước API (Render = 1). */
         TRUST_PROXY: z.coerce.number().int().min(0).default(0),
@@ -44,6 +44,10 @@ const envSchema = z
             })
             .default(''),
     })
+    .transform((env) => ({
+        ...env,
+        COOKIE_SECURE: env.COOKIE_SECURE ?? env.NODE_ENV === 'production',
+    }))
     .refine((env) => env.COOKIE_SAMESITE !== 'none' || env.COOKIE_SECURE, {
         path: ['COOKIE_SECURE'],
         error: 'COOKIE_SAMESITE=none bắt buộc phải có COOKIE_SECURE=true',

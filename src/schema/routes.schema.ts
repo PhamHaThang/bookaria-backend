@@ -257,7 +257,7 @@ export const routes: Route[] = [
         access: 'public',
         summary: 'Đặt mật khẩu mới bằng mã',
         body: ResetPasswordBodySchema,
-        responses: { 200: dataResponse(z.object({ reset: z.literal(true) })) },
+        responses: { 204: null },
         errors: ['TOKEN_INVALID', 'RATE_LIMITED'],
     },
     {

@@ -926,30 +926,8 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "Thành công",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "object",
-                                            "properties": {
-                                                "reset": {
-                                                    "type": "boolean",
-                                                    "enum": [true]
-                                                }
-                                            },
-                                            "required": ["reset"],
-                                            "additionalProperties": false
-                                        }
-                                    },
-                                    "required": ["data"],
-                                    "additionalProperties": false
-                                }
-                            }
-                        }
+                    "204": {
+                        "description": "Thành công, không có nội dung"
                     },
                     "400": {
                         "description": "`TOKEN_INVALID`: Liên kết không đúng, đã hết hạn hoặc đã được dùng.\n`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",

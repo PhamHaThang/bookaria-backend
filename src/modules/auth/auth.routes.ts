@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getAuth, rateLimitMiddleware, requireAuth, requireTrustedOrigin } from '../../middlewares';
+import { LoginBodySchema } from '../../schema';
 import { HOUR, MINUTE } from './auth.constants';
 import { authController } from './auth.controller';
 
@@ -7,10 +8,22 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     const router = Router();
     const enabled = options.rateLimit;
 
-    const loginLimit = rateLimitMiddleware({
+    const loginIpLimit = rateLimitMiddleware({
         windowMs: MINUTE,
-        limit: 5,
+        limit: 10,
         enabled,
+        skipSuccessfulRequests: true,
+    });
+    const loginEmailLimit = rateLimitMiddleware({
+        windowMs: 15 * MINUTE,
+        limit: 10,
+        enabled,
+        key: (req) => {
+            const email = (req.body as { email?: unknown } | undefined)?.email;
+            return typeof email === 'string'
+                ? `login_email:${email.trim().toLowerCase()}`
+                : `ip:${req.ip ?? ''}`;
+        },
         skipSuccessfulRequests: true,
     });
     const registerLimit = rateLimitMiddleware({
@@ -20,8 +33,14 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     });
     const forgotLimit = rateLimitMiddleware({
         windowMs: HOUR,
-        limit: 5,
+        limit: 3,
         enabled,
+        key: (req) => {
+            const email = (req.body as { email?: unknown } | undefined)?.email;
+            return typeof email === 'string'
+                ? `forgot_email:${email.trim().toLowerCase()}`
+                : `ip:${req.ip ?? ''}`;
+        },
     });
     const refreshLimit = rateLimitMiddleware({
         windowMs: MINUTE,
@@ -45,10 +64,20 @@ export const authRouter = (options: { rateLimit: boolean }) => {
     router.post('/register', registerLimit, authController.register);
 
     // [POST] /auth/login
-    router.post('/login', loginLimit, authController.login);
+    router.post(
+        '/login',
+        loginIpLimit,
+        (req, _res, next) => {
+            // Malformed requests consume the IP quota, not another user's email quota.
+            LoginBodySchema.parse(req.body);
+            next();
+        },
+        loginEmailLimit,
+        authController.login,
+    );
 
     // [POST] /auth/google
-    router.post('/google', loginLimit, authController.googleLogin);
+    router.post('/google', loginIpLimit, authController.googleLogin);
 
     // [POST] /auth/refresh
     router.post('/refresh', refreshLimit, requireTrustedOrigin, authController.refresh);

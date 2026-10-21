@@ -1,5 +1,5 @@
 export const VERIFY_EMAIL_TTL_HOURS = 24;
-export const RESET_PASSWORD_TTL_MINUTES = 30;
+export const RESET_PASSWORD_TTL_MINUTES = 60;
 /** Wrong passwords in a row before the account is locked for a while. */
 export const MAX_FAILED_LOGINS = 5;
 export const LOCK_MINUTES = 15;
