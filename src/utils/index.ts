@@ -3,3 +3,4 @@ export * from './async-handler';
 export * from './pagination';
 export * from './random-token';
 export * from './response';
+export * from './slug';

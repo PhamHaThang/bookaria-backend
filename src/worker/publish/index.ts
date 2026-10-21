@@ -9,6 +9,7 @@ import { capturePrintSource } from '../../modules/print/print.source';
 import { viewerLink } from '../../modules/publish/publish.link';
 import { readPublishSnapshot, snapshotHash } from '../../modules/publish/publish.snapshot';
 import { JobResultsSchema, type ManifestGroup } from '../../schema';
+import { generateBookSlug } from '../../utils';
 import { assertPublishable, makeManifest } from './manifest';
 import {
     compressGroup,
@@ -54,7 +55,7 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
                 'Scene, settings hoặc dữ liệu xuất bản không hợp lệ.',
             );
         }
-        const slug = snapshot.book.slug ?? `b-${snapshot.book.id}`;
+        const slug = snapshot.book.slug ?? generateBookSlug(snapshot.book.title);
         const url = viewerLink(viewerOrigin, slug);
         const prefix = `bookaria/published/${snapshot.book.id}/v${snapshot.version}/${ctx.job.id}-${ctx.job.attempts}`;
         const groups: ManifestGroup[] = [],
