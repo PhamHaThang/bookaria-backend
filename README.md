@@ -35,6 +35,12 @@ pnpm check               # biome + typecheck + test
 ```
 CI chạy lint, typecheck, test và build (`.github/workflows/ci.yml`).
 
+Test tự tạo database riêng cho từng lượt chạy, có hậu tố PID và mã ngẫu nhiên, rồi dọn đúng
+database đó khi kết thúc. Hai terminal chạy test đồng thời không dùng chung database.
+`TEST_DATABASE_URL` (nếu có) hoặc `DATABASE_URL` cung cấp thông tin kết nối và tiền tố tên;
+test luôn tạo tên mới, không xóa database được chỉ định trong URL. Tài khoản PostgreSQL cần
+quyền tạo database. Việc này không thay đổi database mà API/worker đang dùng.
+
 ## Tài liệu API
 Hợp đồng API nằm ở `src/schema/routes.schema.ts` (nguồn sự thật). Từ đó sinh ra file OpenAPI 3.1:
 
