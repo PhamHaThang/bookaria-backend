@@ -18,7 +18,7 @@ describe('publish storage', () => {
             ).toString(),
         ).toBe('abc');
         expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/raw/upload/bookaria/u/a%20file.mind',
+            'https://res.cloudinary.com/demo/raw/upload/v1/bookaria/u/a%20file.mind',
             expect.objectContaining({ redirect: 'error' }),
         );
     });
@@ -57,7 +57,7 @@ describe('publish storage', () => {
                 'application/json',
                 signal(),
             ),
-        ).toContain('/raw/upload/p/manifest.json');
+        ).toContain('/raw/upload/v1/p/manifest.json');
         await expect(
             createPublishStorage(account, network).upload(
                 'p/manifest.json',

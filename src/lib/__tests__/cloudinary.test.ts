@@ -228,12 +228,28 @@ describe('deliveryUrl', () => {
                 format: 'jpg',
                 transform: 'c_fill,w_320,h_320',
             }),
-        ).toBe('https://res.cloudinary.com/demo/image/upload/c_fill,w_320,h_320/bookaria/a.jpg');
+        ).toBe('https://res.cloudinary.com/demo/image/upload/c_fill,w_320,h_320/v1/bookaria/a.jpg');
     });
 
     it('không có biến đổi và đuôi thì chỉ có public_id', () => {
         expect(storage.deliveryUrl({ resourceType: 'raw', publicId: 'bookaria/a' })).toBe(
-            'https://res.cloudinary.com/demo/raw/upload/bookaria/a',
+            'https://res.cloudinary.com/demo/raw/upload/v1/bookaria/a',
+        );
+    });
+
+    it('separates nested version-like publication paths from the delivery version', () => {
+        for (const file of ['manifest.json', 'qr.png', 'qr.svg', 'groups/0.mind', 'print.pdf']) {
+            expect(
+                storage.deliveryUrl({
+                    resourceType: 'raw',
+                    publicId: `bookaria/published/book/v12/attempt/${file}`,
+                }),
+            ).toBe(
+                `https://res.cloudinary.com/demo/raw/upload/v1/bookaria/published/book/v12/attempt/${file}`,
+            );
+        }
+        expect(storage.deliveryUrl({ resourceType: 'raw', publicId: 'plain.pdf' })).toBe(
+            'https://res.cloudinary.com/demo/raw/upload/plain.pdf',
         );
     });
 });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { HttpUrlSchema } from '../schema/common.schema';
 
 const DEV_JWT_SECRET = 'dev-only-secret-change-me-32-characters';
 
@@ -11,7 +12,7 @@ const envSchema = z
         JWT_SECRET: z.string().min(32).default(DEV_JWT_SECRET),
         CORS_ORIGINS: z
             .string()
-            .default('http://localhost:5173,http://localhost:5174,http://viewer.localhost:5174'),
+            .default('http://localhost:5173,https://localhost:5174,https://viewer.localhost:5174'),
         SMTP_URL: z
             .string()
             .regex(/^(smtps?:\/\/.+)?$/, {
@@ -33,8 +34,8 @@ const envSchema = z
         ACCESS_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(900),
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
-        VIEWER_URL: z.httpUrl().default('http://viewer.localhost:5174'),
-        PUBLIC_API_URL: z.httpUrl().default('http://api.localhost:4000'),
+        VIEWER_URL: HttpUrlSchema.default('https://viewer.localhost:5174'),
+        PUBLIC_API_URL: HttpUrlSchema.default('http://api.localhost:4000'),
         GOOGLE_CLIENT_ID: z.string().default(''),
         CLOUDINARY_URL: z
             .string()

@@ -11,7 +11,8 @@ export const IdSchema = z.uuid();
 export const IsoDateTimeSchema = z.iso.datetime();
 
 /** Only http(s) links: never allow `javascript:` or `data:` URLs. */
-export const HttpUrlSchema = z.httpUrl();
+// HTTP(S) may use a LAN IP or localhost during device testing, not only DNS domains.
+export const HttpUrlSchema = z.url({ protocol: /^https?$/ });
 
 /** Id of an object or rule inside a scene (not a database id) */
 export const SceneIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,50}$/, {

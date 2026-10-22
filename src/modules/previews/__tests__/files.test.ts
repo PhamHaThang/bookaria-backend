@@ -19,7 +19,7 @@ describe('preview file proxy boundary', () => {
             'abc',
         );
         expect(fetcher).toHaveBeenCalledWith(
-            `https://res.cloudinary.com/demo/raw/upload/${group.publicId}`,
+            `https://res.cloudinary.com/demo/raw/upload/v1/${group.publicId}`,
             expect.objectContaining({ redirect: 'error' }),
         );
     });

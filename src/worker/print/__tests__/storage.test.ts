@@ -16,7 +16,7 @@ describe('PDF image storage', () => {
             ).toString(),
         ).toBe('abc');
         expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/bookaria/u/page.png',
+            'https://res.cloudinary.com/demo/image/upload/v1/bookaria/u/page.png',
             expect.objectContaining({ redirect: 'error' }),
         );
     });

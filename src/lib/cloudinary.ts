@@ -209,7 +209,9 @@ export function createCloudinaryStorage(
         },
         deliveryUrl({ resourceType, publicId, format, transform }) {
             const base = `https://res.cloudinary.com/${account.cloudName}/${resourceType}/upload`;
-            return `${base}/${transform ? `${transform}/` : ''}${path(publicId)}${format ? `.${format}` : ''}`;
+            // Separate transforms from folder IDs, including publication folders named v1/v2.
+            const version = publicId.includes('/') ? 'v1/' : '';
+            return `${base}/${transform ? `${transform}/` : ''}${version}${path(publicId)}${format ? `.${format}` : ''}`;
         },
     };
 }

@@ -18,7 +18,7 @@ describe('marker storage', () => {
             (await createMarkerStorage(account, network).download(page, signal())).toString(),
         ).toBe('png');
         expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/bookaria/u/page%20one.png',
+            'https://res.cloudinary.com/demo/image/upload/v1/bookaria/u/page%20one.png',
             expect.objectContaining({ redirect: 'error', signal: expect.any(AbortSignal) }),
         );
     });
@@ -87,7 +87,7 @@ describe('marker storage', () => {
             Buffer.from('png'),
             signal(),
         );
-        expect(url).toBe('https://res.cloudinary.com/demo/image/upload/reports/attempt-1.png');
+        expect(url).toBe('https://res.cloudinary.com/demo/image/upload/v1/reports/attempt-1.png');
         expect(form?.get('signature')).toEqual(expect.any(String));
         expect(form?.get('overwrite')).toBe('false');
         expect(form?.get('api_secret')).toBeNull();
