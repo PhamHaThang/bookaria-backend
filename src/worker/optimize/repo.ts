@@ -1,7 +1,7 @@
 import type { Queryable } from '../../db';
+import { parseAssetMeta } from '../../modules/assets/assets.meta';
 import type { AssetRow } from '../../modules/assets/assets.types';
 import { JobError } from '../../modules/jobs/jobs.types';
-import { AssetMetaSchema } from '../../schema';
 import type { ProcessedAsset } from './types';
 
 export const optimizeRepository = {
@@ -16,7 +16,7 @@ export const optimizeRepository = {
         return asset;
     },
     async saveReady(db: Queryable, original: AssetRow, output: ProcessedAsset): Promise<void> {
-        const meta = AssetMetaSchema.parse({ ...original.meta, ...output.meta });
+        const meta = parseAssetMeta(original.type, { ...original.meta, ...output.meta });
         const updated = await db.query(
             `UPDATE assets SET status = 'READY', error = NULL, optimized_public_id = $2, thumbnail_url = $3, format = $4, meta = $5::jsonb
             WHERE id = $1 AND deleted_at IS NULL AND status = 'PROCESSING'

@@ -32,6 +32,7 @@ import {
     UploadSignatureSchema,
 } from '../../schema';
 import { AppError, buildPaginationMeta, toOffset } from '../../utils';
+import { parseAssetMeta } from './assets.meta';
 import { assetsRepository } from './assets.repository';
 import type {
     AssetFile,
@@ -195,12 +196,12 @@ export const assetsService = {
                     format: normalizeFormat(stored.format),
                     sizeBytes: stored.bytes,
                     status: needsProcessing ? 'PROCESSING' : 'READY',
-                    meta: {
+                    meta: parseAssetMeta(assetType, {
                         purpose: uploadIntent.purpose,
                         ...(stored.width !== null && { width: stored.width }),
                         ...(stored.height !== null && { height: stored.height }),
                         ...(stored.durationSec !== null && { durationSec: stored.durationSec }),
-                    },
+                    }),
                     tags: cleanTags(body.tags),
                 });
                 await assetsRepository.markUploadIntentCompleted(db, assetId);
@@ -366,7 +367,7 @@ function toAsset(storage: MediaStorage, a: AssetRow): Asset {
         // The processed copy when the worker has made one, the original until then.
         url: fileUrl(storage, a),
         thumbnailUrl: a.thumbnail_url,
-        meta: a.meta,
+        meta: parseAssetMeta(a.type, a.meta),
         name: a.name,
         status: a.status,
         sizeBytes: Number(a.size_bytes),
@@ -463,7 +464,7 @@ export function toAssetRef(a: AssetFile & Pick<AssetRow, 'type' | 'thumbnail_url
         type: a.type,
         url: fileUrl(storage, a),
         thumbnailUrl: a.thumbnail_url,
-        meta: a.meta,
+        meta: parseAssetMeta(a.type, a.meta),
     });
 }
 

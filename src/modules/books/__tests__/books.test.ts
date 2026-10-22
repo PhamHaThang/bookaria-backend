@@ -16,6 +16,7 @@ async function signUp() {
     const res = await request(app)
         .post('/api/v1/auth/register')
         .send({ email: `b${unique()}@example.com`, password: PASSWORD, displayName: 'An' });
+    expect(res.status, `Register fixture: ${JSON.stringify(res.body.error)}`).toBe(201);
     return { token: res.body.data.accessToken as string, userId: res.body.data.user.id as string };
 }
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
@@ -25,6 +26,7 @@ async function createBook(token: string, body: Record<string, unknown> = {}) {
         .post('/api/v1/books')
         .set(auth(token))
         .send({ title: 'Truyện cổ tích', ...body });
+    expect(res.status, `Create book fixture: ${JSON.stringify(res.body.error)}`).toBeLessThan(500);
     return res;
 }
 

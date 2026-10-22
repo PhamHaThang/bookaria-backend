@@ -1,8 +1,9 @@
 import { env } from '../../config';
 import { pool } from '../../db';
 import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { parseAssetMeta } from '../../modules/assets/assets.meta';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
-import { AssetMetaSchema, JobResultsSchema } from '../../schema';
+import { JobResultsSchema } from '../../schema';
 import { optimizeModel } from './model';
 import { optimizeRepository } from './repo';
 import { createProcessingStorage, type ProcessingStorage } from './storage';
@@ -23,7 +24,10 @@ export function createOptimizeHandler(
             throw new JobError('INVALID_OWNER', 'Chủ sở hữu tài nguyên không khớp tác vụ.');
         }
         if (asset.status === 'READY') {
-            return JobResultsSchema.OPTIMIZE_ASSET.parse({ assetId: asset.id, meta: asset.meta });
+            return JobResultsSchema.OPTIMIZE_ASSET.parse({
+                assetId: asset.id,
+                meta: parseAssetMeta(asset.type, asset.meta),
+            });
         }
         if (asset.status !== 'PROCESSING') {
             throw new JobError(
@@ -82,7 +86,7 @@ export function createOptimizeHandler(
             throw new JobError('UNSUPPORTED_ASSET', 'Ảnh được xử lý tại bước hoàn tất tải lên.');
         }
         ctx.signal.throwIfAborted();
-        const meta = AssetMetaSchema.parse({ ...asset.meta, ...output.meta });
+        const meta = parseAssetMeta(asset.type, { ...asset.meta, ...output.meta });
         const result = JobResultsSchema.OPTIMIZE_ASSET.parse({ assetId: asset.id, meta });
         await ctx.setProgress(95);
         ctx.onSuccess((db) => repository.saveReady(db, asset, output));

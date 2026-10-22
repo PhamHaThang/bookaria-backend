@@ -122,8 +122,9 @@ export function createProcessingStorage(
         },
         async inspect(a: AssetRow, signal: AbortSignal) {
             const path = a.original_public_id.split('/').map(encodeURIComponent).join('/');
+            const metadataQuery = a.resource_type === 'video' ? '?media_metadata=true' : '';
             const res = await request(
-                `https://api.cloudinary.com/v1_1/${account.cloudName}/resources/${a.resource_type}/upload/${path}`,
+                `https://api.cloudinary.com/v1_1/${account.cloudName}/resources/${a.resource_type}/upload/${path}${metadataQuery}`,
                 signal,
                 {
                     headers: {
@@ -136,8 +137,11 @@ export function createProcessingStorage(
                     bytes: z.number().int().positive(),
                     format: z.string(),
                     duration: z.number().positive().optional(),
-                    width: z.number().int().positive().optional(),
-                    height: z.number().int().positive().optional(),
+                    // Audio shares Cloudinary's video resource type but has no dimensions.
+                    ...(a.type !== 'AUDIO' && {
+                        width: z.number().int().positive().optional(),
+                        height: z.number().int().positive().optional(),
+                    }),
                 })
                 .safeParse(await res.json());
             if (!parsed.success) {

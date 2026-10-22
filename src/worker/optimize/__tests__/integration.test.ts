@@ -7,7 +7,7 @@ import { JobError } from '../../../modules/jobs/jobs.types';
 import { failAbandonedJob, runJob } from '../../runner';
 import { createOptimizeHandler } from '..';
 import { optimizeRepository } from '../repo';
-import type { ProcessingStorage } from '../storage';
+import { createProcessingStorage, type ProcessingStorage } from '../storage';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
@@ -74,6 +74,43 @@ async function state(assetId: string, jobId: string) {
 }
 
 suite('OPTIMIZE_ASSET transaction', () => {
+    it('processes Cloudinary WAV and removes legacy zero dimensions from asset and job result', async () => {
+        const { assetId, jobId } = await makeJob();
+        await pool.query(
+            `UPDATE assets SET type = 'AUDIO', resource_type = 'video', format = 'wav',
+            size_bytes = 8044, meta = $2::jsonb WHERE id = $1`,
+            [
+                assetId,
+                JSON.stringify({ width: 0, height: 0, purpose: 'ASSET', custom: 'retained' }),
+            ],
+        );
+        const storage = createProcessingStorage(
+            { cloudName: 'test', apiKey: 'key', apiSecret: 'secret' },
+            vi.fn(async (input) =>
+                Response.json({
+                    bytes: 8044,
+                    format: 'wav',
+                    width: 0,
+                    height: 0,
+                    ...(new URL(String(input)).searchParams.get('media_metadata') === 'true' && {
+                        duration: 0.5,
+                    }),
+                }),
+            ),
+        );
+        expect(await runJob(jobId, createOptimizeHandler(storage))).toBe('done');
+        const result = await state(assetId, jobId);
+        const meta = {
+            purpose: 'ASSET',
+            custom: 'retained',
+            durationSec: 0.5,
+            downloadBytes: 8044,
+        };
+        expect(result.asset).toMatchObject({ status: 'READY', error: null });
+        expect(result.asset?.meta).toEqual(meta);
+        expect(result.job).toEqual({ status: 'SUCCEEDED', result: { assetId, meta } });
+    });
+
     it('commits READY and SUCCEEDED together', async () => {
         const { assetId, jobId } = await makeJob();
         const { storage, modelProcessor } = fakeProcessing();

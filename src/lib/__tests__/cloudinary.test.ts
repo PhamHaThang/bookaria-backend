@@ -128,6 +128,23 @@ describe('signUpload', () => {
 });
 
 describe('inspect', () => {
+    it.each([
+        { format: 'wav', width: 0, height: 0 },
+        { format: 'mp4', width: 640, height: 480 },
+    ])('requests full media metadata for $format to obtain duration', async (dimensions) => {
+        const { impl, calls } = fakeFetch(() =>
+            json({ bytes: 8044, duration: 0.5, ...dimensions }),
+        );
+        const storage = createCloudinaryStorage(account, impl);
+        await expect(storage.inspect('video', 'bookaria/media')).resolves.toMatchObject({
+            durationSec: 0.5,
+            ...dimensions,
+        });
+        expect(calls[0]?.url).toBe(
+            'https://api.cloudinary.com/v1_1/demo/resources/video/upload/bookaria/media?media_metadata=true',
+        );
+    });
+
     it('gọi đúng Admin API với xác thực Basic và trả dung lượng thật', async () => {
         const { impl, calls } = fakeFetch(() =>
             json({ bytes: 1234, format: 'png', width: 640, height: 480 }),

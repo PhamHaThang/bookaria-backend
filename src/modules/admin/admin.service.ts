@@ -53,6 +53,7 @@ import {
     type UpdateLibraryAssetBody,
 } from '../../schema';
 import { AppError, buildPaginationMeta, lockedByAdminError, toOffset } from '../../utils';
+import { parseAssetMeta } from '../assets/assets.meta';
 import { assetsRepository } from '../assets/assets.repository';
 import { adminRepository } from './admin.repository';
 import { retryFailedJob } from './admin.retry';
@@ -848,7 +849,7 @@ const toLibraryAsset = (asset: LibraryAssetRow): Asset =>
         type: asset.type,
         url: libraryAssetUrl(asset),
         thumbnailUrl: asset.thumbnail_url,
-        meta: asset.meta,
+        meta: parseAssetMeta(asset.type, asset.meta),
         name: asset.name,
         status: asset.status,
         sizeBytes: Number(asset.size_bytes),

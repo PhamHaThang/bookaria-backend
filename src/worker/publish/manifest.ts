@@ -1,8 +1,8 @@
+import { parseAssetMeta } from '../../modules/assets/assets.meta';
 import { JobError } from '../../modules/jobs/jobs.types';
 import { buildPublishCheck } from '../../modules/publish/publish.service';
 import type { PublishSnapshot } from '../../modules/publish/publish.types';
 import {
-    AssetMetaSchema,
     type ManifestGroup,
     ManifestSchema,
     PageSettingsSchema,
@@ -167,7 +167,7 @@ export function makeManifest(
                     type: a.type,
                     url: fileUrl(a),
                     size: Number(a.meta.downloadBytes ?? a.size_bytes),
-                    meta: AssetMetaSchema.parse(a.meta),
+                    meta: parseAssetMeta(a.type, a.meta),
                 },
             ]),
     );

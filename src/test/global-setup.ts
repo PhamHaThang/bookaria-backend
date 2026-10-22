@@ -1,16 +1,9 @@
 import { runner } from 'node-pg-migrate';
 import pg from 'pg';
 import { env } from '../config';
+import { createTestDatabaseTarget } from './database-target';
 
-function resolveTarget() {
-    const configured = process.env.TEST_DATABASE_URL;
-    const url = new URL(configured ?? env.DATABASE_URL);
-    if (!configured) url.pathname = `${url.pathname}_test`;
-    const name = decodeURIComponent(url.pathname.slice(1));
-    const admin = new URL(url);
-    admin.pathname = '/postgres';
-    return { url: url.toString(), name, adminUrl: admin.toString() };
-}
+let activeTarget: ReturnType<typeof createTestDatabaseTarget> | undefined;
 
 const quote = (identifier: string) => `"${identifier.replaceAll('"', '""')}"`;
 
@@ -25,11 +18,11 @@ async function withAdmin<T>(adminUrl: string, fn: (client: pg.Client) => Promise
 }
 
 export async function setup() {
-    const target = resolveTarget();
+    const target = createTestDatabaseTarget(process.env.TEST_DATABASE_URL ?? env.DATABASE_URL);
     try {
         await withAdmin(target.adminUrl, async (client) => {
-            await client.query(`DROP DATABASE IF EXISTS ${quote(target.name)} WITH (FORCE)`);
             await client.query(`CREATE DATABASE ${quote(target.name)}`);
+            activeTarget = target;
         });
         await runner({
             databaseUrl: target.url,
@@ -51,9 +44,10 @@ export async function setup() {
 }
 
 export async function teardown() {
-    if (process.env.SKIP_DB_TESTS) return;
-    const target = resolveTarget();
+    const target = activeTarget;
+    if (!target) return;
     await withAdmin(target.adminUrl, (client) =>
         client.query(`DROP DATABASE IF EXISTS ${quote(target.name)} WITH (FORCE)`),
     ).catch(() => {});
+    activeTarget = undefined;
 }

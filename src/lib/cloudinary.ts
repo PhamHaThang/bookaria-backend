@@ -156,8 +156,9 @@ export function createCloudinaryStorage(
             };
         },
         async inspect(resourceType, publicId) {
+            const metadataQuery = resourceType === 'video' ? '?media_metadata=true' : '';
             const res = await fetchImplementation(
-                `${api}/resources/${resourceType}/upload/${path(publicId)}`,
+                `${api}/resources/${resourceType}/upload/${path(publicId)}${metadataQuery}`,
                 {
                     headers: {
                         Authorization: basicAuth,

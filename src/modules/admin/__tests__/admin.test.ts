@@ -668,6 +668,30 @@ suite('kiểm duyệt của admin', () => {
 });
 
 suite('thư viện tài nguyên chung của admin', () => {
+    it('adds and lists legacy audio without zero dimensions', async () => {
+        const admin = await createAdmin();
+        const author = await register('LegacyAudioAuthor');
+        const assetId = await createReadyAsset(author.userId);
+        await pool.query(
+            `UPDATE assets SET type = 'AUDIO', format = 'wav', resource_type = 'video',
+            meta = $2::jsonb WHERE id = $1`,
+            [assetId, JSON.stringify({ width: 0, height: 0, durationSec: 0.5 })],
+        );
+        const created = await request(app)
+            .post('/api/v1/admin/library/assets')
+            .set(bearer(admin.token))
+            .send({ assetId, name: 'Legacy audio', license: 'CC0', authorName: 'Tác giả' });
+        expect(created.status).toBe(201);
+        expect(created.body.data.meta).toEqual({ durationSec: 0.5 });
+        const list = await request(app)
+            .get('/api/v1/admin/library/assets?type=AUDIO')
+            .set(bearer(admin.token));
+        expect(list.status).toBe(200);
+        expect(list.body.data.find((a: { id: string }) => a.id === assetId)?.meta).toEqual({
+            durationSec: 0.5,
+        });
+    });
+
     it('dựng URL giao tài nguyên từ Cloudinary public id', async () => {
         const admin = await createAdmin();
         const author = await register('LibraryUrlAuthor');

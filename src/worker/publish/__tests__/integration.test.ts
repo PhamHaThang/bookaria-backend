@@ -122,6 +122,11 @@ suite('PUBLISH_BOOK transaction and public API', () => {
             VALUES ($1,$2,'AUDIO','audio','sound.mp3','raw','mp3',300,'READY')`,
             [audio, s.owner],
         );
+        // Audio saved before metadata normalization must still be publishable.
+        await pool.query('UPDATE assets SET meta=$2::jsonb WHERE id=$1', [
+            audio,
+            JSON.stringify({ width: 0, height: 0, durationSec: 0.5 }),
+        ]);
         await pool.query('UPDATE pages SET scene=$2::jsonb,settings=$3::jsonb WHERE book_id=$1', [
             s.bookId,
             JSON.stringify({
@@ -154,6 +159,7 @@ suite('PUBLISH_BOOK transaction and public API', () => {
             size: 200,
         });
         expect(manifest.assets[audio]?.url).toBe('https://example.com/sound.mp3');
+        expect(manifest.assets[audio]?.meta).toEqual({ durationSec: 0.5 });
         expect(manifest.credits).toContainEqual({
             assetId: model,
             name: 'model',

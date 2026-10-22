@@ -3,6 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { type MediaStorage, type StoredFile, setMediaStorage } from '../../../lib';
+import { toAssetRef } from '../assets.service';
+import type { AssetRow } from '../assets.types';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 
@@ -159,6 +161,60 @@ suite('assets (tích hợp)', () => {
     });
 
     describe('POST /assets/:assetId/complete', () => {
+        it('audio Cloudinary width/height=0: stores no dimensions and detail/list remain readable', async () => {
+            const { token } = await signUp();
+            const { res, assetId } = await upload(token, {
+                sign: { fileName: 'tone.wav', mimeType: 'audio/wav', sizeBytes: 8044 },
+                stored: { format: 'wav', bytes: 8044, width: 0, height: 0, durationSec: 0.5 },
+            });
+            expect(res.status).toBe(202);
+            const stored = await pool.query('SELECT meta FROM assets WHERE id = $1', [assetId]);
+            expect(stored.rows[0].meta).toEqual({ purpose: 'ASSET', durationSec: 0.5 });
+            const detail = await request(app).get(`/api/v1/assets/${assetId}`).set(auth(token));
+            expect(detail.status).toBe(200);
+            expect(detail.body.data.meta).toEqual(stored.rows[0].meta);
+            const list = await request(app).get('/api/v1/assets?scope=mine').set(auth(token));
+            expect(list.status).toBe(200);
+            expect(list.body.data).toHaveLength(1);
+            expect(list.body.data[0].id).toBe(assetId);
+        });
+
+        it.each(['READY', 'FAILED'])(
+            'legacy %s audio with zero dimensions remains readable',
+            async (status) => {
+                const { token } = await signUp();
+                const { assetId } = await upload(token, {
+                    sign: { fileName: 'tone.wav', mimeType: 'audio/wav' },
+                    stored: { format: 'wav', width: null, height: null, durationSec: 0.5 },
+                });
+                await pool.query(`UPDATE assets SET status = $2, meta = $3::jsonb WHERE id = $1`, [
+                    assetId,
+                    status,
+                    JSON.stringify({ width: 0, height: 0, durationSec: 0.5, purpose: 'ASSET' }),
+                ]);
+                const detail = await request(app).get(`/api/v1/assets/${assetId}`).set(auth(token));
+                expect(detail.status).toBe(200);
+                expect(detail.body.data).toMatchObject({
+                    status,
+                    meta: { durationSec: 0.5, purpose: 'ASSET' },
+                });
+                expect(detail.body.data.meta).not.toHaveProperty('width');
+                expect(detail.body.data.meta).not.toHaveProperty('height');
+                const list = await request(app).get('/api/v1/assets?scope=mine').set(auth(token));
+                expect(list.status).toBe(200);
+                expect(list.body.data[0].meta).toEqual(detail.body.data.meta);
+                const patch = await request(app)
+                    .patch(`/api/v1/assets/${assetId}`)
+                    .set(auth(token))
+                    .send({ name: 'Audio cũ' });
+                expect(patch.status).toBe(200);
+                const row = await pool.query<AssetRow>('SELECT * FROM assets WHERE id = $1', [
+                    assetId,
+                ]);
+                expect(toAssetRef(row.rows[0] as AssetRow).meta).toEqual(detail.body.data.meta);
+            },
+        );
+
         it('ảnh hợp lệ: 200, READY, tính dung lượng thật, có thumbnail', async () => {
             const { token, userId } = await signUp();
             const { res, assetId } = await upload(token, { stored: { bytes: 2345 } });
@@ -174,6 +230,7 @@ suite('assets (tích hợp)', () => {
                 scope: 'mine',
             });
             expect(res.body.data.asset.thumbnailUrl).toContain('c_fill');
+            expect(res.body.data.asset.meta).toMatchObject({ width: 640, height: 480 });
 
             const { rows } = await pool.query(
                 'SELECT storage_used_bytes::int AS used FROM users WHERE id = $1',

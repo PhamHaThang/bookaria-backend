@@ -74,6 +74,18 @@ function fixture(type: AssetRow['type'] = 'MODEL') {
 }
 
 describe('createOptimizeHandler', () => {
+    it('returns legacy READY audio without spatial dimensions', async () => {
+        const f = fixture('AUDIO');
+        f.asset.status = 'READY';
+        f.asset.meta = { width: 0, height: 0, durationSec: 1, purpose: 'ASSET' };
+        const handler = createOptimizeHandler(f.storage, undefined, f.repository);
+        await expect(handler(f.context)).resolves.toEqual({
+            assetId: f.asset.id,
+            meta: { durationSec: 1, purpose: 'ASSET' },
+        });
+        expect(f.storage.inspect).not.toHaveBeenCalled();
+    });
+
     it('rejects a model whose source changed before downloading', async () => {
         const f = fixture();
         f.storage.inspect.mockResolvedValue({
