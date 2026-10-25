@@ -54,7 +54,7 @@ const objectBase = {
     /** Always face the camera. */
     billboard: z.boolean().default(false),
     /** Editor aid: dragging keeps the object standing on the paper. */
-    snapToPaper: z.boolean().default(true),
+    snapToPaper: z.boolean().default(false),
     /** Editor-only: locked in the layer list. Ignored by the Viewer. */
     locked: z.boolean().default(false),
     /** Editor-only: hidden in the layer list. Ignored by the Viewer. */
