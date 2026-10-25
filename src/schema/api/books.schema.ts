@@ -15,6 +15,7 @@ import {
     DeviceTypeSchema,
     PageFormatSchema,
 } from '../enums.schema';
+import { PageWidthMmSchema } from '../marker.schema';
 
 // --- Listing -----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -60,6 +61,8 @@ export const CreateBookBodySchema = z
         pageFormat: PageFormatSchema.default('A4'),
         /** Height divided by width. Required for CUSTOM, ignored otherwise. */
         pageAspect: z.number().min(0.2).max(5).optional(),
+        /** Actual width for CUSTOM; fixed formats keep their standard dimensions. */
+        pageWidthMm: PageWidthMmSchema.optional(),
         source: CreateBookSourceSchema.default({ type: 'BLANK' }),
     })
     .refine((b) => b.pageFormat !== 'CUSTOM' || b.pageAspect !== undefined, {
@@ -94,6 +97,7 @@ export const UpdateBookBodySchema = z
         topic: z.string().trim().max(50).nullable().optional(),
         pageFormat: PageFormatSchema.optional(),
         pageAspect: z.number().min(0.2).max(5).optional(),
+        pageWidthMm: PageWidthMmSchema.optional(),
         coverAssetId: IdSchema.nullable().optional(),
     })
     .refine((b) => Object.values(b).some((v) => v !== undefined), {

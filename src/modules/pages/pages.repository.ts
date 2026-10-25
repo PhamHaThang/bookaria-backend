@@ -59,7 +59,7 @@ export const pagesRepository = {
         pageId: string,
     ): Promise<(EditableBook & { id: string }) | undefined> {
         const { rows } = await db.query<EditableBook & { id: string }>(
-            `SELECT b.id, b.age_min, b.age_max, b.page_format, b.page_aspect,
+            `SELECT b.id, b.age_min, b.age_max, b.page_format, b.page_aspect, b.page_width_mm,
             (b.taken_down_at IS NOT NULL) AS taken_down
             FROM books b JOIN pages p ON p.book_id = b.id
             WHERE p.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL
@@ -287,11 +287,10 @@ export const pagesRepository = {
     async getBookGeometry(
         db: Queryable,
         bookId: string,
-    ): Promise<Pick<EditableBook, 'page_format' | 'page_aspect'> | undefined> {
-        const { rows } = await db.query<Pick<EditableBook, 'page_format' | 'page_aspect'>>(
-            `SELECT page_format, page_aspect FROM books WHERE id = $1`,
-            [bookId],
-        );
+    ): Promise<Pick<EditableBook, 'page_format' | 'page_aspect' | 'page_width_mm'> | undefined> {
+        const { rows } = await db.query<
+            Pick<EditableBook, 'page_format' | 'page_aspect' | 'page_width_mm'>
+        >(`SELECT page_format, page_aspect, page_width_mm FROM books WHERE id = $1`, [bookId]);
         return rows[0];
     },
     async lockSceneRevision(

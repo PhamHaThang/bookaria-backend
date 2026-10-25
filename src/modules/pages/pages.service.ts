@@ -526,10 +526,13 @@ async function lockPageImage(db: Queryable, userId: string, assetId: string) {
     }
     throw fieldError('imageAssetId', 'Tài nguyên này không phải ảnh đã sẵn sàng.');
 }
-function getBookPageGeometry(book: Pick<EditableBook, 'page_format' | 'page_aspect'>) {
+function getBookPageGeometry(
+    book: Pick<EditableBook, 'page_format' | 'page_aspect' | 'page_width_mm'>,
+) {
     return {
         format: book.page_format,
         aspect: Number(book.page_aspect),
+        widthMm: Number(book.page_width_mm),
     };
 }
 async function prepareMarkerForPage(

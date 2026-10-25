@@ -2160,6 +2160,12 @@
                                         "minimum": 0.2,
                                         "maximum": 5
                                     },
+                                    "pageWidthMm": {
+                                        "type": "number",
+                                        "minimum": 0.1,
+                                        "maximum": 1000,
+                                        "multipleOf": 0.1
+                                    },
                                     "source": {
                                         "default": {
                                             "type": "BLANK"
@@ -2849,6 +2855,12 @@
                                         "type": "number",
                                         "minimum": 0.2,
                                         "maximum": 5
+                                    },
+                                    "pageWidthMm": {
+                                        "type": "number",
+                                        "minimum": 0.1,
+                                        "maximum": 1000,
+                                        "multipleOf": 0.1
                                     },
                                     "coverAssetId": {
                                         "nullable": true,
@@ -17082,6 +17094,12 @@
                         "type": "number",
                         "minimum": 0,
                         "exclusiveMinimum": true
+                    },
+                    "pageWidthMm": {
+                        "type": "number",
+                        "minimum": 0.1,
+                        "maximum": 1000,
+                        "multipleOf": 0.1
                     },
                     "slug": {
                         "nullable": true,

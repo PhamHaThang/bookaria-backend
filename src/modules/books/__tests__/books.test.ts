@@ -31,6 +31,56 @@ async function createBook(token: string, body: Record<string, unknown> = {}) {
 }
 
 suite('books (tích hợp)', () => {
+    it('lưu chiều rộng khổ tùy chỉnh, đọc lại và giữ nguyên khi sửa tỷ lệ', async () => {
+        const { token } = await signUp();
+        const created = await createBook(token, {
+            pageFormat: 'CUSTOM',
+            pageWidthMm: 180.5,
+            pageAspect: 1.5,
+        });
+        expect(created.status).toBe(201);
+        const id = created.body.data.book.id;
+        const read = () => request(app).get(`/api/v1/books/${id}`).set(auth(token));
+        expect((await read()).body.data).toMatchObject({ pageWidthMm: 180.5, pageAspect: 1.5 });
+        expect(
+            (
+                await request(app)
+                    .patch(`/api/v1/books/${id}`)
+                    .set(auth(token))
+                    .send({ pageAspect: 2 })
+            ).status,
+        ).toBe(200);
+        expect((await read()).body.data).toMatchObject({ pageWidthMm: 180.5, pageAspect: 2 });
+        expect(
+            (
+                await request(app)
+                    .patch(`/api/v1/books/${id}`)
+                    .set(auth(token))
+                    .send({ pageWidthMm: 250 })
+            ).status,
+        ).toBe(200);
+        expect((await read()).body.data.pageWidthMm).toBe(250);
+        expect(
+            (
+                await request(app)
+                    .patch(`/api/v1/books/${id}`)
+                    .set(auth(token))
+                    .send({ pageFormat: 'A5', pageWidthMm: 300 })
+            ).status,
+        ).toBe(200);
+        expect((await read()).body.data.pageWidthMm).toBe(148);
+    });
+    it('chặn chiều rộng vượt giới hạn và độ chính xác cột lưu trữ', async () => {
+        const { token } = await signUp();
+        for (const width of [0, -1, 1000.1, 0.01, 210.01]) {
+            const response = await createBook(token, {
+                pageFormat: 'CUSTOM',
+                pageWidthMm: width,
+                pageAspect: 1.5,
+            });
+            expect(response.status).toBe(400);
+        }
+    });
     describe('xác thực', () => {
         it('không có token -> 401', async () => {
             const res = await request(app).get('/api/v1/books');

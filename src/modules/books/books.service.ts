@@ -62,6 +62,7 @@ export const booksService = {
             topic: book.topic,
             pageFormat: book.page_format,
             pageAspect: Number(book.page_aspect),
+            pageWidthMm: Number(book.page_width_mm),
             slug: book.slug,
             currentVersion:
                 book.version_no === null || book.version_published_at === null
@@ -92,7 +93,7 @@ export const booksService = {
                 body.pageFormat === 'CUSTOM'
                     ? (body.pageAspect as number)
                     : PAGE_ASPECT[body.pageFormat],
-            pageWidthMm: pageWidthMm(body.pageFormat),
+            pageWidthMm: pageWidthMm(body.pageFormat, body.pageWidthMm),
         });
         const book = await booksRepository.getBookSummary(pool, userId, id);
         if (!book) throw new AppError('NOT_FOUND');
@@ -143,7 +144,11 @@ export const booksService = {
 
             // Validate page format and aspect
             const format = body.pageFormat ?? currentBook.page_format;
-            if (body.pageFormat !== undefined || body.pageAspect !== undefined) {
+            if (
+                body.pageFormat !== undefined ||
+                body.pageAspect !== undefined ||
+                body.pageWidthMm !== undefined
+            ) {
                 if (format === 'CUSTOM') {
                     if (body.pageAspect !== undefined) changes.page_aspect = body.pageAspect;
                     else if (
@@ -160,6 +165,8 @@ export const booksService = {
                     if (body.pageFormat !== currentBook.page_format)
                         changes.page_width_mm = pageWidthMm(body.pageFormat);
                 }
+                if (format === 'CUSTOM' && body.pageWidthMm !== undefined)
+                    changes.page_width_mm = body.pageWidthMm;
             }
             // Update the book if there are any changes
             if (Object.keys(changes).length > 0)

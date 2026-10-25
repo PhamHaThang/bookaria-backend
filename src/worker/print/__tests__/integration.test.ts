@@ -8,7 +8,7 @@ import { pool } from '../../../db';
 import { JobError, type JobHandler } from '../../../modules/jobs/jobs.types';
 import { PrintSourceSchema } from '../../../modules/print/print.source';
 import { publishService } from '../../../modules/publish/publish.service';
-import type { PrintPdfBody } from '../../../schema';
+import { defaultMarkerTransform, type PrintPdfBody } from '../../../schema';
 import { handlers } from '../../handlers';
 import { createPublishHandler } from '../../publish';
 import type { PublishStorage } from '../../publish/storage';
@@ -130,6 +130,40 @@ async function pipeline(hook?: () => Promise<void>) {
     };
 }
 suite('EXPORT_PDF publication consistency', () => {
+    it('preserves the custom dimensions entered through the API in published and printed pages', async () => {
+        const s = await setup(false);
+        const changed = await request(app)
+            .patch(`/api/v1/books/${s.bookId}`)
+            .auth(s.token, { type: 'bearer' })
+            .send({ pageFormat: 'CUSTOM', pageWidthMm: 180, pageAspect: 1.5 });
+        expect(changed.status).toBe(200);
+        // Existing marker placement must be updated for the new physical page size.
+        const marker = await request(app)
+            .put(`/api/v1/pages/${s.source.pages[0]?.pageId}/marker`)
+            .auth(s.token, { type: 'bearer' })
+            .send({
+                mode: 'BOOKARIA_MARKER',
+                transform: defaultMarkerTransform(
+                    { format: 'CUSTOM', aspect: 1.5, widthMm: 180 },
+                    0,
+                ),
+            });
+        expect(marker.status, JSON.stringify(marker.body)).toBe(200);
+        await s.publishJob();
+        const source = PrintSourceSchema.parse((await versions(s))[0].print_source);
+        expect(source.widthMm).toBe(180);
+        expect(source.heightMm).toBe(270);
+        const job = await enqueue(s),
+            p = await pipeline();
+        // Imported page images are rendered to the chosen 180 x 270 mm aspect.
+        p.storage.download = await sampleImages(720, 1080);
+        const outcome = await runJob(job, p.handler);
+        expect(outcome, JSON.stringify((await jobState(job)).error)).toBe('done');
+        const pdf = await PDFDocument.load([...p.uploads.values()][0] as Buffer);
+        const trim = pdf.getPages()[2]?.getTrimBox();
+        expect(trim?.width).toBeCloseTo((180 * 72) / 25.4, 5);
+        expect(trim?.height).toBeCloseTo((270 * 72) / 25.4, 5);
+    });
     it('registers all five handlers', () => {
         for (const key of [
             'OPTIMIZE_ASSET',

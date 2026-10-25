@@ -29,6 +29,7 @@ import {
     MarkerReportSchema,
     MarkerScoreSchema,
     MarkerWarningSchema,
+    PageWidthMmSchema,
 } from './marker.schema';
 import { PageSettingsSchema, SceneSchema } from './scene.schema';
 
@@ -107,6 +108,8 @@ export const BookDetailSchema = BookSummarySchema.extend({
     pageFormat: PageFormatSchema,
     /** Height divided by width (A4 = 1.4142). */
     pageAspect: z.number().positive(),
+    /** Actual printed width; optional for compatibility with older API snapshots. */
+    pageWidthMm: PageWidthMmSchema.optional(),
     slug: SlugSchema.nullable(),
     currentVersion: CurrentVersionRefSchema.nullable(),
     pages: z.array(PageSummarySchema),

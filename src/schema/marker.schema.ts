@@ -22,13 +22,15 @@ export const MARKER_RULES = {
     maxPagesPerGroup: 10,
 } as const;
 
-/** Printed page sizes. A custom page format uses a 210 mm wide reference page. */
+/** Printed page sizes. Legacy custom books default to a 210 mm wide reference page. */
 export const PAGE_SIZE_MM = {
     A4: { width: 210, height: 297 },
     A5: { width: 148, height: 210 },
     SQUARE: { width: 210, height: 210 },
 } as const;
 export const REFERENCE_PAGE_WIDTH_MM = 210;
+/** Stored as numeric(5,1), shared by the API and print geometry. */
+export const PageWidthMmSchema = z.number().min(0.1).max(1000).multipleOf(0.1);
 
 /** Marker score: 0 = not scored yet is stored as NULL, 1-5 stars otherwise. */
 export const MarkerScoreSchema = z.int().min(0).max(5);
@@ -87,10 +89,12 @@ export interface PageGeometry {
     format: PageFormat;
     /** Height divided by width (A4 = 1.4142). */
     aspect: number;
+    /** Real printed width. Omitted by older clients that use the reference width. */
+    widthMm?: number | undefined;
 }
 /** Page width in millimetres, used to convert page units to print sizes. */
-export function pageWidthMm(format: PageFormat): number {
-    return format === 'CUSTOM' ? REFERENCE_PAGE_WIDTH_MM : PAGE_SIZE_MM[format].width;
+export function pageWidthMm(format: PageFormat, customWidthMm = REFERENCE_PAGE_WIDTH_MM): number {
+    return format === 'CUSTOM' ? customWidthMm : PAGE_SIZE_MM[format].width;
 }
 
 export function defaultMarkerSizeMm(format: PageFormat): number {
@@ -104,7 +108,7 @@ const round4 = (n: number) => Math.round(n * 10_000) / 10_000;
  * Odd pages (first page = index 0) sit on the right, even pages on the left.
  */
 export function defaultMarkerTransform(page: PageGeometry, orderIndex: number): MarkerTransform {
-    const width = pageWidthMm(page.format);
+    const width = pageWidthMm(page.format, page.widthMm);
     const size = defaultMarkerSizeMm(page.format) / width;
     const margin = MARKER_RULES.minEdgeMarginMm / width;
     const side = orderIndex % 2 === 0 ? 1 : -1;
@@ -128,7 +132,7 @@ export function checkMarkerPlacement(
     t: MarkerTransform,
     page: PageGeometry,
 ): MarkerPlacementIssue[] {
-    const width = pageWidthMm(page.format);
+    const width = pageWidthMm(page.format, page.widthMm);
     const issues: MarkerPlacementIssue[] = [];
 
     if (t.size * width < MARKER_RULES.minSizeMm - EPSILON * width) {
@@ -156,7 +160,7 @@ export function checkMarkerPlacement(
 
 /** Print geometry for the PDF job: centre measured from the page's top-left corner, in mm. */
 export function markerToMm(t: MarkerTransform, page: PageGeometry) {
-    const width = pageWidthMm(page.format);
+    const width = pageWidthMm(page.format, page.widthMm);
     return {
         centerXMm: (t.x + 0.5) * width,
         centerYMm: (page.aspect / 2 - t.y) * width,

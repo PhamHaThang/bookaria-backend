@@ -96,7 +96,7 @@ export const booksRepository = {
         bookId: string,
     ): Promise<BookDetailRow | undefined> {
         const { rows } = await db.query<BookDetailRow>(
-            `SELECT ${SUMMARY_COLUMNS}, b.description, b.age_min, b.age_max, b.language, b.topic, b.page_format, b.page_aspect, b.slug, v.version_no, v.published_at AS version_published_at
+            `SELECT ${SUMMARY_COLUMNS}, b.description, b.age_min, b.age_max, b.language, b.topic, b.page_format, b.page_aspect, b.page_width_mm, b.slug, v.version_no, v.published_at AS version_published_at
             FROM books b
             LEFT JOIN book_versions v ON v.id = b.current_version_id
             ${COVER_JOIN}
@@ -111,7 +111,7 @@ export const booksRepository = {
         bookId: string,
     ): Promise<EditableBook | undefined> {
         const { rows } = await db.query<EditableBook>(
-            `SELECT b.age_min, b.age_max, b.page_format, b.page_aspect, (b.taken_down_at IS NOT NULL) AS taken_down
+            `SELECT b.age_min, b.age_max, b.page_format, b.page_aspect, b.page_width_mm, (b.taken_down_at IS NOT NULL) AS taken_down
             FROM books b
             WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL
             FOR UPDATE`,

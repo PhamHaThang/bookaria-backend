@@ -22,6 +22,7 @@ export interface BookDetailRow extends BookRow {
     topic: string | null;
     page_format: PageFormat;
     page_aspect: string;
+    page_width_mm: string;
     slug: string | null;
     version_no: number | null;
     version_published_at: Date | null;
@@ -32,5 +33,6 @@ export interface EditableBook {
     age_max: number | null;
     page_format: PageFormat;
     page_aspect: string;
+    page_width_mm: string;
     taken_down: boolean;
 }
