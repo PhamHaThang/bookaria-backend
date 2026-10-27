@@ -944,6 +944,81 @@ suite('pages (tích hợp)', () => {
             expect(notReady.status).toBe(400);
         });
 
+        it('lưu và đọc lại vị trí nhãn chú thích mà không thay đổi điểm đặt', async () => {
+            const author = await signUp();
+            const { pageId } = await pageWith(author.token, author.userId);
+            const annotations = ['line', 'circle'].map((shape, index) => ({
+                ...textObject(`annotation${index}`),
+                type: 'label',
+                target: [-0.3, 0, 0],
+                billboard: true,
+                transform: { position: [0.2, -0.1, 0.4] },
+                presentation: {
+                    kind: 'annotation',
+                    shape,
+                    anchorAtTarget: true,
+                    description: 'Mô tả',
+                    labelOffset: [0.15, -0.2],
+                    connectorSide: 'bottom',
+                },
+            }));
+            expect(
+                (await save(author.token, pageId, 0, { ...emptyScene, objects: annotations }))
+                    .status,
+            ).toBe(200);
+            const loaded = await request(app)
+                .get(`/api/v1/pages/${pageId}`)
+                .set(auth(author.token));
+            expect(loaded.status).toBe(200);
+            for (const object of loaded.body.data.scene.objects) {
+                expect(object.presentation.labelOffset).toEqual([0.15, -0.2]);
+                expect(object.presentation.connectorSide).toBe('bottom');
+                expect(object.transform.position).toEqual([0.2, -0.1, 0.4]);
+                expect(object.presentation.anchorAtTarget).toBe(true);
+            }
+        });
+
+        it('thẻ thông tin kiểm tra quyền/loại ảnh và giữ tham chiếu cho tới khi bỏ ảnh', async () => {
+            const author = await signUp();
+            const foreign = await signUp();
+            const { pageId } = await pageWith(author.token, author.userId);
+            const image = await createAsset(author.userId);
+            const otherImage = await createAsset(foreign.userId);
+            const audio = await createAsset(author.userId, 'AUDIO');
+            const card = (imageAssetId: string) => ({
+                ...textObject('card'),
+                presentation: { kind: 'screen', title: 'Tiêu đề', imageAssetId },
+            });
+            for (const assetId of [otherImage, audio]) {
+                const invalid = await save(author.token, pageId, 0, {
+                    ...emptyScene,
+                    objects: [card(assetId)],
+                });
+                expect(invalid.status).toBe(400);
+                expect(invalid.body.error.details[0].path).toBe(
+                    'scene.objects.0.presentation.imageAssetId',
+                );
+            }
+            expect(
+                (await save(author.token, pageId, 0, { ...emptyScene, objects: [card(image)] }))
+                    .status,
+            ).toBe(200);
+            const loaded = await request(app)
+                .get(`/api/v1/pages/${pageId}`)
+                .set(auth(author.token));
+            expect(loaded.body.data.scene.objects[0].presentation.imageAssetId).toBe(image);
+            expect(loaded.body.data.assets[image].type).toBe('IMAGE');
+            expect(
+                (await request(app).delete(`/api/v1/assets/${image}`).set(auth(author.token)))
+                    .status,
+            ).toBe(409);
+            expect((await save(author.token, pageId, 1, emptyScene)).status).toBe(200);
+            expect(
+                (await request(app).delete(`/api/v1/assets/${image}`).set(auth(author.token)))
+                    .status,
+            ).toBe(204);
+        });
+
         it('tài nguyên dùng trong cảnh được giữ lại (409 khi xoá), bỏ khỏi cảnh thì xoá được', async () => {
             const { token, userId } = await signUp();
             const { pageId } = await pageWith(token, userId);

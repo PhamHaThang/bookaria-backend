@@ -574,6 +574,17 @@ async function lockAudios(db: Queryable, userId: string, patch: PageSettingsPatc
 function getAssetUsesInScene(scene: Scene) {
     const uses: { id: string; kind: AssetKind; path: string }[] = [];
     scene.objects.forEach((o, i) => {
+        if (
+            (o.type === 'text' || o.type === 'label') &&
+            o.presentation?.kind === 'screen' &&
+            o.presentation.imageAssetId
+        ) {
+            uses.push({
+                id: o.presentation.imageAssetId,
+                kind: 'IMAGE',
+                path: `scene.objects.${i}.presentation.imageAssetId`,
+            });
+        }
         const kind = KIND_OF_OBJECT[o.type];
         if ('assetId' in o && kind) {
             uses.push({ id: o.assetId, kind, path: `scene.objects.${i}.assetId` });

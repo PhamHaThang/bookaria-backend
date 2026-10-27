@@ -96,11 +96,70 @@ export const ImageObjectSchema = z.object({
     assetId: IdSchema,
     opacity: z.number().min(0).max(1).default(1),
 });
+/** Optional presentation keeps existing plain-text scenes compatible. */
+const textColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const screenTextStyleSchema = z.object({
+    /** Screen Text design pixels; independent from the object's scene scale. */
+    size: z.number().int().min(10).max(40),
+    weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]),
+    align: z.enum(['left', 'center', 'right']).optional(),
+});
+export const SCREEN_BORDER_DEFAULTS = { enabled: true, color: '#d4d4d4', width: 1 } as const;
+export const ScreenBorderSchema = z.object({
+    enabled: z.boolean().default(SCREEN_BORDER_DEFAULTS.enabled),
+    color: textColorSchema.default(SCREEN_BORDER_DEFAULTS.color),
+    /** Design pixels; zero is represented by enabled: false. */
+    width: z.number().min(0.5).max(8).multipleOf(0.5).default(SCREEN_BORDER_DEFAULTS.width),
+});
+export type ScreenBorder = z.infer<typeof ScreenBorderSchema>;
+export const ANNOTATION_DESCRIPTION_DEFAULTS = { color: '#ffffff', background: '#404040' } as const;
+export const TextPresentationSchema = z.discriminatedUnion('kind', [
+    z.object({
+        kind: z.literal('screen'),
+        title: z.string().trim().max(100).default(''),
+        background: textColorSchema.default('#ffffff'),
+        imageAssetId: IdSchema.optional(),
+        buttonLabel: z.string().trim().max(60).default(''),
+        buttonUrl: HttpUrlSchema.optional(),
+        buttonBackground: textColorSchema.optional(),
+        border: ScreenBorderSchema.optional(),
+        titleStyle: screenTextStyleSchema.optional(),
+        bodyStyle: screenTextStyleSchema.optional(),
+        buttonStyle: screenTextStyleSchema.optional(),
+    }),
+    z.object({
+        kind: z.literal('bubble'),
+        border: ScreenBorderSchema.optional(),
+        title: z.string().trim().max(100).default(''),
+        background: textColorSchema.default('#ffffff'),
+        pointer: z.enum(['top', 'bottom', 'left', 'right']).default('bottom'),
+        /** Normalized position along the edge; omitted legacy values stay centred. */
+        pointerPosition: z.number().min(0).max(1).optional(),
+    }),
+    z.object({ kind: z.literal('extruded'), depth: z.number().min(0.001).max(0.2).default(0.025) }),
+    z.object({
+        kind: z.literal('annotation'),
+        /** Surface-placed callouts keep their marker at the object's transform origin. */
+        anchorAtTarget: z.boolean().optional(),
+        /** Label (or circle description) offset in the annotation's local XY plane, in page widths. */
+        labelOffset: z.tuple([z.number(), z.number()]).optional(),
+        /** Fixed midpoint of the chosen label edge. Legacy callouts infer an edge from their target. */
+        connectorSide: z.enum(['left', 'right', 'top', 'bottom']).optional(),
+        shape: z.enum(['line', 'circle']).default('line'),
+        description: z.string().trim().max(1000).default(''),
+        descriptionColor: textColorSchema.optional(),
+        descriptionBackground: textColorSchema.optional(),
+        background: textColorSchema.default('#f7be2d'),
+    }),
+]);
+export type TextPresentation = z.infer<typeof TextPresentationSchema>;
+
 export const TextObjectSchema = z.object({
     ...objectBase,
     type: z.literal('text'),
     text: textSchema,
     style: TextStyleSchema.prefault({}),
+    presentation: TextPresentationSchema.optional(),
 });
 export const VideoObjectSchema = z.object({
     ...objectBase,
@@ -136,6 +195,7 @@ export const LabelObjectSchema = z.object({
     type: z.literal('label'),
     text: textSchema,
     style: TextStyleSchema.prefault({}),
+    presentation: TextPresentationSchema.optional(),
     /** End of the leader line, relative to the label position. */
     target: Vec3Schema.default([0, -0.1, 0]),
 });
@@ -386,6 +446,12 @@ export function sceneAssetIds(scene: Scene, settings?: PageSettings): string[] {
     const ids = new Set<string>();
     for (const o of scene.objects) {
         if ('assetId' in o) ids.add(o.assetId);
+        if (
+            (o.type === 'text' || o.type === 'label') &&
+            o.presentation?.kind === 'screen' &&
+            o.presentation.imageAssetId
+        )
+            ids.add(o.presentation.imageAssetId);
     }
     for (const rule of scene.interactions) {
         for (const a of rule.actions) {

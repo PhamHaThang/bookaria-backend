@@ -17613,7 +17613,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -17757,7 +17757,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -17888,7 +17888,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -17939,6 +17939,306 @@
                                 },
                                 "required": ["color", "size", "font", "bold"],
                                 "additionalProperties": false
+                            },
+                            "presentation": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["screen"]
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "imageAssetId": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "buttonLabel": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 60
+                                            },
+                                            "buttonUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "buttonBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                },
+                                                "required": ["enabled", "color", "width"],
+                                                "additionalProperties": false
+                                            },
+                                            "titleStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            },
+                                            "bodyStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            },
+                                            "buttonStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "required": ["kind", "title", "background", "buttonLabel"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["bubble"]
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                },
+                                                "required": ["enabled", "color", "width"],
+                                                "additionalProperties": false
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "pointer": {
+                                                "default": "bottom",
+                                                "type": "string",
+                                                "enum": ["top", "bottom", "left", "right"]
+                                            },
+                                            "pointerPosition": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                            }
+                                        },
+                                        "required": ["kind", "title", "background", "pointer"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["extruded"]
+                                            },
+                                            "depth": {
+                                                "default": 0.025,
+                                                "type": "number",
+                                                "minimum": 0.001,
+                                                "maximum": 0.2
+                                            }
+                                        },
+                                        "required": ["kind", "depth"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["annotation"]
+                                            },
+                                            "anchorAtTarget": {
+                                                "type": "boolean"
+                                            },
+                                            "labelOffset": {
+                                                "type": "array",
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "number"
+                                                        },
+                                                        {
+                                                            "type": "number"
+                                                        }
+                                                    ]
+                                                },
+                                                "minItems": 2,
+                                                "maxItems": 2
+                                            },
+                                            "connectorSide": {
+                                                "type": "string",
+                                                "enum": ["left", "right", "top", "bottom"]
+                                            },
+                                            "shape": {
+                                                "default": "line",
+                                                "type": "string",
+                                                "enum": ["line", "circle"]
+                                            },
+                                            "description": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 1000
+                                            },
+                                            "descriptionColor": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "descriptionBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "background": {
+                                                "default": "#f7be2d",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            }
+                                        },
+                                        "required": ["kind", "shape", "description", "background"],
+                                        "additionalProperties": false
+                                    }
+                                ]
                             }
                         },
                         "required": [
@@ -18042,7 +18342,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -18188,7 +18488,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -18329,7 +18629,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -18474,7 +18774,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -18525,6 +18825,306 @@
                                 },
                                 "required": ["color", "size", "font", "bold"],
                                 "additionalProperties": false
+                            },
+                            "presentation": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["screen"]
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "imageAssetId": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "buttonLabel": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 60
+                                            },
+                                            "buttonUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "buttonBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                },
+                                                "required": ["enabled", "color", "width"],
+                                                "additionalProperties": false
+                                            },
+                                            "titleStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            },
+                                            "bodyStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            },
+                                            "buttonStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"],
+                                                "additionalProperties": false
+                                            }
+                                        },
+                                        "required": ["kind", "title", "background", "buttonLabel"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["bubble"]
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                },
+                                                "required": ["enabled", "color", "width"],
+                                                "additionalProperties": false
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "pointer": {
+                                                "default": "bottom",
+                                                "type": "string",
+                                                "enum": ["top", "bottom", "left", "right"]
+                                            },
+                                            "pointerPosition": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                            }
+                                        },
+                                        "required": ["kind", "title", "background", "pointer"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["extruded"]
+                                            },
+                                            "depth": {
+                                                "default": 0.025,
+                                                "type": "number",
+                                                "minimum": 0.001,
+                                                "maximum": 0.2
+                                            }
+                                        },
+                                        "required": ["kind", "depth"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["annotation"]
+                                            },
+                                            "anchorAtTarget": {
+                                                "type": "boolean"
+                                            },
+                                            "labelOffset": {
+                                                "type": "array",
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "number"
+                                                        },
+                                                        {
+                                                            "type": "number"
+                                                        }
+                                                    ]
+                                                },
+                                                "minItems": 2,
+                                                "maxItems": 2
+                                            },
+                                            "connectorSide": {
+                                                "type": "string",
+                                                "enum": ["left", "right", "top", "bottom"]
+                                            },
+                                            "shape": {
+                                                "default": "line",
+                                                "type": "string",
+                                                "enum": ["line", "circle"]
+                                            },
+                                            "description": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 1000
+                                            },
+                                            "descriptionColor": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "descriptionBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "background": {
+                                                "default": "#f7be2d",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            }
+                                        },
+                                        "required": ["kind", "shape", "description", "background"],
+                                        "additionalProperties": false
+                                    }
+                                ]
                             },
                             "target": {
                                 "default": [0, -0.1, 0],
@@ -19988,7 +20588,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20121,7 +20721,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20241,7 +20841,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20291,6 +20891,295 @@
                                         "type": "boolean"
                                     }
                                 }
+                            },
+                            "presentation": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["screen"]
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "imageAssetId": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "buttonLabel": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 60
+                                            },
+                                            "buttonUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "buttonBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                }
+                                            },
+                                            "titleStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            },
+                                            "bodyStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            },
+                                            "buttonStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["bubble"]
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                }
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "pointer": {
+                                                "default": "bottom",
+                                                "type": "string",
+                                                "enum": ["top", "bottom", "left", "right"]
+                                            },
+                                            "pointerPosition": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["extruded"]
+                                            },
+                                            "depth": {
+                                                "default": 0.025,
+                                                "type": "number",
+                                                "minimum": 0.001,
+                                                "maximum": 0.2
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["annotation"]
+                                            },
+                                            "anchorAtTarget": {
+                                                "type": "boolean"
+                                            },
+                                            "labelOffset": {
+                                                "type": "array",
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "number"
+                                                        },
+                                                        {
+                                                            "type": "number"
+                                                        }
+                                                    ]
+                                                },
+                                                "minItems": 2,
+                                                "maxItems": 2
+                                            },
+                                            "connectorSide": {
+                                                "type": "string",
+                                                "enum": ["left", "right", "top", "bottom"]
+                                            },
+                                            "shape": {
+                                                "default": "line",
+                                                "type": "string",
+                                                "enum": ["line", "circle"]
+                                            },
+                                            "description": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 1000
+                                            },
+                                            "descriptionColor": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "descriptionBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "background": {
+                                                "default": "#f7be2d",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    }
+                                ]
                             }
                         },
                         "required": ["id", "transform", "type", "text"]
@@ -20383,7 +21272,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20515,7 +21404,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20643,7 +21532,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20777,7 +21666,7 @@
                                 "type": "boolean"
                             },
                             "snapToPaper": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "locked": {
@@ -20827,6 +21716,295 @@
                                         "type": "boolean"
                                     }
                                 }
+                            },
+                            "presentation": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["screen"]
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "imageAssetId": {
+                                                "type": "string",
+                                                "format": "uuid"
+                                            },
+                                            "buttonLabel": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 60
+                                            },
+                                            "buttonUrl": {
+                                                "type": "string",
+                                                "format": "uri"
+                                            },
+                                            "buttonBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                }
+                                            },
+                                            "titleStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            },
+                                            "bodyStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            },
+                                            "buttonStyle": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "size": {
+                                                        "type": "integer",
+                                                        "minimum": 10,
+                                                        "maximum": 40
+                                                    },
+                                                    "weight": {
+                                                        "anyOf": [
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [400]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [500]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [600]
+                                                            },
+                                                            {
+                                                                "type": "number",
+                                                                "enum": [700]
+                                                            }
+                                                        ]
+                                                    },
+                                                    "align": {
+                                                        "type": "string",
+                                                        "enum": ["left", "center", "right"]
+                                                    }
+                                                },
+                                                "required": ["size", "weight"]
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["bubble"]
+                                            },
+                                            "border": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "enabled": {
+                                                        "default": true,
+                                                        "type": "boolean"
+                                                    },
+                                                    "color": {
+                                                        "default": "#d4d4d4",
+                                                        "type": "string",
+                                                        "pattern": "^#[0-9a-fA-F]{6}$"
+                                                    },
+                                                    "width": {
+                                                        "default": 1,
+                                                        "type": "number",
+                                                        "minimum": 0.5,
+                                                        "maximum": 8,
+                                                        "multipleOf": 0.5
+                                                    }
+                                                }
+                                            },
+                                            "title": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 100
+                                            },
+                                            "background": {
+                                                "default": "#ffffff",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "pointer": {
+                                                "default": "bottom",
+                                                "type": "string",
+                                                "enum": ["top", "bottom", "left", "right"]
+                                            },
+                                            "pointerPosition": {
+                                                "type": "number",
+                                                "minimum": 0,
+                                                "maximum": 1
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["extruded"]
+                                            },
+                                            "depth": {
+                                                "default": 0.025,
+                                                "type": "number",
+                                                "minimum": 0.001,
+                                                "maximum": 0.2
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "kind": {
+                                                "type": "string",
+                                                "enum": ["annotation"]
+                                            },
+                                            "anchorAtTarget": {
+                                                "type": "boolean"
+                                            },
+                                            "labelOffset": {
+                                                "type": "array",
+                                                "items": {
+                                                    "anyOf": [
+                                                        {
+                                                            "type": "number"
+                                                        },
+                                                        {
+                                                            "type": "number"
+                                                        }
+                                                    ]
+                                                },
+                                                "minItems": 2,
+                                                "maxItems": 2
+                                            },
+                                            "connectorSide": {
+                                                "type": "string",
+                                                "enum": ["left", "right", "top", "bottom"]
+                                            },
+                                            "shape": {
+                                                "default": "line",
+                                                "type": "string",
+                                                "enum": ["line", "circle"]
+                                            },
+                                            "description": {
+                                                "default": "",
+                                                "type": "string",
+                                                "maxLength": 1000
+                                            },
+                                            "descriptionColor": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "descriptionBackground": {
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            },
+                                            "background": {
+                                                "default": "#f7be2d",
+                                                "type": "string",
+                                                "pattern": "^#[0-9a-fA-F]{6}$"
+                                            }
+                                        },
+                                        "required": ["kind"]
+                                    }
+                                ]
                             },
                             "target": {
                                 "default": [0, -0.1, 0],
