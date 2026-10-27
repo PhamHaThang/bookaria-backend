@@ -18511,6 +18511,10 @@
                                 "type": "string",
                                 "format": "uuid"
                             },
+                            "audioKind": {
+                                "type": "string",
+                                "enum": ["BGM", "SFX", "VOICE"]
+                            },
                             "autoplay": {
                                 "default": true,
                                 "type": "boolean"
@@ -21426,6 +21430,10 @@
                             "assetId": {
                                 "type": "string",
                                 "format": "uuid"
+                            },
+                            "audioKind": {
+                                "type": "string",
+                                "enum": ["BGM", "SFX", "VOICE"]
                             },
                             "autoplay": {
                                 "default": true,

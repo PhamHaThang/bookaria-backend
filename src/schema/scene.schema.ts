@@ -174,6 +174,8 @@ export const AudioObjectSchema = z.object({
     ...objectBase,
     type: z.literal('audio'),
     assetId: IdSchema,
+    /** Optional for existing scenes; cards without a kind display as BGM. */
+    audioKind: z.enum(['BGM', 'SFX', 'VOICE']).optional(),
     autoplay: z.boolean().default(true),
     loop: z.boolean().default(false),
     volume: z.number().min(0).max(1).default(1),

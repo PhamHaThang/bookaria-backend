@@ -877,6 +877,37 @@ suite('pages (tích hợp)', () => {
             expect(page.body.data.scene.objects[0].id).toBe('t1');
         });
 
+        it('audio cards retain BGM/SFX/Voice when saving and reopening the page', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const assetId = await createAsset(userId, 'AUDIO');
+            const objects = ['BGM', 'SFX', 'VOICE'].map((audioKind, index) => ({
+                id: `audio-${index}`,
+                type: 'audio',
+                assetId,
+                audioKind,
+                name: `Âm thanh ${audioKind}`,
+                billboard: true,
+                autoplay: false,
+                transform: {},
+            }));
+            const res = await save(token, pageId, 0, { ...emptyScene, objects });
+            expect(res.status).toBe(200);
+            const page = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(page.status).toBe(200);
+            expect(page.body.data.scene.objects).toEqual(
+                objects.map((object) =>
+                    expect.objectContaining({
+                        id: object.id,
+                        audioKind: object.audioKind,
+                        name: object.name,
+                        billboard: true,
+                        autoplay: false,
+                    }),
+                ),
+            );
+        });
+
         it('revision cũ (hai tab cùng sửa): 409 REVISION_CONFLICT kèm cảnh hiện tại', async () => {
             const { token, userId } = await signUp();
             const { pageId } = await pageWith(token, userId);
