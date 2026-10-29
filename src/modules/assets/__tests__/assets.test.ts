@@ -383,6 +383,58 @@ suite('assets (tích hợp)', () => {
             expect(res.body.meta.total).toBe(0);
         });
 
+        it('ẩn ảnh nền trang khỏi danh sách và phân trang nhưng vẫn đọc được tài nguyên', async () => {
+            const { token, userId } = await signUp();
+            const regular = await upload(token, { complete: { name: 'Ảnh trong scene' } });
+            const legacy = await upload(token, { complete: { name: 'Ảnh chưa có purpose' } });
+            await pool.query(`UPDATE assets SET meta = meta - 'purpose' WHERE id = $1`, [
+                legacy.assetId,
+            ]);
+            const background = await upload(token, {
+                sign: { purpose: 'PAGE_IMAGE' },
+                complete: { name: 'Ảnh nền trang' },
+            });
+            await upload(token, { sign: { purpose: 'PAGE_IMAGE' } });
+
+            for (const query of ['', 'scope=mine&type=IMAGE&']) {
+                const first = await request(app)
+                    .get(`/api/v1/assets?${query}limit=1`)
+                    .set(auth(token));
+                const second = await request(app)
+                    .get(`/api/v1/assets?${query}limit=1&page=2`)
+                    .set(auth(token));
+                expect(first.status).toBe(200);
+                expect(second.status).toBe(200);
+                expect(first.body.meta).toEqual({ page: 1, limit: 1, total: 2, totalPages: 2 });
+                expect(second.body.meta).toEqual({ page: 2, limit: 1, total: 2, totalPages: 2 });
+                expect(
+                    [...first.body.data, ...second.body.data].map((a: { id: string }) => a.id),
+                ).toEqual(expect.arrayContaining([regular.assetId, legacy.assetId]));
+            }
+
+            const search = await request(app)
+                .get(
+                    `/api/v1/assets?scope=mine&type=IMAGE&q=${encodeURIComponent('Ảnh nền trang')}`,
+                )
+                .set(auth(token));
+            expect(search.status).toBe(200);
+            expect(search.body.data).toEqual([]);
+            expect(search.body.meta.total).toBe(0);
+
+            const detail = await request(app)
+                .get(`/api/v1/assets/${background.assetId}`)
+                .set(auth(token));
+            expect(detail.status).toBe(200);
+            expect(detail.body.data).toMatchObject({ id: background.assetId, type: 'IMAGE' });
+            expect(detail.body.data.url).toContain('fake.test');
+
+            const { rows } = await pool.query(
+                'SELECT storage_used_bytes AS used FROM users WHERE id = $1',
+                [userId],
+            );
+            expect(Number(rows[0].used)).toBe(4000);
+        });
+
         it('thư viện chung: thấy tài nguyên đã sẵn sàng, không sửa/xoá được', async () => {
             const { token } = await signUp();
             const name = `Thư viện ${unique()}`;

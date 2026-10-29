@@ -214,7 +214,7 @@ export const assetsRepository = {
         const where: string[] = ['deleted_at IS NULL'];
         if (opts.scope === 'mine') {
             where.push(`owner_id = ${add(userId)}`);
-            where.push(`COALESCE(meta->>'purpose', '') <> 'AVATAR'`);
+            where.push(`COALESCE(meta->>'purpose', '') NOT IN ('AVATAR', 'PAGE_IMAGE')`);
         } else if (opts.scope === 'library') {
             where.push(`owner_id IS NULL`, `status = 'READY'`);
         }
