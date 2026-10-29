@@ -17,6 +17,8 @@ import {
 } from '../../schema';
 import { AppError, buildPaginationMeta, fieldError, toOffset } from '../../utils';
 import { assetsService } from '../assets/assets.service';
+import { resizeBookariaMarkers, resizePageImages } from '../pages/page-resize';
+import { pagesRepository } from '../pages/pages.repository';
 import { pagesService } from '../pages/pages.service';
 import { PAGE_ASPECT, TRASH_DAYS } from './books.constants';
 import { booksRepository } from './books.repository';
@@ -108,6 +110,16 @@ export const booksService = {
         });
     },
     async updateBook(userId: string, bookId: string, body: UpdateBookBody): Promise<BookSummary> {
+        // Storage inspection happens before acquiring the book/asset locks.
+        for (const page of body.pageImages ?? [])
+            if (
+                page.markerMindPublicId &&
+                !(await assetsService.isMarkerFileOf(userId, page.markerMindPublicId))
+            )
+                throw fieldError(
+                    'pageImages',
+                    'Không tìm thấy dữ liệu nhận diện của ảnh trang mới.',
+                );
         await withTransaction(async (db) => {
             const currentBook = await booksRepository.lockEditableBook(db, userId, bookId);
             if (!currentBook) throw new AppError('NOT_FOUND');
@@ -167,6 +179,45 @@ export const booksService = {
                 }
                 if (format === 'CUSTOM' && body.pageWidthMm !== undefined)
                     changes.page_width_mm = body.pageWidthMm;
+            }
+            const nextAspect = Number(changes.page_aspect ?? currentBook.page_aspect);
+            const aspectChanged = Math.abs(nextAspect - Number(currentBook.page_aspect)) > 0.000001;
+            if (body.pageImages) {
+                if (
+                    body.expectedPageAspect === undefined ||
+                    (Math.abs(body.expectedPageAspect - Number(currentBook.page_aspect)) >
+                        0.000001 &&
+                        aspectChanged)
+                )
+                    throw new AppError(
+                        'REVISION_CONFLICT',
+                        'Khổ sách đã được sửa ở nơi khác. Tải lại sách.',
+                    );
+                await resizePageImages(db, userId, bookId, body.pageImages, !aspectChanged);
+            } else if (aspectChanged) {
+                const pages = await pagesRepository.getPages(db, bookId);
+                if (pages.some((page) => page.marker_mode === 'CUSTOM_MARKER'))
+                    throw fieldError(
+                        'pageImages',
+                        'Cần biên dịch lại dữ liệu nhận diện của trang khi đổi khổ sách.',
+                    );
+                if (pages.length && (await pagesRepository.hasOpenBookJob(db, bookId)))
+                    throw new AppError('JOB_IN_PROGRESS');
+            }
+            const nextWidth = Number(changes.page_width_mm ?? currentBook.page_width_mm);
+            if (aspectChanged || nextWidth !== Number(currentBook.page_width_mm)) {
+                if (await pagesRepository.hasOpenBookJob(db, bookId))
+                    throw new AppError('JOB_IN_PROGRESS');
+                await resizeBookariaMarkers(
+                    db,
+                    bookId,
+                    {
+                        format: currentBook.page_format,
+                        aspect: Number(currentBook.page_aspect),
+                        widthMm: Number(currentBook.page_width_mm),
+                    },
+                    { format, aspect: nextAspect, widthMm: nextWidth },
+                );
             }
             // Update the book if there are any changes
             if (Object.keys(changes).length > 0)

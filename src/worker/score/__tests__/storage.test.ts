@@ -7,18 +7,19 @@ const page = {
     original_public_id: 'bookaria/u/page one',
     format: 'png',
     size_bytes: '3',
+    page_aspect: 0.5,
 } as MarkerSource;
 const signal = () => new AbortController().signal;
 const fetcher = (fn: () => Promise<Response>) => vi.fn(fn) as unknown as typeof fetch;
 
 describe('marker storage', () => {
-    it('uses only an encoded original Cloudinary URL, with no automatic transformation', async () => {
+    it('uses the deterministic page layout for recognition', async () => {
         const network = fetcher(async () => new Response('png'));
         expect(
             (await createMarkerStorage(account, network).download(page, signal())).toString(),
         ).toBe('png');
         expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/v1/bookaria/u/page%20one.png',
+            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page%20one.jpg',
             expect.objectContaining({ redirect: 'error', signal: expect.any(AbortSignal) }),
         );
     });
@@ -44,11 +45,11 @@ describe('marker storage', () => {
             );
         expect(outcome).toBe('IMAGE_TOO_LARGE');
     });
-    it('rejects a size mismatch with the stored original', async () => {
+    it('accepts derived bytes whose size differs from the original', async () => {
         const network = fetcher(async () => new Response('changed'));
         await expect(
             createMarkerStorage(account, network).download(page, signal()),
-        ).rejects.toMatchObject({ code: 'SOURCE_CHANGED', retry: false });
+        ).resolves.toEqual(Buffer.from('changed'));
     });
     it.each([408, 420, 429, 500])('retries HTTP %i', async (status) => {
         const network = fetcher(async () => new Response('', { status }));
@@ -115,5 +116,14 @@ describe('marker storage', () => {
             createMarkerStorage(account, network).download(page, controller.signal),
         ).rejects.toThrow();
         expect(network).not.toHaveBeenCalled();
+    });
+    it('scores the same derived JPEG as the compiler, without comparing its bytes to the original size', async () => {
+        const network = fetcher(async () => new Response('derived-image'));
+        const result = await createMarkerStorage(account, network).download(page, signal());
+        expect(result.toString()).toBe('derived-image');
+        expect(network).toHaveBeenCalledWith(
+            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page%20one.jpg',
+            expect.objectContaining({ redirect: 'error' }),
+        );
     });
 });

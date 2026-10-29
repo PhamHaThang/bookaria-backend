@@ -259,7 +259,7 @@ suite('pages (tích hợp)', () => {
                 bookId,
                 revision: 0,
                 markerMode: 'BOOKARIA_MARKER',
-                image: { width: 640, height: 480 },
+                image: { width: 1600, height: 2263 },
             });
             expect(res.body.data.scene).toBeTruthy();
             expect(res.body.data.bookariaMarker.number).toEqual(expect.any(Number));

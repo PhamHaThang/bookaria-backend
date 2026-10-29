@@ -21,6 +21,7 @@ export interface MarkerSource {
     id: string;
     book_id: string;
     image_asset_id: string;
+    page_aspect: number;
     marker_mind_public_id: string;
     original_public_id: string;
     resource_type: string;

@@ -9,6 +9,9 @@ export const bookPagesRouter = () => {
     // [GET] /api/v1/books/:bookId/pages
     router.get('/', pagesController.getBookPages);
 
+    // [POST] /api/v1/books/:bookId/pages/layout
+    router.post('/layout', pagesController.bookImageLayouts);
+
     // [POST] /api/v1/books/:bookId/pages
     router.post('/', pagesController.addPage);
 
@@ -22,6 +25,9 @@ export const pagesRouter = () => {
 
     // [GET] /pages/:pageId
     router.get('/:pageId', pagesController.getPage);
+
+    // [POST] /pages/:pageId/image-layout
+    router.post('/:pageId/image-layout', pagesController.imageLayout);
 
     // [PATCH] /pages/:pageId
     router.patch('/:pageId', pagesController.updatePage);

@@ -8,6 +8,7 @@ export interface PageRow {
     marker_mode: 'BOOKARIA_MARKER' | 'CUSTOM_MARKER' | 'NONE';
     marker_score: number | null;
     marker_report: unknown;
+    marker_mind_public_id: string | null;
     /** Số in trên marker, khi trang dùng marker Bookaria. */
     marker_number: number | null;
     marker_transform: unknown;
@@ -16,6 +17,7 @@ export interface PageRow {
     revision: number;
     updated_at: Date;
     image_asset_id: string;
+    page_aspect: number;
     /** Ảnh của trang, lấy từ tài nguyên (các cột dùng để dựng địa chỉ ảnh). */
     img_resource_type: 'image' | 'video' | 'raw';
     img_original_public_id: string;

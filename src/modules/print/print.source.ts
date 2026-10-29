@@ -3,7 +3,11 @@ import { IdSchema, MarkerTransformSchema } from '../../schema';
 import { JobError } from '../jobs/jobs.types';
 import type { PublishSnapshot } from '../publish/publish.types';
 
-const FileSchema = z.object({ publicId: z.string().min(1), format: z.string().min(1) });
+const FileSchema = z.object({
+    publicId: z.string().min(1),
+    format: z.string().min(1),
+    pageAspect: z.number().min(0.2).max(5).optional(),
+});
 export const PrintSourceSchema = z.object({
     schemaVersion: z.literal(1),
     title: z.string(),
@@ -48,7 +52,11 @@ export function capturePrintSource(snapshot: PublishSnapshot): PrintSource {
             return {
                 pageId: page.id,
                 title: page.title,
-                image: { publicId: image.original_public_id, format: image.format },
+                image: {
+                    publicId: image.original_public_id,
+                    format: image.format,
+                    pageAspect: Number(snapshot.book.page_aspect),
+                },
                 marker:
                     page.marker_mode === 'BOOKARIA_MARKER'
                         ? {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type CloudinaryAccount, createCloudinaryStorage, signParams } from '../../lib/cloudinary';
+import { pageImageTransform } from '../../lib/page-image';
 import { JobError } from '../../modules/jobs/jobs.types';
 import type { MarkerSource } from './types';
 
@@ -42,7 +43,8 @@ export function createMarkerStorage(account: CloudinaryAccount, fetchImpl: typeo
                 media.deliveryUrl({
                     resourceType: 'image',
                     publicId: page.original_public_id,
-                    format: page.format,
+                    format: 'jpg',
+                    transform: pageImageTransform(page.page_aspect).transform,
                 }),
                 signal,
             );
@@ -67,8 +69,6 @@ export function createMarkerStorage(account: CloudinaryAccount, fetchImpl: typeo
                 await reader.cancel().catch(() => {});
             }
             signal.throwIfAborted();
-            if (bytes !== Number(page.size_bytes))
-                throw new JobError('SOURCE_CHANGED', 'Dung lượng ảnh gốc đã thay đổi.');
             return Buffer.concat(chunks);
         },
         async uploadHeatmap(publicId: string, png: Buffer, signal: AbortSignal): Promise<string> {

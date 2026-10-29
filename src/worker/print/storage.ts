@@ -1,4 +1,5 @@
 import { type CloudinaryAccount, createCloudinaryStorage } from '../../lib/cloudinary';
+import { pageImageTransform } from '../../lib/page-image';
 import { JobError } from '../../modules/jobs/jobs.types';
 import type { PrintFile } from '../../modules/print/print.source';
 import { createPublishStorage } from '../publish/storage';
@@ -15,7 +16,10 @@ export function createPrintStorage(account: CloudinaryAccount, network: typeof f
                 media.deliveryUrl({
                     resourceType: 'image',
                     publicId: file.publicId,
-                    format: file.format,
+                    format: file.pageAspect === undefined ? file.format : 'jpg',
+                    ...(file.pageAspect === undefined
+                        ? {}
+                        : { transform: pageImageTransform(file.pageAspect).transform }),
                 }),
                 {
                     redirect: 'error',

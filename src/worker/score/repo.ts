@@ -10,10 +10,10 @@ export const scoreRepository = {
      */
     async getMarkerSources(db: Queryable, bookId: string, lock = false): Promise<MarkerSource[]> {
         const { rows } = await db.query<MarkerSource>(
-            `SELECT p.id, p.book_id, p.image_asset_id, p.marker_mind_public_id,
+            `SELECT p.id, p.book_id, p.image_asset_id, p.marker_mind_public_id, b.page_aspect::float AS page_aspect,
                 a.original_public_id, a.resource_type, a.format, a.size_bytes,
                 a.status AS image_status, (a.deleted_at IS NOT NULL) AS image_deleted
-            FROM pages p JOIN assets a ON a.id = p.image_asset_id
+            FROM pages p JOIN books b ON b.id=p.book_id JOIN assets a ON a.id = p.image_asset_id
             WHERE p.book_id = $1 AND p.marker_mode = 'CUSTOM_MARKER'
             ORDER BY p.id ${lock ? 'FOR UPDATE OF p FOR SHARE OF a' : ''}`,
             [bookId],

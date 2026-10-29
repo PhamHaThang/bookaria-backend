@@ -32,6 +32,7 @@ import {
     type UpdatePageBody,
 } from '../../schema';
 import { AppError, fieldError } from '../../utils';
+import { assetsRepository } from '../assets/assets.repository';
 import { assetsService, pageImageUrls, toAssetRef } from '../assets/assets.service';
 import { booksRepository } from '../books/books.repository';
 import type { EditableBook } from '../books/books.types';
@@ -114,6 +115,28 @@ export const pagesService = {
                 pages: body.pageIds.map((id, index) => ({ id, orderIndex: index })),
             };
         });
+    },
+    async imageLayout(userId: string, pageId: string, aspect: number, imageAssetId?: string) {
+        const page = await pagesRepository.getPageById(pool, userId, pageId);
+        if (!page) throw new AppError('NOT_FOUND');
+        const id = imageAssetId ?? page.image_asset_id;
+        return imageLayoutOf(userId, id, aspect);
+    },
+    async bookImageLayouts(userId: string, bookId: string, aspect: number) {
+        const book = await booksRepository.getDetailBook(pool, userId, bookId);
+        if (!book) throw new AppError('NOT_FOUND');
+        const pages = await pagesRepository.getPages(pool, bookId);
+        return {
+            pageAspect: Number(book.page_aspect),
+            pages: await Promise.all(
+                pages.map(async (page) => ({
+                    pageId: page.id,
+                    expectedImageAssetId: page.image_asset_id,
+                    markerMode: page.marker_mode,
+                    layout: await imageLayoutOf(userId, page.image_asset_id, aspect),
+                })),
+            ),
+        };
     },
     async getPage(userId: string, pageId: string) {
         const pageRow = await pagesRepository.getPageById(pool, userId, pageId);
@@ -449,13 +472,16 @@ export const pagesService = {
 };
 // --- Helpers ----------------------------------------------------------------------------------------------
 function toPageImageUrls(r: PageRow) {
-    return pageImageUrls({
-        resource_type: r.img_resource_type,
-        original_public_id: r.img_original_public_id,
-        optimized_public_id: r.img_optimized_public_id,
-        format: r.img_format,
-        thumbnail_url: r.img_thumbnail_url,
-    });
+    return pageImageUrls(
+        {
+            resource_type: r.img_resource_type,
+            original_public_id: r.img_original_public_id,
+            optimized_public_id: r.img_optimized_public_id,
+            format: r.img_format,
+            thumbnail_url: r.img_thumbnail_url,
+        },
+        r.page_aspect,
+    );
 }
 function toPageSummary(r: PageRow) {
     return PageSummarySchema.parse({
@@ -488,7 +514,12 @@ async function toPage(db: Queryable, r: PageRow): Promise<Page> {
     return PageSchema.parse({
         ...toPageSummary(r),
         bookId: r.book_id,
-        image: { url: image.url, width: r.img_meta.width, height: r.img_meta.height },
+        image: {
+            assetId: r.image_asset_id,
+            url: image.url,
+            width: image.width,
+            height: image.height,
+        },
         markerReport: MarkerReportSchema.safeParse(r.marker_report).data ?? null,
         bookariaMarker:
             r.marker_number !== null && r.marker_transform
@@ -602,4 +633,25 @@ function getAssetUsesInScene(scene: Scene) {
         });
     });
     return uses;
+}
+
+async function imageLayoutOf(userId: string, assetId: string, aspect: number) {
+    const asset = await assetsRepository.getVisibleAsset(pool, userId, assetId);
+    if (asset?.type !== 'IMAGE' || asset.status !== 'READY') throw new AppError('NOT_FOUND');
+    const layout = pageImageUrls(
+        {
+            resource_type: asset.resource_type,
+            original_public_id: asset.original_public_id,
+            optimized_public_id: null,
+            format: asset.format,
+            thumbnail_url: null,
+        },
+        aspect,
+    );
+    return {
+        assetId,
+        url: layout.url,
+        width: 'width' in layout ? layout.width : 0,
+        height: 'height' in layout ? layout.height : 0,
+    };
 }

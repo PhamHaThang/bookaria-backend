@@ -40,4 +40,15 @@ describe('PDF image storage', () => {
                 ),
             ).rejects.toMatchObject({ code: 'PRINT_IMAGE_SIZE' });
     });
+    it('downloads a derived page with the geometry captured at publication, while keeping the original identity', async () => {
+        const network = fake(new Response('derived'));
+        await createPrintStorage(account, network).download(
+            { ...file, pageAspect: 0.5 },
+            new AbortController().signal,
+        );
+        expect(network).toHaveBeenCalledWith(
+            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page.jpg',
+            expect.objectContaining({ redirect: 'error' }),
+        );
+    });
 });

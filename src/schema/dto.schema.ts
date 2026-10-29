@@ -119,6 +119,7 @@ export type BookDetail = z.infer<typeof BookDetailSchema>;
 export const PageSchema = PageSummarySchema.extend({
     bookId: IdSchema,
     image: z.object({
+        assetId: IdSchema.optional(),
         url: HttpUrlSchema,
         width: z.int().positive(),
         height: z.int().positive(),

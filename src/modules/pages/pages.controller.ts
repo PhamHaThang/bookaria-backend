@@ -3,6 +3,7 @@ import { getAuth } from '../../middlewares';
 import {
     AddPageBodySchema,
     IdSchema,
+    PageImageLayoutBodySchema,
     ReorderPagesBodySchema,
     ReplacePageImageBodySchema,
     SaveSceneBodySchema,
@@ -13,6 +14,27 @@ import { AppError, asyncHandler } from '../../utils';
 import { pagesService } from './pages.service';
 
 export const pagesController = {
+    imageLayout: asyncHandler(async (req: Request, res: Response) => {
+        const body = PageImageLayoutBodySchema.parse(req.body);
+        res.json({
+            data: await pagesService.imageLayout(
+                getAuth(res).userId,
+                idOf(req.params.pageId, 'trang'),
+                body.aspect,
+                body.imageAssetId,
+            ),
+        });
+    }),
+    bookImageLayouts: asyncHandler(async (req: Request, res: Response) => {
+        const body = PageImageLayoutBodySchema.omit({ imageAssetId: true }).parse(req.body);
+        res.json({
+            data: await pagesService.bookImageLayouts(
+                getAuth(res).userId,
+                idOf(req.params.bookId, 'sách'),
+                body.aspect,
+            ),
+        });
+    }),
     getBookPages: asyncHandler(async (req: Request, res: Response) => {
         const bookId = idOf(req.params.bookId, 'sách');
         const pages = await pagesService.getPages(getAuth(res).userId, bookId);

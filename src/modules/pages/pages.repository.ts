@@ -5,9 +5,9 @@ import type { Queryable } from '../../db';
 import type { EditableBook } from '../books/books.types';
 import type { NewPage, PageAssetRow, PageRow } from './pages.types';
 
-const PAGE_COLUMNS = `p.id, p.book_id, p.order_index, p.title, p.marker_mode, p.marker_score, p.marker_report, m.number AS marker_number, p.bookaria_marker_transform AS marker_transform, jsonb_array_length(p.scene -> 'objects')::int AS object_count, p.settings, p.revision, p.updated_at, p.image_asset_id, a.resource_type AS img_resource_type, a.original_public_id AS img_original_public_id, a.optimized_public_id AS img_optimized_public_id, a.format AS img_format, a.thumbnail_url AS img_thumbnail_url, a.meta AS img_meta`;
+const PAGE_COLUMNS = `p.id, p.book_id, p.order_index, p.title, p.marker_mode, p.marker_score, p.marker_report, p.marker_mind_public_id, m.number AS marker_number, p.bookaria_marker_transform AS marker_transform, jsonb_array_length(p.scene -> 'objects')::int AS object_count, p.settings, p.revision, p.updated_at, p.image_asset_id, b.page_aspect::float AS page_aspect, a.resource_type AS img_resource_type, a.original_public_id AS img_original_public_id, a.optimized_public_id AS img_optimized_public_id, a.format AS img_format, a.thumbnail_url AS img_thumbnail_url, a.meta AS img_meta`;
 
-const PAGE_JOINS = `FROM pages p JOIN assets a ON a.id = p.image_asset_id LEFT JOIN bookaria_markers m ON m.id = p.bookaria_marker_id`;
+const PAGE_JOINS = `FROM pages p JOIN books b ON b.id=p.book_id JOIN assets a ON a.id = p.image_asset_id LEFT JOIN bookaria_markers m ON m.id = p.bookaria_marker_id`;
 
 /**
  * Xóa các tham chiếu đến trang được chỉ định trong các báo cáo marker của các trang khác.
@@ -36,7 +36,7 @@ export const pagesRepository = {
     },
     async getPageById(db: Queryable, userId: string, pageId: string): Promise<PageRow | undefined> {
         const { rows } = await db.query<PageRow>(
-            `SELECT ${PAGE_COLUMNS} ${PAGE_JOINS} JOIN books b ON b.id = p.book_id
+            `SELECT ${PAGE_COLUMNS} ${PAGE_JOINS}
              WHERE p.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL`,
             [pageId, userId],
         );

@@ -86,6 +86,14 @@ export const CreateBookResultSchema = z.object({
 });
 export type CreateBookResult = z.infer<typeof CreateBookResultSchema>;
 
+export const PageImageReplacementSchema = z.object({
+    pageId: IdSchema,
+    expectedImageAssetId: IdSchema,
+    expectedMarkerMode: z.enum(['NONE', 'BOOKARIA_MARKER', 'CUSTOM_MARKER']),
+    markerMindPublicId: z.string().trim().min(1).max(300).optional(),
+});
+export type PageImageReplacement = z.infer<typeof PageImageReplacementSchema>;
+
 /** `PATCH /books/:bookId`. The slug cannot be changed. */
 export const UpdateBookBodySchema = z
     .object({
@@ -99,6 +107,8 @@ export const UpdateBookBodySchema = z
         pageAspect: z.number().min(0.2).max(5).optional(),
         pageWidthMm: PageWidthMmSchema.optional(),
         coverAssetId: IdSchema.nullable().optional(),
+        expectedPageAspect: z.number().min(0.2).max(5).optional(),
+        pageImages: z.array(PageImageReplacementSchema).min(1).max(1000).optional(),
     })
     .refine((b) => Object.values(b).some((v) => v !== undefined), {
         error: 'Cần gửi ít nhất một trường để sửa',

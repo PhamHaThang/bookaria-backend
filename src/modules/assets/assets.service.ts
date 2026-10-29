@@ -10,6 +10,7 @@ import {
     TRANSFORM,
     UPLOAD_FOLDER,
 } from '../../lib';
+import { pageImageDelivery } from '../../lib/page-image';
 import {
     type Asset,
     type AssetCategory,
@@ -468,16 +469,10 @@ export function toAssetRef(a: AssetFile & Pick<AssetRow, 'type' | 'thumbnail_url
     });
 }
 
-export function pageImageUrls(a: AssetFile & Pick<AssetRow, 'thumbnail_url'>) {
+export function pageImageUrls(a: AssetFile & Pick<AssetRow, 'thumbnail_url'>, aspect: number) {
     const storage = requireStorage();
     return {
-        url: fileUrl(storage, a),
-        thumbnailUrl:
-            a.thumbnail_url ??
-            storage.deliveryUrl({
-                resourceType: a.resource_type,
-                publicId: a.original_public_id,
-                transform: TRANSFORM.thumbnail,
-            }),
+        ...pageImageDelivery(storage, a.original_public_id, aspect),
+        thumbnailUrl: pageImageDelivery(storage, a.original_public_id, aspect, true).url,
     };
 }

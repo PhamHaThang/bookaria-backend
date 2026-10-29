@@ -11,6 +11,28 @@ import {
 } from '../marker.schema';
 import { SceneSchema, SceneWarningSchema } from '../scene.schema';
 
+export const PageImageLayoutBodySchema = z.object({
+    aspect: z.number().min(0.2).max(5),
+    imageAssetId: IdSchema.optional(),
+});
+export const PageImageLayoutSchema = z.object({
+    assetId: IdSchema,
+    url: z.url(),
+    width: z.int().positive(),
+    height: z.int().positive(),
+});
+export const BookPageLayoutsSchema = z.object({
+    pageAspect: z.number().min(0.2).max(5),
+    pages: z.array(
+        z.object({
+            pageId: IdSchema,
+            expectedImageAssetId: IdSchema,
+            markerMode: MarkerModeSchema,
+            layout: PageImageLayoutSchema,
+        }),
+    ),
+});
+
 // --- Adding, importing, ordering ----------------------------------------------------------------
 /**
  * `POST /books/:bookId/pages`.

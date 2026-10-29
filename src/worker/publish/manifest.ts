@@ -1,3 +1,4 @@
+import { pageImageDelivery } from '../../lib/page-image';
 import { parseAssetMeta } from '../../modules/assets/assets.meta';
 import { JobError } from '../../modules/jobs/jobs.types';
 import { buildPublishCheck } from '../../modules/publish/publish.service';
@@ -144,8 +145,17 @@ export function makeManifest(
             pageId: p.id,
             title: p.title,
             aspect: Number(book.page_aspect),
-            imageUrl: fileUrl(image),
-            thumbnailUrl: image.thumbnail_url ?? fileUrl(image),
+            imageUrl: pageImageDelivery(
+                { deliveryUrl: storage.url },
+                image.original_public_id,
+                Number(book.page_aspect),
+            ).url,
+            thumbnailUrl: pageImageDelivery(
+                { deliveryUrl: storage.url },
+                image.original_public_id,
+                Number(book.page_aspect),
+                true,
+            ).url,
             ...(group ? { group: group.group, targetIndex: group.pageIds.indexOf(p.id) } : {}),
             marker: {
                 mode: p.marker_mode,
