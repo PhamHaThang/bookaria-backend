@@ -17,6 +17,7 @@ import {
     CreateLibraryAssetBodySchema,
     DismissReportsResultSchema,
     LibraryAssetsQuerySchema,
+    MarkerTestResultSchema,
     ModerationNoteBodySchema,
     TakedownBodySchema,
     TakedownResultSchema,
@@ -141,6 +142,7 @@ export interface Route {
     params?: z.ZodObject;
     query?: z.ZodObject;
     body?: z.ZodType;
+    requestContentType?: string;
     responseContentType?: string;
     responses: Record<number, z.ZodType | null>; // null = no body
     errors?: ErrorCode[]; // route-specific error codes
@@ -1078,6 +1080,16 @@ export const routes: Route[] = [
         summary: 'Bộ marker Bookaria',
         query: PaginationQuerySchema,
         responses: { 200: pagedResponse(BookariaMarkerSchema) },
+    },
+    {
+        id: 'postAdminBookariaMarkerTest',
+        method: 'POST',
+        path: '/admin/bookaria-markers/test',
+        access: 'admin',
+        summary: 'Thử điểm ảnh marker tạm thời, không tạo tài nguyên',
+        requestContentType: 'application/octet-stream',
+        responses: { 200: dataResponse(MarkerTestResultSchema) },
+        errors: ['FILE_TOO_LARGE', 'FILE_TYPE_NOT_ALLOWED', 'VALIDATION_ERROR', 'RATE_LIMITED'],
     },
     {
         id: 'postAdminBookariaMarkers',

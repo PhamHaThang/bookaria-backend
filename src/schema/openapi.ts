@@ -260,16 +260,27 @@ function operation(route: Route, inDefs: Definitions, outDefs: Definitions): Jso
         summary: route.summary,
         security: SECURITY[route.access],
         ...(parameters.length ? { parameters } : {}),
-        ...(route.body
+        ...(route.requestContentType
             ? {
                   requestBody: {
                       required: true,
                       content: {
-                          'application/json': { schema: jsonSchema(route.body, 'input', inDefs) },
+                          [route.requestContentType]: {
+                              schema: { type: 'string', format: 'binary' },
+                          },
                       },
                   },
               }
-            : {}),
+            : route.body
+              ? {
+                    requestBody: {
+                        required: true,
+                        content: {
+                            'application/json': { schema: jsonSchema(route.body, 'input', inDefs) },
+                        },
+                    },
+                }
+              : {}),
         responses: { ...responses, ...errorResponses(route) },
     };
 }

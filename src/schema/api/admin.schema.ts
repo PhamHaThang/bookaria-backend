@@ -242,3 +242,24 @@ export const AuditLogsQuerySchema = PaginationQuerySchema.extend({
     targetId: IdSchema.optional(),
 });
 export type AuditLogsQuery = z.infer<typeof AuditLogsQuerySchema>;
+
+/** Temporary image analysis: no asset, page or marker is created. */
+export const MarkerTestResultSchema = z.object({
+    policyVersion: z.string(),
+    algorithm: z.literal('ORB'),
+    score: z.int().min(1).max(5),
+    features: z.int().min(0).max(1200),
+    coverage: z.number().min(0).max(1),
+    width: z.int().positive().max(1024),
+    height: z.int().positive().max(1024),
+    image: z
+        .string()
+        .startsWith('data:image/png;base64,')
+        .max(6 * 1024 * 1024),
+    points: z
+        .array(z.object({ x: z.number().nonnegative(), y: z.number().nonnegative() }))
+        .max(1200),
+    cells: z.array(z.int().nonnegative()).length(16),
+    hints: z.array(z.string()),
+});
+export type MarkerTestResult = z.infer<typeof MarkerTestResultSchema>;

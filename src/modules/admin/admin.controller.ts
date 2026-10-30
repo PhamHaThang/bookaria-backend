@@ -21,8 +21,29 @@ import {
 } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { adminService } from './admin.service';
+import { testMarkerImage } from './marker-test';
 
 export const adminController = {
+    testMarker: asyncHandler(async (req: Request, res: Response) => {
+        if (!Buffer.isBuffer(req.body))
+            throw new AppError('FILE_TYPE_NOT_ALLOWED', 'Chọn ảnh JPG, PNG hoặc WebP.');
+        const controller = new AbortController();
+        const cancel = () => {
+            if (!res.writableEnded) controller.abort();
+        };
+        req.once('aborted', cancel);
+        res.once('close', cancel);
+        res.setHeader('Cache-Control', 'no-store');
+        try {
+            const result = await testMarkerImage(req.body, controller.signal);
+            if (!controller.signal.aborted) res.json({ data: result });
+        } catch (error) {
+            if (!controller.signal.aborted) throw error;
+        } finally {
+            req.off('aborted', cancel);
+            res.off('close', cancel);
+        }
+    }),
     authorize: asyncHandler(async (_req: Request, res: Response, next: NextFunction) => {
         await adminService.assertAdmin(getAuth(res));
         next();

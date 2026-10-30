@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, raw } from 'express';
 import { requireAuth, requireRole } from '../../middlewares';
 import { adminController } from './admin.controller';
 
@@ -20,6 +20,14 @@ export const adminRouter = () => {
     router.post('/asset-categories', adminController.createCategory);
     router.patch('/asset-categories/:categoryId', adminController.updateCategory);
     router.delete('/asset-categories/:categoryId', adminController.deleteCategory);
+    router.post(
+        '/bookaria-markers/test',
+        raw({
+            type: ['image/png', 'image/jpeg', 'image/webp', 'application/octet-stream'],
+            limit: '10mb',
+        }),
+        adminController.testMarker,
+    );
     router.get('/bookaria-markers', adminController.getBookariaMarkers);
     router.post('/bookaria-markers', adminController.createBookariaMarker);
     router.patch('/bookaria-markers/:markerId', adminController.updateBookariaMarker);
