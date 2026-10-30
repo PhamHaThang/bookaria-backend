@@ -2,6 +2,7 @@
 export * from './api/admin.schema';
 export * from './api/assets.schema';
 export * from './api/auth.schema';
+export * from './api/book-draft.schema';
 export * from './api/books.schema';
 export * from './api/me.schema';
 export * from './api/pages.schema';

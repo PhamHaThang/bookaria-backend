@@ -45,6 +45,11 @@ import {
     VerifyEmailBodySchema,
 } from './api/auth.schema';
 import {
+    BookDraftSnapshotSchema,
+    SaveBookDraftBodySchema,
+    SaveBookDraftResultSchema,
+} from './api/book-draft.schema';
+import {
     BookStatsSchema,
     CreateBookBodySchema,
     CreateBookResultSchema,
@@ -347,6 +352,38 @@ export const routes: Route[] = [
         summary: 'Sách trong thùng rác (đăng ký route trước `/books/:bookId`)',
         query: PaginationQuerySchema,
         responses: { 200: pagedResponse(TrashBookItemSchema) },
+    },
+    {
+        id: 'getBookDraft',
+        method: 'GET',
+        path: '/books/:bookId/draft',
+        access: 'author',
+        summary: 'Đọc phiên bản và danh sách trang để chỉnh sửa bản nháp',
+        params: params.bookId,
+        responses: { 200: dataResponse(BookDraftSnapshotSchema) },
+        errors: ['NOT_FOUND'],
+    },
+    {
+        id: 'saveBookDraft',
+        method: 'PUT',
+        path: '/books/:bookId/draft',
+        access: 'author',
+        summary: 'Lưu thay đổi nhiều trang và thứ tự trang trong một giao dịch',
+        params: params.bookId,
+        body: SaveBookDraftBodySchema,
+        responses: { 200: dataResponse(SaveBookDraftResultSchema) },
+        errors: ['NOT_FOUND', 'REVISION_CONFLICT', 'JOB_IN_PROGRESS'],
+    },
+    {
+        id: 'draftPageImageLayout',
+        method: 'POST',
+        path: '/books/:bookId/draft/image-layout',
+        access: 'author',
+        summary: 'Xem ảnh nền theo khổ sách mà không lưu trang',
+        params: params.bookId,
+        body: PageImageLayoutBodySchema.required(),
+        responses: { 200: dataResponse(PageImageLayoutSchema) },
+        errors: ['NOT_FOUND'],
     },
     {
         id: 'getBooksByBookId',

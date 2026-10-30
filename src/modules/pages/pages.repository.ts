@@ -133,9 +133,9 @@ export const pagesRepository = {
 
     async insertPage(db: Queryable, page: NewPage): Promise<string> {
         const { rows } = await db.query<{ id: string }>(
-            `INSERT INTO pages (book_id, order_index, title, image_asset_id, marker_mode,
+            `INSERT INTO pages (id, book_id, order_index, title, image_asset_id, marker_mode,
             bookaria_marker_id, bookaria_marker_transform, scene, settings)
-            VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb, COALESCE($8::jsonb, '{"schemaVersion":1,"objects":[],"interactions":[]}'::jsonb), COALESCE($9::jsonb, '{}'::jsonb))
+            VALUES (COALESCE($10::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7::jsonb, COALESCE($8::jsonb, '{"schemaVersion":1,"objects":[],"interactions":[]}'::jsonb), COALESCE($9::jsonb, '{}'::jsonb))
             RETURNING id`,
             [
                 page.bookId,
@@ -147,6 +147,7 @@ export const pagesRepository = {
                 page.marker ? JSON.stringify(page.marker.transform) : null,
                 page.scene === undefined ? null : JSON.stringify(page.scene),
                 page.settings === undefined ? null : JSON.stringify(page.settings),
+                page.id ?? null,
             ],
         );
         return (rows[0] as { id: string }).id;

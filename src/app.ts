@@ -41,7 +41,10 @@ export function createApp(options: AppOptions = {}) {
 
     const jsonDefault = express.json({ limit: '100kb' });
     const jsonScene = express.json({ limit: '512kb' });
+    const jsonBookDraft = express.json({ limit: '8mb' });
     app.use((req, res, next) => {
+        if (req.method === 'PUT' && /^\/api\/v1\/books\/[^/]+\/draft\/?$/i.test(req.path))
+            return jsonBookDraft(req, res, next);
         if (req.method === 'PATCH' && /^\/api\/v1\/pages\/[^/]+\/scene\/?$/i.test(req.path)) {
             return jsonScene(req, res, next);
         }

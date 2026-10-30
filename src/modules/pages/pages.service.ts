@@ -1,8 +1,12 @@
+import { createHash } from 'node:crypto';
 import { pool, type Queryable, withTransaction } from '../../db';
 import {
     type AddPageBody,
     AddPageResultSchema,
     BookariaMarkerResultSchema,
+    type BookDraftPageChange,
+    type BookDraftSnapshot,
+    BookDraftSnapshotSchema,
     CustomMarkerResultSchema,
     checkMarkerPlacement,
     defaultMarkerTransform,
@@ -22,6 +26,8 @@ import {
     PageSummarySchema,
     type ReorderPagesBody,
     type ReplacePageImageBody,
+    type SaveBookDraftBody,
+    SaveBookDraftResultSchema,
     type SaveSceneBody,
     type SaveSceneResult,
     SaveSceneResultSchema,
@@ -40,6 +46,160 @@ import { pagesRepository } from './pages.repository';
 import { type AssetKind, KIND_OF_OBJECT, type PageRow } from './pages.types';
 
 export const pagesService = {
+    async getBookDraft(userId: string, bookId: string) {
+        return withTransaction(async (db) => {
+            const book = await booksRepository.lockEditableBook(db, userId, bookId);
+            if (!book) throw new AppError('NOT_FOUND');
+            return draftSnapshot(bookId, book, await pagesRepository.getPages(db, bookId));
+        });
+    },
+    async draftImageLayout(userId: string, bookId: string, imageAssetId: string, aspect: number) {
+        if (!(await booksRepository.getDetailBook(pool, userId, bookId)))
+            throw new AppError('NOT_FOUND');
+        return imageLayoutOf(userId, imageAssetId, aspect);
+    },
+    async saveBookDraft(userId: string, bookId: string, body: SaveBookDraftBody) {
+        // Verify external marker uploads before taking the book lock.
+        if (!(await booksRepository.getDetailBook(pool, userId, bookId)))
+            throw new AppError('NOT_FOUND');
+        const checkedMinds = new Set<string>();
+        for (const change of body.changes) {
+            if (change.markerMindPublicId) {
+                if (!(await assetsService.isMarkerFileOf(userId, change.markerMindPublicId)))
+                    throw fieldError('markerMindPublicId', 'Không tìm thấy file marker của bạn.');
+                checkedMinds.add(change.markerMindPublicId);
+            }
+            if (change.scene && Buffer.byteLength(JSON.stringify(change.scene)) > 512 * 1024)
+                throw fieldError('changes', 'Nội dung của một trang vượt quá 512 KB.');
+        }
+        return withTransaction(async (db) => {
+            const book = await booksRepository.lockEditableBook(db, userId, bookId);
+            if (!book) throw new AppError('NOT_FOUND');
+            await ensureNotPublishing(db, bookId);
+            const rows = await pagesRepository.getPages(db, bookId);
+            const snapshot = draftSnapshot(bookId, book, rows);
+            const byId = new Map(rows.map((row) => [row.id, row]));
+            if (snapshot.revision !== body.revision) {
+                // A lost response can safely retry the same client-generated ids and content.
+                if (!(await draftAlreadyApplied(db, rows, body)))
+                    throw new AppError(
+                        'REVISION_CONFLICT',
+                        'Sách đã thay đổi ở nơi khác. Bản nháp của bạn vẫn được giữ.',
+                    );
+                return draftSaveResult(db, snapshot, body.changes, [], book);
+            }
+            const changes = new Map(body.changes.map((page) => [page.id, page]));
+            const newIds = body.order.filter((id) => !byId.has(id));
+            if (newIds.length) {
+                const used = await db.query('SELECT id FROM pages WHERE id = ANY($1::uuid[])', [
+                    newIds,
+                ]);
+                if (used.rows.length) throw fieldError('changes', 'Mã trang mới không hợp lệ.');
+            }
+            for (const id of newIds) {
+                if (!changes.get(id)?.imageAssetId)
+                    throw fieldError('changes', 'Trang mới cần có ảnh nền đã tải lên.');
+            }
+            const uses: { id: string; kind: AssetKind; path: string }[] = [];
+            for (const change of body.changes) {
+                if (change.imageAssetId)
+                    uses.push({ id: change.imageAssetId, kind: 'IMAGE', path: 'imageAssetId' });
+                if (change.scene) uses.push(...getAssetUsesInScene(change.scene));
+                if (change.settings)
+                    for (const key of ['backgroundAudioAssetId', 'narrationAssetId'] as const) {
+                        const id = change.settings[key];
+                        if (id) uses.push({ id, kind: 'AUDIO', path: `settings.${key}` });
+                    }
+                const row = byId.get(change.id);
+                if (
+                    row &&
+                    change.imageAssetId &&
+                    change.imageAssetId !== row.image_asset_id &&
+                    row.marker_mode === 'CUSTOM_MARKER'
+                ) {
+                    if (!change.markerMindPublicId || !checkedMinds.has(change.markerMindPublicId))
+                        throw fieldError(
+                            'markerMindPublicId',
+                            'Ảnh nền mới cần được biên dịch marker trước khi lưu.',
+                        );
+                    if (await pagesRepository.hasOpenScoreJob(db, row.id))
+                        throw new AppError('JOB_IN_PROGRESS');
+                }
+            }
+            for (const use of uses.sort((a, b) => a.id.localeCompare(b.id))) {
+                if (!(await assetsService.lockAssetForUse(db, userId, use.id, use.kind)))
+                    throw fieldError(
+                        use.path,
+                        'Tài nguyên không tồn tại, chưa sẵn sàng hoặc không thuộc thư viện của bạn.',
+                    );
+            }
+            // Drop removed pages first so their Bookaria marker slots can be reused.
+            for (const row of rows)
+                if (!body.order.includes(row.id)) {
+                    if (await pagesRepository.hasOpenScoreJob(db, row.id))
+                        throw new AppError('JOB_IN_PROGRESS');
+                    await pagesRepository.deletePage(db, row.id);
+                }
+            const jobs: { pageId: string; jobId: string }[] = [];
+            for (const [index, id] of body.order.entries()) {
+                const change = changes.get(id),
+                    row = byId.get(id);
+                if (!row) {
+                    if (!change?.imageAssetId)
+                        throw fieldError('changes', 'Trang mới thiếu ảnh nền.');
+                    const marker = await prepareMarkerForPage(db, book, bookId, index);
+                    await pagesRepository.insertPage(db, {
+                        id,
+                        bookId,
+                        orderIndex: index,
+                        title: change.title ?? null,
+                        imageAssetId: change.imageAssetId,
+                        marker,
+                        scene: change.scene ?? SceneSchema.parse({ schemaVersion: 1, objects: [] }),
+                        settings: change.settings ?? PageSettingsSchema.parse({}),
+                    });
+                } else if (change) {
+                    const columns: Record<string, string | number | null> = {};
+                    if (change.title !== undefined) columns.title = change.title || null;
+                    if (change.imageAssetId && change.imageAssetId !== row.image_asset_id) {
+                        columns.image_asset_id = change.imageAssetId;
+                        if (row.marker_mode === 'CUSTOM_MARKER' && change.markerMindPublicId) {
+                            await pagesRepository.setCustomMarkerFile(
+                                db,
+                                id,
+                                change.markerMindPublicId,
+                            );
+                            jobs.push({
+                                pageId: id,
+                                jobId: await pagesRepository.insertScoreJob(db, id, userId),
+                            });
+                        }
+                    }
+                    if (Object.keys(columns).length)
+                        await pagesRepository.updatePage(db, id, columns);
+                    if (change.settings) await pagesRepository.setSettings(db, id, change.settings);
+                    if (change.scene)
+                        await pagesRepository.updateSceneAndRevision(db, id, change.scene);
+                }
+                if (change) {
+                    const stored = await pagesRepository.loadScene(db, id);
+                    await pagesRepository.replacePageAssets(
+                        db,
+                        id,
+                        sceneAssetIds(
+                            SceneSchema.parse(stored?.scene),
+                            PageSettingsSchema.parse(stored?.settings),
+                        ),
+                    );
+                }
+            }
+            if (body.order.length) await pagesRepository.reorderPages(db, body.order);
+            await pagesRepository.updateBookUpdatedAt(db, bookId);
+            const saved = draftSnapshot(bookId, book, await pagesRepository.getPages(db, bookId));
+            return draftSaveResult(db, saved, body.changes, jobs, book);
+        });
+    },
+
     async getPageSummaries(db: Queryable, bookId: string) {
         return (await pagesRepository.getPages(db, bookId)).map(toPageSummary);
     },
@@ -654,4 +814,92 @@ async function imageLayoutOf(userId: string, assetId: string, aspect: number) {
         width: 'width' in layout ? layout.width : 0,
         height: 'height' in layout ? layout.height : 0,
     };
+}
+
+function canonical(value: unknown): string {
+    if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+    if (value && typeof value === 'object')
+        return `{${Object.entries(value)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`)
+            .join(',')}}`;
+    return JSON.stringify(value) ?? 'null';
+}
+function draftSnapshot(bookId: string, book: EditableBook, rows: PageRow[]) {
+    const geometry = {
+        pageFormat: book.page_format,
+        pageAspect: Number(book.page_aspect),
+        pageWidthMm: Number(book.page_width_mm),
+    };
+    const authored = rows.map((row) => ({
+        id: row.id,
+        order: row.order_index,
+        title: row.title,
+        image: row.image_asset_id,
+        revision: row.revision,
+        settings: row.settings,
+        marker: row.marker_mode,
+        transform: row.marker_transform,
+        mind: row.marker_mind_public_id,
+    }));
+    return BookDraftSnapshotSchema.parse({
+        bookId,
+        geometry,
+        revision: createHash('sha256').update(canonical({ geometry, authored })).digest('hex'),
+        pages: rows.map(toPageSummary),
+        pageRevisions: Object.fromEntries(rows.map((row) => [row.id, row.revision])),
+    });
+}
+async function draftAlreadyApplied(db: Queryable, rows: PageRow[], body: SaveBookDraftBody) {
+    if (
+        rows.length !== body.order.length ||
+        rows.some((row, index) => row.id !== body.order[index])
+    )
+        return false;
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    for (const change of body.changes) {
+        const row = byId.get(change.id);
+        if (
+            !row ||
+            (change.title !== undefined && (change.title || null) !== row.title) ||
+            (change.imageAssetId !== undefined && change.imageAssetId !== row.image_asset_id) ||
+            (change.settings &&
+                canonical(change.settings) !== canonical(PageSettingsSchema.parse(row.settings))) ||
+            (change.markerMindPublicId && change.markerMindPublicId !== row.marker_mind_public_id)
+        )
+            return false;
+        if (change.scene) {
+            const stored = await pagesRepository.loadScene(db, row.id);
+            if (canonical(change.scene) !== canonical(SceneSchema.parse(stored?.scene)))
+                return false;
+        }
+    }
+    return true;
+}
+async function draftSaveResult(
+    db: Queryable,
+    snapshot: BookDraftSnapshot,
+    changes: BookDraftPageChange[],
+    jobs: { pageId: string; jobId: string }[],
+    book: EditableBook,
+) {
+    const pages: Page[] = [];
+    const rows = await pagesRepository.getPages(db, snapshot.bookId);
+    const warnings: { pageId: string; warnings: ReturnType<typeof getSceneWarnings> }[] = [];
+    for (const change of changes) {
+        if (!change.scene && !change.settings && !change.imageAssetId) continue;
+        const row = rows.find((page) => page.id === change.id);
+        if (!row) continue;
+        const page = await toPage(db, row);
+        pages.push(page);
+        const pageWarnings = getSceneWarnings(page.scene, {
+            pageAspect: Number(book.page_aspect),
+            assetBytes: await pagesRepository.getAssetBytesByIds(
+                db,
+                sceneAssetIds(page.scene, page.settings),
+            ),
+        });
+        if (pageWarnings.length) warnings.push({ pageId: page.id, warnings: pageWarnings });
+    }
+    return SaveBookDraftResultSchema.parse({ snapshot, pages, warnings, jobs });
 }

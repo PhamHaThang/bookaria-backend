@@ -6,6 +6,7 @@ import {
     PageImageLayoutBodySchema,
     ReorderPagesBodySchema,
     ReplacePageImageBodySchema,
+    SaveBookDraftBodySchema,
     SaveSceneBodySchema,
     UpdateMarkerBodySchema,
     UpdatePageBodySchema,
@@ -14,6 +15,34 @@ import { AppError, asyncHandler } from '../../utils';
 import { pagesService } from './pages.service';
 
 export const pagesController = {
+    getBookDraft: asyncHandler(async (req: Request, res: Response) => {
+        res.json({
+            data: await pagesService.getBookDraft(
+                getAuth(res).userId,
+                idOf(req.params.bookId, 'sách'),
+            ),
+        });
+    }),
+    saveBookDraft: asyncHandler(async (req: Request, res: Response) => {
+        res.json({
+            data: await pagesService.saveBookDraft(
+                getAuth(res).userId,
+                idOf(req.params.bookId, 'sách'),
+                SaveBookDraftBodySchema.parse(req.body),
+            ),
+        });
+    }),
+    draftImageLayout: asyncHandler(async (req: Request, res: Response) => {
+        const body = PageImageLayoutBodySchema.required().parse(req.body);
+        res.json({
+            data: await pagesService.draftImageLayout(
+                getAuth(res).userId,
+                idOf(req.params.bookId, 'sách'),
+                body.imageAssetId,
+                body.aspect,
+            ),
+        });
+    }),
     imageLayout: asyncHandler(async (req: Request, res: Response) => {
         const body = PageImageLayoutBodySchema.parse(req.body);
         res.json({

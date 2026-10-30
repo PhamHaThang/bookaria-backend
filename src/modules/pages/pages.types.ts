@@ -28,6 +28,7 @@ export interface PageRow {
 }
 
 export interface NewPage {
+    id?: string;
     bookId: string;
     orderIndex: number;
     title: string | null;
