@@ -877,6 +877,28 @@ suite('pages (tích hợp)', () => {
             expect(page.body.data.scene.objects[0].id).toBe('t1');
         });
 
+        it('uses one visibility flag through saving, reopening and showing an old hidden object', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const res = await save(token, pageId, 0, {
+                ...emptyScene,
+                objects: [{ ...textObject('hidden'), visible: true, editorHidden: true }],
+            });
+            expect(res.status).toBe(200);
+            const page = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            const object = page.body.data.scene.objects[0];
+            expect(object.visible).toBe(false);
+            expect(object).not.toHaveProperty('editorHidden');
+            const shown = await save(token, pageId, page.body.data.revision, {
+                ...emptyScene,
+                objects: [{ ...object, visible: true }],
+            });
+            expect(shown.status).toBe(200);
+            const reopened = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(reopened.body.data.scene.objects[0].visible).toBe(true);
+            expect(reopened.body.data.scene.objects[0]).not.toHaveProperty('editorHidden');
+        });
+
         it('audio cards retain BGM/SFX/Voice when saving and reopening the page', async () => {
             const { token, userId } = await signUp();
             const { pageId } = await pageWith(token, userId);
@@ -900,6 +922,7 @@ suite('pages (tích hợp)', () => {
                     expect.objectContaining({
                         id: object.id,
                         audioKind: object.audioKind,
+                        visible: false,
                         name: object.name,
                         billboard: true,
                         autoplay: false,

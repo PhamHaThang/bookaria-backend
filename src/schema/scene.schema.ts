@@ -49,7 +49,7 @@ const objectBase = {
     id: SceneIdSchema,
     name: z.string().trim().max(100).optional(),
     transform: TransformSchema,
-    /** Shown as soon as the page opens (false = hidden until a rule shows it). */
+    /** Shared editor/reader visibility at page start; interaction rules may change it at runtime. */
     visible: z.boolean().default(true),
     /** Always face the camera. */
     billboard: z.boolean().default(false),
@@ -57,8 +57,6 @@ const objectBase = {
     snapToPaper: z.boolean().default(false),
     /** Editor-only: locked in the layer list. Ignored by the Viewer. */
     locked: z.boolean().default(false),
-    /** Editor-only: hidden in the layer list. Ignored by the Viewer. */
-    editorHidden: z.boolean().default(false),
     /** Editor-only grouping (SC-07). */
     groupId: SceneIdSchema.optional(),
 };
@@ -173,6 +171,8 @@ export const VideoObjectSchema = z.object({
 export const AudioObjectSchema = z.object({
     ...objectBase,
     type: z.literal('audio'),
+    /** Audio keeps playing independently from its optional player card. */
+    visible: z.boolean().default(false),
     assetId: IdSchema,
     /** Optional for existing scenes; cards without a kind display as BGM. */
     audioKind: z.enum(['BGM', 'SFX', 'VOICE']).optional(),
@@ -202,7 +202,7 @@ export const LabelObjectSchema = z.object({
     target: Vec3Schema.default([0, -0.1, 0]),
 });
 
-export const SceneObjectSchema = z.discriminatedUnion('type', [
+const currentSceneObjectSchema = z.discriminatedUnion('type', [
     ModelObjectSchema,
     ImageObjectSchema,
     TextObjectSchema,
@@ -211,6 +211,16 @@ export const SceneObjectSchema = z.discriminatedUnion('type', [
     HotspotObjectSchema,
     LabelObjectSchema,
 ]);
+/** Fold the retired editor-only flag into visibility once, then omit it from saved scenes. */
+export const SceneObjectSchema = z
+    .intersection(currentSceneObjectSchema, z.object({ editorHidden: z.boolean().optional() }))
+    .transform(
+        ({ editorHidden, ...object }): z.input<typeof currentSceneObjectSchema> => ({
+            ...object,
+            visible: editorHidden === true ? false : object.visible,
+        }),
+    )
+    .pipe(currentSceneObjectSchema);
 export type SceneObject = z.infer<typeof SceneObjectSchema>;
 export type SceneObjectType = SceneObject['type'];
 
