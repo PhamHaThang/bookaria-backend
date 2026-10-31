@@ -181,7 +181,7 @@ suite('publish (tích hợp)', () => {
             .set(auth(token));
         expect(versions.status).toBe(200);
         expect(
-            versions.body.data.map((version: { versionNo: number }) => version.versionNo),
+            versions.body.data.items.map((version: { versionNo: number }) => version.versionNo),
         ).toEqual([2, 1]);
 
         for (let i = 0; i < 2; i++) {
@@ -195,6 +195,65 @@ suite('publish (tích hợp)', () => {
             bookId,
         ]);
         expect(book.rows[0]?.slug).toBe(slug);
+    });
+
+    it('paginates five newest versions without duplicates when another version is published', async () => {
+        const owner = await createAuthor();
+        const other = await createAuthor();
+        const bookId = await createBook(owner.userId, false);
+        const insertVersions = (from: number, to: number) =>
+            pool.query(
+                `INSERT INTO book_versions (book_id, version_no, schema_version, manifest_public_id, mind_groups,
+                page_count, ar_page_count, total_size_bytes, published_by)
+             SELECT $1::uuid, n, 1, 'manifest/' || $1::text || '/' || n, '[]', 1, 1, 1000, $2
+             FROM generate_series($3::int, $4::int) n`,
+                [bookId, owner.userId, from, to],
+            );
+        const get = (query = '') =>
+            request(app).get(`/api/v1/books/${bookId}/versions${query}`).set(auth(owner.token));
+        expect((await get()).body.data).toEqual({ items: [], nextCursor: null });
+        await insertVersions(1, 12);
+        const first = await get();
+        expect(first.status).toBe(200);
+        expect(first.body.data.items.map((v: { versionNo: number }) => v.versionNo)).toEqual([
+            12, 11, 10, 9, 8,
+        ]);
+        expect(first.body.data.nextCursor).toBe(8);
+        await insertVersions(13, 13);
+        const second = await get('?before=8');
+        expect(second.body.data.items.map((v: { versionNo: number }) => v.versionNo)).toEqual([
+            7, 6, 5, 4, 3,
+        ]);
+        expect(second.body.data.nextCursor).toBe(3);
+        const last = await get('?before=3');
+        expect(last.body.data.items.map((v: { versionNo: number }) => v.versionNo)).toEqual([2, 1]);
+        expect(last.body.data.nextCursor).toBeNull();
+        expect((await get('?before=1')).body.data).toEqual({ items: [], nextCursor: null });
+        const limited = await get('?limit=2&before=8');
+        expect(limited.body.data.items.map((v: { versionNo: number }) => v.versionNo)).toEqual([
+            7, 6,
+        ]);
+        expect(limited.body.data.nextCursor).toBe(6);
+        for (const query of [
+            '?limit=0',
+            '?limit=51',
+            '?before=0',
+            '?before=-1',
+            '?before=1.5',
+            '?before=abc',
+        ]) {
+            expect((await get(query)).status, query).toBe(400);
+        }
+        expect(
+            (
+                await request(app)
+                    .get(`/api/v1/books/${bookId}/versions?before=8`)
+                    .set(auth(other.token))
+            ).status,
+        ).toBe(404);
+        expect((await request(app).get(`/api/v1/books/${bookId}/versions`)).status).toBe(401);
+        await pool.query('UPDATE books SET deleted_at = now() WHERE id = $1', [bookId]);
+        expect((await get()).status).toBe(404);
     });
 
     it('unpublish từ chối khi job xuất bản đang mở và trả jobId', async () => {

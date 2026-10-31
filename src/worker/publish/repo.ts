@@ -1,7 +1,7 @@
 import type { Queryable } from '../../db';
 import { JobError } from '../../modules/jobs/jobs.types';
 import { capturePrintSource } from '../../modules/print/print.source';
-import { readPublishSnapshot, snapshotHash } from '../../modules/publish/publish.snapshot';
+import { assertPublicationAvailable, snapshotHash } from '../../modules/publish/publish.snapshot';
 import type { PublishSnapshot } from '../../modules/publish/publish.types';
 import { PageSettingsSchema, PublishedSceneSchema, sceneAssetIds } from '../../schema';
 
@@ -15,7 +15,7 @@ export interface PublishedFiles {
     arCount: number;
 }
 /**
- * Commit bản xuất bản mới vào cơ sở dữ liệu. Nếu sách đã thay đổi từ lúc tạo snapshot, sẽ ném lỗi.
+ * Commit snapshot đã chốt; bản nháp có thể tiếp tục thay đổi trong lúc đóng gói.
  */
 export async function commitPublication(
     db: Queryable,
@@ -23,8 +23,8 @@ export async function commitPublication(
     expectedHash: string,
     files: PublishedFiles,
 ): Promise<void> {
-    const current = await readPublishSnapshot(db, snapshot.book.owner_id, snapshot.book.id, true);
-    if (!current || snapshotHash(current) !== expectedHash)
+    await assertPublicationAvailable(db, snapshot, true);
+    if (snapshotHash(snapshot) !== expectedHash)
         throw new JobError(
             'PUBLISH_STALE',
             'Sách đã thay đổi. Bản cũ được giữ nguyên; hãy kiểm tra và xuất bản lại.',
@@ -46,6 +46,7 @@ export async function commitPublication(
         ],
     );
     const assetIds = new Set(snapshot.pages.map((page) => page.image_asset_id));
+    if (snapshot.book.cover_asset_id) assetIds.add(snapshot.book.cover_asset_id);
     for (const page of snapshot.pages) {
         const scene = PublishedSceneSchema.parse(page.scene);
         const settings = PageSettingsSchema.parse(page.settings);

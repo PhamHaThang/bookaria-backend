@@ -32,7 +32,14 @@ export function overlaps(a: Rect, b: Rect, gap = 0) {
         a.y + a.height + gap > b.y
     );
 }
-export function qrRect(source: PrintSource, page: PrintSource['pages'][number]): Rect {
+export function qrRect(
+    source: PrintSource,
+    page: PrintSource['pages'][number],
+    request?: PrintPdfBody,
+): Rect {
+    const custom = request?.qrPlacements?.find((p) => p.pageId === page.pageId);
+    if (custom)
+        return { x: custom.xMm, y: custom.yMm, width: custom.sizeMm, height: custom.sizeMm };
     const marker = markerRect(source, page),
         size = 30,
         edge = 12;
@@ -49,7 +56,48 @@ export function qrRect(source: PrintSource, page: PrintSource['pages'][number]):
         throw new JobError('PRINT_QR_SPACE', 'Không còn góc trống cho QR. Chọn COVER_ONLY.');
     return result;
 }
+export function coverQrRect(request: PrintPdfBody): Rect {
+    const custom = request.qrPlacements?.find((p) => p.pageId === null);
+    return custom
+        ? { x: custom.xMm, y: custom.yMm, width: custom.sizeMm, height: custom.sizeMm }
+        : { x: 14, y: 16, width: 30, height: 30 };
+}
 export function validatePrintLayout(source: PrintSource, request: PrintPdfBody) {
+    const seen = new Set<string | null>();
+    for (const placement of request.qrPlacements ?? []) {
+        const page = source.pages.find((p) => p.pageId === placement.pageId);
+        if (
+            seen.has(placement.pageId) ||
+            request.kind !== 'PRINT' ||
+            (placement.pageId !== null &&
+                (page?.marker.mode !== 'BOOKARIA_MARKER' || request.qrMode !== 'ALL_AR_PAGES'))
+        )
+            throw new JobError('PRINT_QR_TARGET', 'Vị trí QR không thuộc trang in hợp lệ.');
+        seen.add(placement.pageId);
+        const box = {
+            x: placement.xMm,
+            y: placement.yMm,
+            width: placement.sizeMm,
+            height: placement.sizeMm,
+        };
+        const marker = page && markerRect(source, page);
+        if (
+            placement.sizeMm < 30 ||
+            placement.sizeMm > 60 ||
+            Math.min(
+                box.x,
+                box.y,
+                source.widthMm - box.x - box.width,
+                source.heightMm - box.y - box.height,
+            ) <
+                12 - 0.001 ||
+            (marker && overlaps(box, marker, 4))
+        )
+            throw new JobError(
+                'PRINT_QR_GEOMETRY',
+                'QR phải có cạnh 30–60 mm, cách mép ít nhất 12 mm và cách marker ít nhất 4 mm.',
+            );
+    }
     if (source.pages.length > 200 || source.heightMm > 1000)
         throw new JobError('PRINT_LIMIT', 'Giới hạn 200 trang, chiều cao tối đa 1000 mm.');
     if (source.widthMm < 80 || source.heightMm < 120)
@@ -93,7 +141,7 @@ export function validatePrintLayout(source: PrintSource, request: PrintPdfBody) 
                     'PRINT_CUSTOM_QR',
                     'Ảnh Custom là ảnh nhận diện; dùng COVER_ONLY để không chèn QR làm đổi ảnh.',
                 );
-            qrRect(source, page);
+            qrRect(source, page, request);
         }
     }
     if (request.kind === 'MARKER_SHEET' && !markers)

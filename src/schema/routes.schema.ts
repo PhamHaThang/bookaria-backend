@@ -96,10 +96,13 @@ import {
 import {
     CreatePreviewBodySchema,
     JobStartedSchema,
+    ListBookVersionsQuerySchema,
+    PrintLayoutSchema,
     PrintPdfBodySchema,
     PublishBodySchema,
     PublishCheckSchema,
     ShareInfoSchema,
+    VersionPageSchema,
 } from './api/publish.schema';
 import { AssetUsageSchema } from './asset.schema';
 import {
@@ -124,7 +127,6 @@ import {
     PageSchema,
     PageSummarySchema,
     PublicBookSchema,
-    VersionSchema,
 } from './dto.schema';
 import type { ErrorCode } from './error.schema';
 import { ManifestSchema } from './manifest.schema';
@@ -759,7 +761,8 @@ export const routes: Route[] = [
         access: 'author',
         summary: 'Lịch sử phiên bản',
         params: params.bookId,
-        responses: { 200: dataResponse(z.array(VersionSchema)) },
+        query: ListBookVersionsQuerySchema,
+        responses: { 200: dataResponse(VersionPageSchema) },
         errors: ['NOT_FOUND'],
     },
     {
@@ -790,6 +793,16 @@ export const routes: Route[] = [
         summary: 'Đường dẫn, QR (PNG, SVG), mã nhúng',
         params: params.bookId,
         responses: { 200: dataResponse(ShareInfoSchema) },
+        errors: ['NOT_FOUND'],
+    },
+    {
+        id: 'getBooksByBookIdPrintLayout',
+        method: 'GET',
+        path: '/books/:bookId/print-layout',
+        access: 'author',
+        summary: 'Bố cục in của phiên bản đang phát hành',
+        params: params.bookId,
+        responses: { 200: dataResponse(PrintLayoutSchema) },
         errors: ['NOT_FOUND'],
     },
     {

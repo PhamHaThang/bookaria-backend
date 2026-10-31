@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { getAuth } from '../../middlewares';
-import { IdSchema, PublishBodySchema } from '../../schema';
+import { IdSchema, ListBookVersionsQuerySchema, PublishBodySchema } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { publishService } from './publish.service';
 
@@ -35,6 +35,7 @@ export const publishController = {
             data: await publishService.getBookVersions(
                 getAuth(res).userId,
                 bookIdOf(req.params.bookId),
+                ListBookVersionsQuerySchema.parse(req.query),
             ),
         });
     }),

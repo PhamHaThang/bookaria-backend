@@ -66,6 +66,7 @@ export interface PublishSnapshot {
         id: string;
         owner_id: string;
         title: string;
+        cover_asset_id?: string | null;
         slug: string | null;
         page_aspect: string;
         page_width_mm: string;

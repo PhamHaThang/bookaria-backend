@@ -343,6 +343,7 @@ suite('PUBLISH_BOOK transaction and public API', () => {
         const s = await setup(),
             p = pipeline();
         await runJob(await enqueue(s), p.handler);
+        expect((await publishService.publishCheck(s.owner, s.bookId)).hasChanges).toBe(false);
         const old = (await versions(s))[0],
             slug = (await state(s)).slug;
         await pool.query("UPDATE books SET title='Second' WHERE id=$1", [s.bookId]);
@@ -355,7 +356,7 @@ suite('PUBLISH_BOOK transaction and public API', () => {
         expect(rows[1].manifest_public_id).not.toBe(old.manifest_public_id);
     });
     it.each(['before', 'during'] as const)(
-        'rejects edits %s processing and retains the old version',
+        'publishes the frozen snapshot despite draft edits %s processing',
         async (when) => {
             const s = await setup();
             await runJob(await enqueue(s), pipeline().handler);
@@ -370,12 +371,29 @@ suite('PUBLISH_BOOK transaction and public API', () => {
             if (when === 'before') await mutate();
             expect(
                 await runJob(job, pipeline(when === 'during' ? mutate : undefined).handler),
-            ).toBe('failed');
-            expect((await jobState(job)).error.code).toBe('PUBLISH_STALE');
-            expect((await state(s)).current_version_id).toBe(old);
-            expect(await versions(s)).toHaveLength(1);
+            ).toBe('done');
+            expect((await state(s)).current_version_id).not.toBe(old);
+            const rows = await versions(s);
+            expect(rows).toHaveLength(2);
+            expect(rows[1].print_source.pages[0].title).not.toBe('edited');
+            expect(
+                (await pool.query('SELECT title FROM pages WHERE id=$1', [s.pages[0]])).rows[0]
+                    .title,
+            ).toBe('edited');
+            expect((await publishService.publishCheck(s.owner, s.bookId)).hasChanges).toBe(true);
         },
     );
+    it('protects snapshot assets after they are removed from the editable draft', async () => {
+        const s = await setup();
+        const job = await enqueue(s);
+        await pool.query('DELETE FROM pages WHERE book_id=$1', [s.bookId]);
+        const removed = await request(app)
+            .delete(`/api/v1/assets/${s.assets[0]}`)
+            .auth(s.token, { type: 'bearer' });
+        expect(removed.status).toBe(409);
+        expect(await runJob(job, pipeline().handler)).toBe('done');
+        expect((await versions(s))[0].page_count).toBe(1);
+    });
     it('ignores view count changes while producing artifacts', async () => {
         const s = await setup();
         const job = await enqueue(s);
@@ -390,7 +408,7 @@ suite('PUBLISH_BOOK transaction and public API', () => {
             ),
         ).toBe('done');
     });
-    it.each(['asset', 'account', 'deleted', 'marker'] as const)(
+    it.each(['asset', 'account', 'deleted', 'takenDown'] as const)(
         'refuses changed %s before commit',
         async (kind) => {
             const s = await setup(),
@@ -409,8 +427,11 @@ suite('PUBLISH_BOOK transaction and public API', () => {
                     ]);
                 if (kind === 'deleted')
                     await pool.query('UPDATE books SET deleted_at=now() WHERE id=$1', [s.bookId]);
-                if (kind === 'marker')
-                    await pool.query('UPDATE pages SET marker_score=1 WHERE id=$1', [s.pages[0]]);
+                if (kind === 'takenDown')
+                    await pool.query(
+                        "UPDATE books SET taken_down_at=now(),taken_down_reason='test',visibility='PRIVATE' WHERE id=$1",
+                        [s.bookId],
+                    );
             });
             expect(await runJob(job, p.handler)).toBe('failed');
             expect(await versions(s)).toHaveLength(0);

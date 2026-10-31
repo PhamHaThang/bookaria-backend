@@ -2,13 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { PDFDocument } from 'pdf-lib';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
+import { setMediaStorage } from '../../../lib';
 import { JobError, type JobHandler } from '../../../modules/jobs/jobs.types';
 import { PrintSourceSchema } from '../../../modules/print/print.source';
 import { publishService } from '../../../modules/publish/publish.service';
-import { defaultMarkerTransform, type PrintPdfBody } from '../../../schema';
+import { defaultMarkerTransform, PrintLayoutSchema, type PrintPdfBody } from '../../../schema';
 import { handlers } from '../../handlers';
 import { createPublishHandler } from '../../publish';
 import type { PublishStorage } from '../../publish/storage';
@@ -173,6 +174,112 @@ suite('EXPORT_PDF publication consistency', () => {
             'EXPORT_PDF',
         ] as const)
             expect(typeof handlers[key]).toBe('function');
+    });
+    it('serves frozen visual layouts only to the author and rejects a stale layout export', async () => {
+        const s = await setup();
+        setMediaStorage({
+            deliveryUrl: url,
+            inspect: async () => null,
+            destroy: async () => {},
+            signUpload: () => {
+                throw new Error('unused');
+            },
+        });
+        try {
+            const path = `/api/v1/books/${s.bookId}/print-layout`;
+            expect((await request(app).get(path)).status).toBe(401);
+            const other = await setup(false);
+            expect(
+                (await request(app).get(path).auth(other.token, { type: 'bearer' })).status,
+            ).toBe(404);
+            await pool.query(
+                "UPDATE books SET title='Changed draft',page_width_mm=180 WHERE id=$1",
+                [s.bookId],
+            );
+            const response = await request(app).get(path).auth(s.token, { type: 'bearer' });
+            expect(response.status).toBe(200);
+            const layout = PrintLayoutSchema.parse(response.body.data);
+            expect(layout.widthMm).toBe(s.source.widthMm);
+            expect(layout.title).toBe(s.source.title);
+            expect(layout.pages[0]?.marker?.sizeMm).toBeCloseTo(45);
+            const bad = await request(app)
+                .post(`/api/v1/books/${s.bookId}/print-pdf`)
+                .auth(s.token, { type: 'bearer' })
+                .send({ versionId: randomUUID() });
+            expect(bad.status).toBe(400);
+            const valid = await request(app)
+                .post(`/api/v1/books/${s.bookId}/print-pdf`)
+                .auth(s.token, { type: 'bearer' })
+                .send({
+                    versionId: layout.versionId,
+                    qrPlacements: [{ pageId: null, xMm: 60, yMm: 80, sizeMm: 40 }],
+                });
+            expect(valid.status).toBe(202);
+            const payload = (await jobState(valid.body.data.jobId)).payload;
+            expect(payload.versionId).toBe(layout.versionId);
+            expect(payload.request.qrPlacements[0].xMm).toBe(60);
+        } finally {
+            setMediaStorage(undefined);
+        }
+    });
+    it('freezes and retains the published cover independently from later draft edits', async () => {
+        const s = await setup(false),
+            cover = randomUUID(),
+            replacement = randomUUID();
+        for (const [id, name] of [
+            [cover, 'original'],
+            [replacement, 'replacement'],
+        ])
+            await pool.query(
+                `INSERT INTO assets(id,owner_id,type,name,original_public_id,resource_type,format,size_bytes,status) VALUES($1,$2,'IMAGE',$3,$4,'image','png',1000,'READY')`,
+                [id, s.owner, name, `bookaria/${s.owner}/${name}-cover`],
+            );
+        await pool.query('UPDATE books SET cover_asset_id=$2 WHERE id=$1', [s.bookId, cover]);
+        await s.publishJob();
+        const v = (await versions(s))[0];
+        expect(PrintSourceSchema.parse(v.print_source).cover?.publicId).toBe(
+            `bookaria/${s.owner}/original-cover`,
+        );
+        expect(
+            (
+                await pool.query(
+                    'SELECT asset_id FROM version_assets WHERE book_version_id=$1 AND asset_id=$2',
+                    [v.id, cover],
+                )
+            ).rowCount,
+        ).toBe(1);
+        await pool.query('UPDATE books SET cover_asset_id=$2 WHERE id=$1', [s.bookId, replacement]);
+        setMediaStorage({
+            deliveryUrl: url,
+            inspect: async () => null,
+            destroy: async () => {},
+            signUpload: () => {
+                throw new Error('unused');
+            },
+        });
+        try {
+            const response = await request(app)
+                .get(`/api/v1/books/${s.bookId}/print-layout`)
+                .auth(s.token, { type: 'bearer' });
+            expect(response.status).toBe(200);
+            expect(PrintLayoutSchema.parse(response.body.data).coverUrl).toBe(
+                `https://cdn.example.com/bookaria/${s.owner}/original-cover`,
+            );
+            const deleted = await request(app)
+                .delete(`/api/v1/assets/${cover}`)
+                .auth(s.token, { type: 'bearer' });
+            expect(deleted.status).toBe(409);
+        } finally {
+            setMediaStorage(undefined);
+        }
+        const job = await enqueue(s),
+            p = await pipeline();
+        p.storage.download = vi.fn(p.storage.download);
+        expect(await runJob(job, p.handler)).toBe('done');
+        expect(p.storage.download).toHaveBeenCalledWith(
+            expect.objectContaining({ publicId: `bookaria/${s.owner}/original-cover` }),
+            expect.any(AbortSignal),
+        );
     });
     it('captures immutable print source in the publish transaction', async () => {
         const s = await setup(),

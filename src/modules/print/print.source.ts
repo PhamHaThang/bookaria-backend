@@ -11,6 +11,7 @@ const FileSchema = z.object({
 export const PrintSourceSchema = z.object({
     schemaVersion: z.literal(1),
     title: z.string(),
+    cover: FileSchema.nullable().default(null),
     widthMm: z.number().positive().max(1000),
     heightMm: z.number().positive().max(5000),
     pages: z
@@ -39,9 +40,15 @@ export type PrintFile = z.infer<typeof FileSchema>;
 /** Capture identifiers and geometry, not bytes; keep these media immutable in storage. */
 export function capturePrintSource(snapshot: PublishSnapshot): PrintSource {
     const width = Number(snapshot.book.page_width_mm);
+    const cover = snapshot.book.cover_asset_id
+        ? snapshot.assets.find((a) => a.id === snapshot.book.cover_asset_id)
+        : null;
+    if (snapshot.book.cover_asset_id && cover?.resource_type !== 'image')
+        throw new JobError('PRINT_SOURCE_COVER', 'Ảnh bìa không hợp lệ.');
     return PrintSourceSchema.parse({
         schemaVersion: 1,
         title: snapshot.book.title,
+        cover: cover ? { publicId: cover.original_public_id, format: cover.format } : null,
         widthMm: width,
         heightMm: width * Number(snapshot.book.page_aspect),
         pages: snapshot.pages.map((page) => {

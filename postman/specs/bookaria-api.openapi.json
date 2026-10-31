@@ -2634,6 +2634,787 @@
                 }
             }
         },
+        "/books/{bookId}/draft": {
+            "get": {
+                "operationId": "getBookDraft",
+                "tags": ["books"],
+                "summary": "Đọc phiên bản và danh sách trang để chỉnh sửa bản nháp",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "bookId": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "revision": {
+                                                    "type": "string",
+                                                    "pattern": "^[a-f0-9]{64}$"
+                                                },
+                                                "geometry": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "pageFormat": {
+                                                            "type": "string",
+                                                            "enum": ["A4", "A5", "SQUARE", "CUSTOM"]
+                                                        },
+                                                        "pageAspect": {
+                                                            "type": "number",
+                                                            "minimum": 0.2,
+                                                            "maximum": 5
+                                                        },
+                                                        "pageWidthMm": {
+                                                            "type": "number",
+                                                            "minimum": 0.1,
+                                                            "maximum": 1000,
+                                                            "multipleOf": 0.1
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "pageFormat",
+                                                        "pageAspect",
+                                                        "pageWidthMm"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "pages": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/PageSummary"
+                                                    }
+                                                },
+                                                "pageRevisions": {
+                                                    "type": "object",
+                                                    "additionalProperties": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 9007199254740991
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "bookId",
+                                                "revision",
+                                                "geometry",
+                                                "pages",
+                                                "pageRevisions"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "saveBookDraft",
+                "tags": ["books"],
+                "summary": "Lưu thay đổi nhiều trang và thứ tự trang trong một giao dịch",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "revision": {
+                                        "type": "string",
+                                        "pattern": "^[a-f0-9]{64}$"
+                                    },
+                                    "order": {
+                                        "maxItems": 1000,
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        }
+                                    },
+                                    "changes": {
+                                        "maxItems": 1000,
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "title": {
+                                                    "nullable": true,
+                                                    "type": "string",
+                                                    "maxLength": 200
+                                                },
+                                                "imageAssetId": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "scene": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/SceneInput"
+                                                        }
+                                                    ]
+                                                },
+                                                "settings": {
+                                                    "allOf": [
+                                                        {
+                                                            "$ref": "#/components/schemas/PageSettingsInput"
+                                                        }
+                                                    ]
+                                                },
+                                                "markerMindPublicId": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 300
+                                                }
+                                            },
+                                            "required": ["id"]
+                                        }
+                                    }
+                                },
+                                "required": ["revision", "order", "changes"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "snapshot": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "bookId": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "revision": {
+                                                            "type": "string",
+                                                            "pattern": "^[a-f0-9]{64}$"
+                                                        },
+                                                        "geometry": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "pageFormat": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "A4",
+                                                                        "A5",
+                                                                        "SQUARE",
+                                                                        "CUSTOM"
+                                                                    ]
+                                                                },
+                                                                "pageAspect": {
+                                                                    "type": "number",
+                                                                    "minimum": 0.2,
+                                                                    "maximum": 5
+                                                                },
+                                                                "pageWidthMm": {
+                                                                    "type": "number",
+                                                                    "minimum": 0.1,
+                                                                    "maximum": 1000,
+                                                                    "multipleOf": 0.1
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "pageFormat",
+                                                                "pageAspect",
+                                                                "pageWidthMm"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        },
+                                                        "pages": {
+                                                            "type": "array",
+                                                            "items": {
+                                                                "$ref": "#/components/schemas/PageSummary"
+                                                            }
+                                                        },
+                                                        "pageRevisions": {
+                                                            "type": "object",
+                                                            "additionalProperties": {
+                                                                "type": "integer",
+                                                                "minimum": 0,
+                                                                "maximum": 9007199254740991
+                                                            }
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "bookId",
+                                                        "revision",
+                                                        "geometry",
+                                                        "pages",
+                                                        "pageRevisions"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "pages": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Page"
+                                                    }
+                                                },
+                                                "warnings": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "pageId": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "warnings": {
+                                                                "type": "array",
+                                                                "items": {
+                                                                    "$ref": "#/components/schemas/SceneWarning"
+                                                                }
+                                                            }
+                                                        },
+                                                        "required": ["pageId", "warnings"],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "jobs": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "pageId": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "jobId": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            }
+                                                        },
+                                                        "required": ["pageId", "jobId"],
+                                                        "additionalProperties": false
+                                                    }
+                                                }
+                                            },
+                                            "required": ["snapshot", "pages", "warnings", "jobs"],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`REVISION_CONFLICT`: Trang đã được sửa ở nơi khác.\n`JOB_IN_PROGRESS`: Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "REVISION_CONFLICT": {
+                                        "value": {
+                                            "error": {
+                                                "code": "REVISION_CONFLICT",
+                                                "message": "Trang đã được sửa ở nơi khác.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "JOB_IN_PROGRESS": {
+                                        "value": {
+                                            "error": {
+                                                "code": "JOB_IN_PROGRESS",
+                                                "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/books/{bookId}/draft/image-layout": {
+            "post": {
+                "operationId": "draftPageImageLayout",
+                "tags": ["books"],
+                "summary": "Xem ảnh nền theo khổ sách mà không lưu trang",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "aspect": {
+                                        "type": "number",
+                                        "minimum": 0.2,
+                                        "maximum": 5
+                                    },
+                                    "imageAssetId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                },
+                                "required": ["aspect", "imageAssetId"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "assetId": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "url": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "width": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 9007199254740991
+                                                },
+                                                "height": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 9007199254740991
+                                                }
+                                            },
+                                            "required": ["assetId", "url", "width", "height"],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/books/{bookId}": {
             "get": {
                 "operationId": "getBooksByBookId",
@@ -8858,6 +9639,9 @@
                                                 "canPublish": {
                                                     "type": "boolean"
                                                 },
+                                                "hasChanges": {
+                                                    "type": "boolean"
+                                                },
                                                 "summary": {
                                                     "type": "object",
                                                     "properties": {
@@ -9383,6 +10167,28 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "default": 5,
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50
+                        }
+                    },
+                    {
+                        "name": "before",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "exclusiveMinimum": true,
+                            "maximum": 9007199254740991
+                        }
                     }
                 ],
                 "responses": {
@@ -9394,10 +10200,25 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/Version"
-                                            }
+                                            "type": "object",
+                                            "properties": {
+                                                "items": {
+                                                    "maxItems": 50,
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/Version"
+                                                    }
+                                                },
+                                                "nextCursor": {
+                                                    "nullable": true,
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 9007199254740991
+                                                }
+                                            },
+                                            "required": ["items", "nextCursor"],
+                                            "additionalProperties": false
                                         }
                                     },
                                     "required": ["data"],
@@ -10047,6 +10868,336 @@
                 }
             }
         },
+        "/books/{bookId}/print-layout": {
+            "get": {
+                "operationId": "getBooksByBookIdPrintLayout",
+                "tags": ["books"],
+                "summary": "Bố cục in của phiên bản đang phát hành",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "coverUrl": {
+                                                    "default": null,
+                                                    "nullable": true,
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "versionId": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "versionNo": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 9007199254740991
+                                                },
+                                                "title": {
+                                                    "type": "string"
+                                                },
+                                                "widthMm": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true
+                                                },
+                                                "heightMm": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true
+                                                },
+                                                "pages": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "pageId": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "title": {
+                                                                "nullable": true,
+                                                                "type": "string"
+                                                            },
+                                                            "imageUrl": {
+                                                                "type": "string",
+                                                                "format": "uri"
+                                                            },
+                                                            "markerMode": {
+                                                                "type": "string",
+                                                                "enum": [
+                                                                    "NONE",
+                                                                    "CUSTOM_MARKER",
+                                                                    "BOOKARIA_MARKER"
+                                                                ]
+                                                            },
+                                                            "marker": {
+                                                                "nullable": true,
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "number": {
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true,
+                                                                        "maximum": 9007199254740991
+                                                                    },
+                                                                    "imageUrl": {
+                                                                        "type": "string",
+                                                                        "format": "uri"
+                                                                    },
+                                                                    "xMm": {
+                                                                        "type": "number"
+                                                                    },
+                                                                    "yMm": {
+                                                                        "type": "number"
+                                                                    },
+                                                                    "sizeMm": {
+                                                                        "type": "number",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "number",
+                                                                    "imageUrl",
+                                                                    "xMm",
+                                                                    "yMm",
+                                                                    "sizeMm"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            },
+                                                            "defaultQr": {
+                                                                "nullable": true,
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "pageId": {
+                                                                        "nullable": true,
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "xMm": {
+                                                                        "type": "number",
+                                                                        "minimum": 0,
+                                                                        "maximum": 1000
+                                                                    },
+                                                                    "yMm": {
+                                                                        "type": "number",
+                                                                        "minimum": 0,
+                                                                        "maximum": 5000
+                                                                    },
+                                                                    "sizeMm": {
+                                                                        "type": "number",
+                                                                        "minimum": 30,
+                                                                        "maximum": 60
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "pageId",
+                                                                    "xMm",
+                                                                    "yMm",
+                                                                    "sizeMm"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "pageId",
+                                                            "title",
+                                                            "imageUrl",
+                                                            "markerMode",
+                                                            "marker",
+                                                            "defaultQr"
+                                                        ],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "coverQr": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "pageId": {
+                                                            "nullable": true,
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        },
+                                                        "xMm": {
+                                                            "type": "number",
+                                                            "minimum": 0,
+                                                            "maximum": 1000
+                                                        },
+                                                        "yMm": {
+                                                            "type": "number",
+                                                            "minimum": 0,
+                                                            "maximum": 5000
+                                                        },
+                                                        "sizeMm": {
+                                                            "type": "number",
+                                                            "minimum": 30,
+                                                            "maximum": 60
+                                                        }
+                                                    },
+                                                    "required": ["pageId", "xMm", "yMm", "sizeMm"],
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "required": [
+                                                "coverUrl",
+                                                "versionId",
+                                                "versionNo",
+                                                "title",
+                                                "widthMm",
+                                                "heightMm",
+                                                "pages",
+                                                "coverQr"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/books/{bookId}/print-pdf": {
             "post": {
                 "operationId": "postBooksByBookIdPrintPdf",
@@ -10075,6 +11226,40 @@
                             "schema": {
                                 "type": "object",
                                 "properties": {
+                                    "versionId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "qrPlacements": {
+                                        "maxItems": 201,
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "pageId": {
+                                                    "nullable": true,
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "xMm": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1000
+                                                },
+                                                "yMm": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 5000
+                                                },
+                                                "sizeMm": {
+                                                    "type": "number",
+                                                    "minimum": 30,
+                                                    "maximum": 60
+                                                }
+                                            },
+                                            "required": ["pageId", "xMm", "yMm", "sizeMm"]
+                                        }
+                                    },
                                     "kind": {
                                         "default": "PRINT",
                                         "type": "string",
@@ -10086,7 +11271,7 @@
                                         "enum": ["COVER_ONLY", "ALL_AR_PAGES"]
                                     },
                                     "bleedMm": {
-                                        "default": 3,
+                                        "default": 0,
                                         "type": "number",
                                         "minimum": 0,
                                         "maximum": 10
@@ -16114,6 +17299,316 @@
                 }
             }
         },
+        "/admin/bookaria-markers/test": {
+            "post": {
+                "operationId": "postAdminBookariaMarkerTest",
+                "tags": ["admin"],
+                "summary": "Thử điểm ảnh marker tạm thời, không tạo tài nguyên",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/octet-stream": {
+                            "schema": {
+                                "type": "string",
+                                "format": "binary"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "policyVersion": {
+                                                    "type": "string"
+                                                },
+                                                "algorithm": {
+                                                    "type": "string",
+                                                    "enum": ["ORB"]
+                                                },
+                                                "score": {
+                                                    "type": "integer",
+                                                    "minimum": 1,
+                                                    "maximum": 5
+                                                },
+                                                "features": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 1200
+                                                },
+                                                "coverage": {
+                                                    "type": "number",
+                                                    "minimum": 0,
+                                                    "maximum": 1
+                                                },
+                                                "width": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 1024
+                                                },
+                                                "height": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 1024
+                                                },
+                                                "image": {
+                                                    "type": "string",
+                                                    "maxLength": 6291456,
+                                                    "format": "starts_with",
+                                                    "pattern": "^data:image\\/png;base64,.*"
+                                                },
+                                                "points": {
+                                                    "maxItems": 1200,
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "x": {
+                                                                "type": "number",
+                                                                "minimum": 0
+                                                            },
+                                                            "y": {
+                                                                "type": "number",
+                                                                "minimum": 0
+                                                            }
+                                                        },
+                                                        "required": ["x", "y"],
+                                                        "additionalProperties": false
+                                                    }
+                                                },
+                                                "cells": {
+                                                    "minItems": 16,
+                                                    "maxItems": 16,
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 9007199254740991
+                                                    }
+                                                },
+                                                "hints": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "policyVersion",
+                                                "algorithm",
+                                                "score",
+                                                "features",
+                                                "coverage",
+                                                "width",
+                                                "height",
+                                                "image",
+                                                "points",
+                                                "cells",
+                                                "hints"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "413": {
+                        "description": "`FILE_TOO_LARGE`: File vượt quá dung lượng cho phép.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FILE_TOO_LARGE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FILE_TOO_LARGE",
+                                                "message": "File vượt quá dung lượng cho phép.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "`FILE_TYPE_NOT_ALLOWED`: Loại file này không được hỗ trợ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FILE_TYPE_NOT_ALLOWED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FILE_TYPE_NOT_ALLOWED",
+                                                "message": "Loại file này không được hỗ trợ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/bookaria-markers/{markerId}": {
             "patch": {
                 "operationId": "patchAdminBookariaMarkersByMarkerId",
@@ -17512,136 +19007,6 @@
                     "takenDown",
                     "pageCount",
                     "updatedAt"
-                ],
-                "additionalProperties": false
-            },
-            "BookDetail": {
-                "type": "object",
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "format": "uuid"
-                    },
-                    "title": {
-                        "type": "string"
-                    },
-                    "coverUrl": {
-                        "nullable": true,
-                        "type": "string",
-                        "format": "uri"
-                    },
-                    "status": {
-                        "type": "string",
-                        "enum": ["DRAFT", "PUBLISHED", "CHANGED"]
-                    },
-                    "visibility": {
-                        "type": "string",
-                        "enum": ["PUBLIC", "PRIVATE", "UNLISTED"]
-                    },
-                    "takenDown": {
-                        "type": "boolean"
-                    },
-                    "pageCount": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                    },
-                    "updatedAt": {
-                        "type": "string",
-                        "format": "date-time",
-                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                    },
-                    "description": {
-                        "nullable": true,
-                        "type": "string"
-                    },
-                    "ageMin": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                    },
-                    "ageMax": {
-                        "nullable": true,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                    },
-                    "language": {
-                        "type": "string",
-                        "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"
-                    },
-                    "topic": {
-                        "nullable": true,
-                        "type": "string"
-                    },
-                    "pageFormat": {
-                        "type": "string",
-                        "enum": ["A4", "A5", "SQUARE", "CUSTOM"]
-                    },
-                    "pageAspect": {
-                        "type": "number",
-                        "minimum": 0,
-                        "exclusiveMinimum": true
-                    },
-                    "pageWidthMm": {
-                        "type": "number",
-                        "minimum": 0.1,
-                        "maximum": 1000,
-                        "multipleOf": 0.1
-                    },
-                    "slug": {
-                        "nullable": true,
-                        "type": "string",
-                        "minLength": 3,
-                        "maxLength": 80,
-                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-                    },
-                    "currentVersion": {
-                        "nullable": true,
-                        "type": "object",
-                        "properties": {
-                            "versionNo": {
-                                "type": "integer",
-                                "minimum": 0,
-                                "exclusiveMinimum": true,
-                                "maximum": 9007199254740991
-                            },
-                            "publishedAt": {
-                                "type": "string",
-                                "format": "date-time",
-                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
-                            }
-                        },
-                        "required": ["versionNo", "publishedAt"],
-                        "additionalProperties": false
-                    },
-                    "pages": {
-                        "type": "array",
-                        "items": {
-                            "$ref": "#/components/schemas/PageSummary"
-                        }
-                    }
-                },
-                "required": [
-                    "id",
-                    "title",
-                    "coverUrl",
-                    "status",
-                    "visibility",
-                    "takenDown",
-                    "pageCount",
-                    "updatedAt",
-                    "description",
-                    "ageMin",
-                    "ageMax",
-                    "language",
-                    "topic",
-                    "pageFormat",
-                    "pageAspect",
-                    "slug",
-                    "currentVersion",
-                    "pages"
                 ],
                 "additionalProperties": false
             },
@@ -20121,6 +21486,136 @@
                     }
                 },
                 "required": ["code", "message"],
+                "additionalProperties": false
+            },
+            "BookDetail": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "title": {
+                        "type": "string"
+                    },
+                    "coverUrl": {
+                        "nullable": true,
+                        "type": "string",
+                        "format": "uri"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["DRAFT", "PUBLISHED", "CHANGED"]
+                    },
+                    "visibility": {
+                        "type": "string",
+                        "enum": ["PUBLIC", "PRIVATE", "UNLISTED"]
+                    },
+                    "takenDown": {
+                        "type": "boolean"
+                    },
+                    "pageCount": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "description": {
+                        "nullable": true,
+                        "type": "string"
+                    },
+                    "ageMin": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "ageMax": {
+                        "nullable": true,
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                    },
+                    "language": {
+                        "type": "string",
+                        "pattern": "^[a-z]{2}(?:-[A-Z]{2})?$"
+                    },
+                    "topic": {
+                        "nullable": true,
+                        "type": "string"
+                    },
+                    "pageFormat": {
+                        "type": "string",
+                        "enum": ["A4", "A5", "SQUARE", "CUSTOM"]
+                    },
+                    "pageAspect": {
+                        "type": "number",
+                        "minimum": 0,
+                        "exclusiveMinimum": true
+                    },
+                    "pageWidthMm": {
+                        "type": "number",
+                        "minimum": 0.1,
+                        "maximum": 1000,
+                        "multipleOf": 0.1
+                    },
+                    "slug": {
+                        "nullable": true,
+                        "type": "string",
+                        "minLength": 3,
+                        "maxLength": 80,
+                        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    },
+                    "currentVersion": {
+                        "nullable": true,
+                        "type": "object",
+                        "properties": {
+                            "versionNo": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true,
+                                "maximum": 9007199254740991
+                            },
+                            "publishedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            }
+                        },
+                        "required": ["versionNo", "publishedAt"],
+                        "additionalProperties": false
+                    },
+                    "pages": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/PageSummary"
+                        }
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "coverUrl",
+                    "status",
+                    "visibility",
+                    "takenDown",
+                    "pageCount",
+                    "updatedAt",
+                    "description",
+                    "ageMin",
+                    "ageMax",
+                    "language",
+                    "topic",
+                    "pageFormat",
+                    "pageAspect",
+                    "slug",
+                    "currentVersion",
+                    "pages"
+                ],
                 "additionalProperties": false
             },
             "Asset": {
@@ -22883,6 +24378,32 @@
                         "required": ["type", "objectId"]
                     }
                 ]
+            },
+            "PageSettingsInput": {
+                "type": "object",
+                "properties": {
+                    "backgroundAudioAssetId": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "backgroundLoop": {
+                        "default": true,
+                        "type": "boolean"
+                    },
+                    "narrationAssetId": {
+                        "default": null,
+                        "nullable": true,
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "lighting": {
+                        "default": "neutral",
+                        "type": "string",
+                        "enum": ["neutral", "warm", "cool"]
+                    }
+                }
             },
             "MarkerTransformInput": {
                 "type": "object",

@@ -1,5 +1,12 @@
 import type { Queryable } from '../../db';
-import type { BookVersions, CheckAssetRow, CheckPageRow, PublishableBook } from './publish.types';
+import type { ListBookVersionsQuery } from '../../schema';
+import type {
+    BookVersions,
+    CheckAssetRow,
+    CheckPageRow,
+    PublishableBook,
+    PublishSnapshot,
+} from './publish.types';
 
 export const publishRepository = {
     // Lấy sách của tác giả để kiểm tra xem sách có thể xuất bản hay không
@@ -63,6 +70,7 @@ export const publishRepository = {
         payload: {
             visibility: 'UNLISTED' | 'PUBLIC';
             snapshotHash: string;
+            snapshot: PublishSnapshot;
             acceptWarnings: boolean;
         },
     ): Promise<string> {
@@ -75,13 +83,19 @@ export const publishRepository = {
         return (rows[0] as { id: string }).id;
     },
     // Lấy thông tin phiên bản của sách
-    async getBookVersions(db: Queryable, bookId: string): Promise<BookVersions[]> {
+    async getBookVersions(
+        db: Queryable,
+        bookId: string,
+        query: ListBookVersionsQuery,
+    ): Promise<BookVersions[]> {
         const { rows } = await db.query<BookVersions>(
             `SELECT v.id, v.version_no, v.page_count, v.ar_page_count, v.total_size_bytes, v.published_at, v.published_by, u.display_name AS published_by_name
             FROM book_versions v LEFT JOIN users u ON v.published_by = u.id
-            WHERE book_id = $1
-            ORDER BY v.version_no DESC`,
-            [bookId],
+            WHERE v.book_id = $1 ${query.before === undefined ? '' : 'AND v.version_no < $3'}
+            ORDER BY v.version_no DESC LIMIT $2`,
+            query.before === undefined
+                ? [bookId, query.limit + 1]
+                : [bookId, query.limit + 1, query.before],
         );
         return rows;
     },

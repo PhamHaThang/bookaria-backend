@@ -6,7 +6,7 @@ import { JobError } from '../../modules/jobs/jobs.types';
 import type { PrintFile, PrintSource } from '../../modules/print/print.source';
 import type { PrintPdfBody } from '../../schema';
 import { MAX_OUTPUT_BYTES } from '../publish/mind';
-import { markerRect, mm, qrRect, type Rect, validatePrintLayout } from './layout';
+import { coverQrRect, markerRect, mm, qrRect, type Rect, validatePrintLayout } from './layout';
 import { MAX_IMAGE_BYTES } from './storage';
 
 export interface RenderInput {
@@ -182,31 +182,40 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
     }
     if (request.kind === 'PRINT') {
         const { page: cover, offset: o } = sheet();
-        text(cover, 'BOOKARIA', o + 14, o + source.heightMm - 20, 11, grey);
-        title(
-            cover,
-            source.title,
-            o + 14,
-            o + source.heightMm - 40,
-            source.widthMm - 28,
-            Math.min(28, source.widthMm / 6),
-        );
-        text(
-            cover,
-            `Phiên bản ${input.versionNo}  /  ${source.pages.length} trang`,
-            o + 14,
-            o + 55,
-            10,
-            grey,
-        );
-        qr(cover, { x: o + 14, y: o + 16, width: 30, height: 30 });
-        text(
-            cover,
-            'Quét QR để mở sách',
-            o + (source.widthMm < 120 ? 14 : 49),
-            o + (source.widthMm < 120 ? 8 : 28),
-            10,
-        );
+        if (source.cover) {
+            const value = await image(source.cover);
+            const factor = Math.min(source.widthMm / value.width, source.heightMm / value.height);
+            const width = value.width * factor,
+                height = value.height * factor;
+            const embedded = await doc.embedPng(value.png);
+            cover.drawImage(embedded, {
+                x: mm(o + (source.widthMm - width) / 2),
+                y: mm(o + (source.heightMm - height) / 2),
+                width: mm(width),
+                height: mm(height),
+            });
+        } else {
+            // Same proportions as the existing Bookaria symbol (506 x 256 viewBox).
+            const factor = (source.widthMm * 0.4) / 506;
+            for (const center of [-125, 125]) {
+                const x = mm(o + source.widthMm / 2 + center * factor),
+                    y = mm(o + source.heightMm / 2);
+                for (const [radius, color] of [
+                    [110, rgb(17 / 255, 17 / 255, 17 / 255)],
+                    [88, rgb(1, 1, 1)],
+                    [30, rgb(17 / 255, 17 / 255, 17 / 255)],
+                ] as const)
+                    cover.drawEllipse({
+                        x,
+                        y,
+                        xScale: mm(radius * factor),
+                        yScale: mm(radius * factor),
+                        color,
+                    });
+            }
+        }
+        const coverBox = coverQrRect(request);
+        qr(cover, { ...coverBox, x: o + coverBox.x, y: o + coverBox.y });
         // A blank verso keeps original content page 1 on the recto when printing duplex.
         sheet();
         for (const [index, p] of source.pages.entries()) {
@@ -227,7 +236,7 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
                     true,
                 );
             if (request.qrMode === 'ALL_AR_PAGES' && p.marker.mode !== 'NONE') {
-                const q = qrRect(source, p);
+                const q = qrRect(source, p, request);
                 qr(page, { ...q, x: q.x + offset, y: q.y + offset });
             }
             await input.progress?.(10 + Math.round((75 * (index + 1)) / source.pages.length));

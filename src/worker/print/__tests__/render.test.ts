@@ -1,4 +1,5 @@
-import { PDFDocument } from 'pdf-lib';
+import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
+import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
 import { defaultMarkerTransform } from '../../../schema';
 import { markerRect, mm, overlaps, qrRect, validatePrintLayout } from '../layout';
@@ -22,6 +23,47 @@ async function input(): Promise<RenderInput> {
     };
 }
 describe('physical print layout and PDF', () => {
+    it('prints the uploaded cover centered with its original aspect and uses a vector logo when absent', async () => {
+        const args = await input();
+        const image = await sharp({
+            create: { width: 1200, height: 600, channels: 3, background: '#30a7c2' },
+        })
+            .png()
+            .toBuffer();
+        const download = args.download;
+        args.source.cover = { publicId: 'fixture/cover', format: 'png' };
+        args.download = vi.fn(async (file, signal) =>
+            file.publicId === 'fixture/cover' ? image : download(file, signal),
+        );
+        const pdf = await PDFDocument.load(await renderPrintPdf(args));
+        const cover = required(pdf.getPages()[0]);
+        const resources = required(cover.node.Resources());
+        expect(resources.lookup(PDFName.of('XObject'), PDFDict).entries().length).toBe(1);
+        const content = pdf.context
+            .lookup(cover.node.Contents(), PDFArray)
+            .asArray()
+            .map((ref) => {
+                const stream = pdf.context.lookup(ref);
+                if (!(stream instanceof PDFRawStream))
+                    throw new Error('Missing PDF content stream');
+                return Buffer.from(decodePDFRawStream(stream).decode()).toString();
+            })
+            .join('');
+        // 1200:600 fits the 210 x 297 mm trim as 210 x 105 mm, centered vertically.
+        expect(content).toContain(`${mm(210)} 0 0 ${mm(105)} 0 0 cm`);
+        expect(content).toContain(`1 0 0 1 ${mm(7)} ${mm(7 + (297 - 105) / 2)} cm`);
+        expect(args.download).toHaveBeenCalledWith(args.source.cover, args.signal);
+        const unchanged = required(pdf.getPages()[2]).getTrimBox();
+        expect(unchanged.width).toBeCloseTo(mm(210));
+        args.source.cover = null;
+        const fallback = await PDFDocument.load(await renderPrintPdf(args));
+        const fallbackCover = required(fallback.getPages()[0]);
+        expect(
+            required(fallbackCover.node.Resources())
+                .lookup(PDFName.of('XObject'), PDFDict)
+                .entries().length,
+        ).toBe(0);
+    });
     it('converts A4 marker to 45 mm at 12 mm from right and bottom trim edges', () => {
         const s = sampleSource();
         const box = required(markerRect(s, required(s.pages[0])));
@@ -83,6 +125,39 @@ describe('physical print layout and PDF', () => {
             expect(page.getWidth()).toBeCloseTo(mm(218 + 2 * bleed), 5);
         },
     );
+    it('uses requested QR positions and rejects collisions, duplicates and inactive targets', async () => {
+        const args = await input();
+        args.request.qrMode = 'ALL_AR_PAGES';
+        const page = required(args.source.pages[0]);
+        args.request.qrPlacements = [{ pageId: page.pageId, xMm: 20, yMm: 100, sizeMm: 40 }];
+        expect(qrRect(args.source, page, args.request)).toEqual({
+            x: 20,
+            y: 100,
+            width: 40,
+            height: 40,
+        });
+        expect((await renderPrintPdf(args)).length).toBeGreaterThan(1000);
+        for (const placements of [
+            [{ pageId: page.pageId, xMm: 160, yMm: 12, sizeMm: 35 }],
+            [{ pageId: page.pageId, xMm: 1, yMm: 100, sizeMm: 30 }],
+            [{ pageId: page.pageId, xMm: 20, yMm: 100, sizeMm: 29 }],
+            [
+                { pageId: page.pageId, xMm: 20, yMm: 100, sizeMm: 40 },
+                { pageId: page.pageId, xMm: 20, yMm: 100, sizeMm: 40 },
+            ],
+            [
+                { pageId: page.pageId, xMm: 20, yMm: 100, sizeMm: 40 },
+                { pageId: required(args.source.pages[1]).pageId, xMm: 20, yMm: 100, sizeMm: 40 },
+            ],
+        ]) {
+            args.request.qrPlacements = placements;
+            expect(() => validatePrintLayout(args.source, args.request)).toThrow();
+        }
+        args.request.qrPlacements = [{ pageId: null, xMm: 80, yMm: 80, sizeMm: 40 }];
+        expect(() => validatePrintLayout(args.source, args.request)).not.toThrow();
+        required(args.request.qrPlacements[0]).yMm = 280;
+        expect(() => validatePrintLayout(args.source, args.request)).toThrow(/QR/);
+    });
     it('exports one A4 sticker page only for Bookaria markers and never downloads page images', async () => {
         const args = await input();
         args.request.kind = 'MARKER_SHEET';

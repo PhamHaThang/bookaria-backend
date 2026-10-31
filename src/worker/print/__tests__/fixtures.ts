@@ -7,6 +7,7 @@ export const readFont = () => readFile('assets/fonts/NotoSans-Regular.ttf');
 export function sampleSource(widthMm = 210, heightMm = 297): PrintSource {
     return {
         schemaVersion: 1,
+        cover: null,
         title: 'Khu vườn kỳ diệu - Mẫu bố cục',
         widthMm,
         heightMm,

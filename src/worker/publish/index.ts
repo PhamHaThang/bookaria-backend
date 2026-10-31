@@ -7,7 +7,12 @@ import { parseCloudinaryUrl } from '../../lib/cloudinary';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { capturePrintSource } from '../../modules/print/print.source';
 import { viewerLink } from '../../modules/publish/publish.link';
-import { readPublishSnapshot, snapshotHash } from '../../modules/publish/publish.snapshot';
+import {
+    assertPublicationAvailable,
+    readPublishSnapshot,
+    snapshotHash,
+} from '../../modules/publish/publish.snapshot';
+import type { PublishSnapshot } from '../../modules/publish/publish.types';
 import { JobResultsSchema, type ManifestGroup } from '../../schema';
 import { generateBookSlug } from '../../utils';
 import { assertPublishable, makeManifest } from './manifest';
@@ -25,6 +30,11 @@ const PayloadSchema = z.object({
     visibility: z.enum(['PUBLIC', 'UNLISTED']),
     snapshotHash: z.string().regex(/^[a-f0-9]{64}$/),
     acceptWarnings: z.boolean(),
+    snapshot: z
+        .custom<PublishSnapshot>((value) =>
+            Boolean(value && typeof value === 'object' && 'book' in value && 'pages' in value),
+        )
+        .optional(),
 });
 
 export function createPublishHandler(storage: PublishStorage, viewerOrigin: string): JobHandler {
@@ -37,12 +47,17 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
                 'PUBLISH_REQUEST_EXPIRED',
                 'Yêu cầu xuất bản cũ không có snapshot. Hãy gửi lại từ API mới.',
             );
-        const snapshot = await readPublishSnapshot(pool, ctx.job.created_by, ctx.job.ref_id);
+        const snapshot =
+            payload.data.snapshot ??
+            (await readPublishSnapshot(pool, ctx.job.created_by, ctx.job.ref_id));
         if (!snapshot || snapshotHash(snapshot) !== payload.data.snapshotHash)
             throw new JobError(
                 'PUBLISH_STALE',
                 'Sách đã thay đổi từ lúc bấm xuất bản. Hãy gửi yêu cầu mới.',
             );
+        if (snapshot.book.id !== ctx.job.ref_id || snapshot.book.owner_id !== ctx.job.created_by)
+            throw new JobError('INVALID_REFERENCE', 'Dữ liệu xuất bản không khớp sách và tác giả.');
+        await assertPublicationAvailable(pool, snapshot);
         ctx.signal.throwIfAborted();
         try {
             assertPublishable(snapshot, payload.data.acceptWarnings);
@@ -125,6 +140,7 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
             'image/svg+xml',
         );
         const used = new Set(snapshot.pages.flatMap((p) => [p.image_asset_id]));
+        if (snapshot.book.cover_asset_id) used.add(snapshot.book.cover_asset_id);
         for (const id of Object.keys(manifest.assets)) used.add(id);
         const assetBytes = snapshot.assets
             .filter((a) => used.has(a.id))

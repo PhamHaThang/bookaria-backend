@@ -282,7 +282,10 @@ export const assetsRepository = {
     },
     async isAssetInPublishedVersion(db: Queryable, assetId: string): Promise<boolean> {
         const { rows } = await db.query<{ used: boolean }>(
-            'SELECT EXISTS (SELECT 1 FROM version_assets WHERE asset_id = $1) AS used',
+            `SELECT (EXISTS (SELECT 1 FROM version_assets WHERE asset_id = $1) OR EXISTS (
+                SELECT 1 FROM jobs j WHERE j.type='PUBLISH_BOOK' AND j.status IN ('QUEUED','RUNNING')
+                AND j.payload->'snapshot'->'assets' @> jsonb_build_array(jsonb_build_object('id',$1::text))
+            )) AS used`,
             [assetId],
         );
         return rows[0]?.used ?? false;

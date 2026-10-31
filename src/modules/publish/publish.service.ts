@@ -6,6 +6,7 @@ import {
     ERROR_MESSAGES,
     findSceneReferenceIssues,
     getSceneWarnings,
+    type ListBookVersionsQuery,
     MARKER_RULES,
     MarkerReportSchema,
     MB,
@@ -23,7 +24,7 @@ import { booksRepository } from '../books/books.repository';
 import { toSummary } from '../books/books.service';
 import { viewerLink } from './publish.link';
 import { publishRepository } from './publish.repository';
-import { readPublishSnapshot, snapshotHash } from './publish.snapshot';
+import { publicationContentHash, readPublishSnapshot, snapshotHash } from './publish.snapshot';
 import type { CheckAsset, CheckInput, PublishableBook } from './publish.types';
 
 export const LARGE_DOWNLOAD_BYTES = 50 * MB;
@@ -63,7 +64,23 @@ export const publishService = {
     async publishCheck(userId: string, bookId: string) {
         const book = await publishRepository.findBookForPublishing(pool, userId, bookId);
         if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy sách');
-        return PublishCheckSchema.parse(await this.checkBookForPublishing(pool, book));
+        const check = await this.checkBookForPublishing(pool, book);
+        const snapshot = await readPublishSnapshot(pool, userId, bookId);
+        const previous = await pool.query<{ snapshot: import('./publish.types').PublishSnapshot }>(
+            `SELECT j.payload->'snapshot' AS snapshot FROM jobs j JOIN books b ON b.id=j.ref_id
+             JOIN book_versions v ON v.id=b.current_version_id
+             WHERE j.ref_id=$1 AND j.type='PUBLISH_BOOK' AND j.status='SUCCEEDED'
+             AND j.result->>'versionNo'=v.version_no::text ORDER BY j.finished_at DESC LIMIT 1`,
+            [bookId],
+        );
+        const published = previous.rows[0]?.snapshot;
+        return PublishCheckSchema.parse({
+            ...check,
+            hasChanges:
+                !snapshot ||
+                !published ||
+                publicationContentHash(snapshot) !== publicationContentHash(published),
+        });
     },
     // Thực hiện xuất bản sách, tạo job xuất bản và trả về jobId
     async publishBook(userId: string, bookId: string, body: PublishBody) {
@@ -101,17 +118,18 @@ export const publishService = {
                 jobId: await publishRepository.insertPublishJob(db, bookId, userId, {
                     visibility,
                     snapshotHash: snapshotHash(snapshot),
+                    snapshot,
                     acceptWarnings: body.acceptWarnings,
                 }),
             };
         });
     },
     // Lấy danh sách các phiên bản đã xuất bản của sách, newest version first
-    async getBookVersions(userId: string, bookId: string) {
+    async getBookVersions(userId: string, bookId: string, query: ListBookVersionsQuery) {
         const book = await publishRepository.findBookForPublishing(pool, userId, bookId);
         if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy sách');
-        const versions = await publishRepository.getBookVersions(pool, bookId);
-        return versions.map((v) =>
+        const versions = await publishRepository.getBookVersions(pool, bookId, query);
+        const items = versions.slice(0, query.limit).map((v) =>
             VersionSchema.parse({
                 id: v.id,
                 versionNo: v.version_no,
@@ -124,6 +142,10 @@ export const publishService = {
                     : null,
             }),
         );
+        return {
+            items,
+            nextCursor: versions.length > query.limit ? (items.at(-1)?.versionNo ?? null) : null,
+        };
     },
     // Chuyển sách về trạng thái Private, link và mã QR vẫn giữ nguyên slug và hiển thị thông báo "Không khả dụng" cho đến khi sách được xuất bản lại.
     async unpublishBook(userId: string, bookId: string) {
