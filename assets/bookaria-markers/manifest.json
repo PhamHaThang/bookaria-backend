@@ -1,0 +1,630 @@
+{
+    "version": 1,
+    "name": "Bookaria approved-layout marker set",
+    "count": 20,
+    "expectedCount": 20,
+    "creation": "Approved master plus individual built-in image_gen edits",
+    "compiler": "MindAR 1.2.5",
+    "registrationStatus": "Not uploaded or activated; physical camera review required",
+    "markers": [
+        {
+            "id": "BKA-001",
+            "number": 1,
+            "image": "png/BKA-001.png",
+            "mind": "mind/BKA-001.mind",
+            "sha256": "33aa86100acf3577b09a8d87d2470c9e0f8def050846bcef8d0598f89e44b8a3",
+            "markerScore": 5,
+            "quality": {
+                "features": 867,
+                "coverage": 1,
+                "cells": [37, 71, 91, 100, 38, 46, 29, 68, 69, 56, 33, 46, 13, 68, 78, 24],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 221526,
+            "mindSha256": "c263d09732e4dafb757ad614fbfaea96e85311803e2b9bcc579ae15308b71a5c",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-002",
+            "number": 2,
+            "image": "png/BKA-002.png",
+            "mind": "mind/BKA-002.mind",
+            "sha256": "524eea2bc28c67b7d10054295123ee3696410dd4bc22c5843a6d63078f82a53a",
+            "markerScore": 5,
+            "quality": {
+                "features": 893,
+                "coverage": 1,
+                "cells": [42, 77, 80, 51, 49, 32, 24, 84, 145, 44, 18, 38, 58, 75, 41, 35],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 271699,
+            "mindSha256": "3e43e7a4dc1d50d7cb082ff4a9a07516eab299aead6ca304e8b277e1a790976a",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-003",
+            "number": 3,
+            "image": "png/BKA-003.png",
+            "mind": "mind/BKA-003.mind",
+            "sha256": "8621c81e44c6d72a3cf08eb24984c6fad3d7a5cfdb8163f66c988dec6e79f942",
+            "markerScore": 5,
+            "quality": {
+                "features": 869,
+                "coverage": 1,
+                "cells": [39, 62, 73, 63, 52, 21, 45, 86, 103, 54, 24, 32, 44, 94, 42, 35],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 282681,
+            "mindSha256": "dc882f224d785f54be654a7226bb01b4e8175b00ccd8b1471a97215b9198c1a8",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-004",
+            "number": 4,
+            "image": "png/BKA-004.png",
+            "mind": "mind/BKA-004.mind",
+            "sha256": "addb44142fb611dfc482a19971cd98d9f37dada923fb44f7abd6f8806bfe6d94",
+            "markerScore": 5,
+            "quality": {
+                "features": 914,
+                "coverage": 1,
+                "cells": [26, 66, 48, 55, 49, 52, 26, 50, 128, 13, 93, 64, 21, 83, 90, 50],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 309154,
+            "mindSha256": "0b3616536a9c8df275fe6c7c7c7b410c50a32db407fe4627f067cfd9b1165c63",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-005",
+            "number": 5,
+            "image": "png/BKA-005.png",
+            "mind": "mind/BKA-005.mind",
+            "sha256": "d20db15db105390da76ae6481f73c3da1d36c53dcddc54a135cb3a57b440327e",
+            "markerScore": 5,
+            "quality": {
+                "features": 859,
+                "coverage": 1,
+                "cells": [42, 104, 54, 5, 71, 60, 39, 43, 79, 31, 27, 112, 17, 104, 26, 45],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 324579,
+            "mindSha256": "726ec83f2d45c3fac5081756d15a3f138eb3b72c14eeb0c21152b6aaf6d1f000",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-006",
+            "number": 6,
+            "image": "png/BKA-006.png",
+            "mind": "mind/BKA-006.mind",
+            "sha256": "6595b322202c53c489e5362bd5c913a8981187407cad9635be584fcd8930ead8",
+            "markerScore": 5,
+            "quality": {
+                "features": 881,
+                "coverage": 1,
+                "cells": [46, 47, 59, 95, 74, 13, 60, 76, 73, 49, 29, 47, 28, 42, 90, 53],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 361831,
+            "mindSha256": "32bf03e5bdc3c5529e911ccee87d9a95137ca067b812523caa4e33ce647b436a",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-007",
+            "number": 7,
+            "image": "png/BKA-007.png",
+            "mind": "mind/BKA-007.mind",
+            "sha256": "5ae68e39f10a2c6700a9b7fa41e5438cdad1251824242e3aba3a499e37eae75b",
+            "markerScore": 5,
+            "quality": {
+                "features": 748,
+                "coverage": 0.9375,
+                "cells": [68, 63, 82, 0, 55, 21, 52, 28, 65, 14, 35, 65, 21, 85, 45, 49],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 305090,
+            "mindSha256": "cf9cb5b151678ee38d81c4dfc117286188d59868096cfac79a68940037799675",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-008",
+            "number": 8,
+            "image": "png/BKA-008.png",
+            "mind": "mind/BKA-008.mind",
+            "sha256": "2d9834ced275b90179f38b9241ce49663fe9d59f196b9e05e13640f97c586081",
+            "markerScore": 5,
+            "quality": {
+                "features": 858,
+                "coverage": 1,
+                "cells": [28, 49, 89, 75, 32, 32, 27, 133, 91, 40, 42, 49, 11, 26, 111, 23],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 335268,
+            "mindSha256": "007d4acce1c3348f9968f017ae5b4b75b40254d0dea59b265b0205650ff84e3e",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-009",
+            "number": 9,
+            "image": "png/BKA-009.png",
+            "mind": "mind/BKA-009.mind",
+            "sha256": "ff25592e7c348622a21b225de454df90d87d3273d72ca9a9a8f91ed424797fd7",
+            "markerScore": 5,
+            "quality": {
+                "features": 899,
+                "coverage": 1,
+                "cells": [34, 116, 37, 83, 34, 13, 8, 50, 165, 34, 46, 60, 34, 53, 100, 32],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 302624,
+            "mindSha256": "791e03c69aebb962ef635efa8444a26da92c59817e7a9fa6e5c352de0043f90b",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-010",
+            "number": 10,
+            "image": "png/BKA-010.png",
+            "mind": "mind/BKA-010.mind",
+            "sha256": "61a3e3aa13742cab844646f1b64d24a2d0161e45961f9da7bd60fbd74746b5a3",
+            "markerScore": 5,
+            "quality": {
+                "features": 903,
+                "coverage": 1,
+                "cells": [26, 100, 42, 75, 43, 41, 52, 67, 139, 33, 8, 40, 22, 73, 64, 78],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 281999,
+            "mindSha256": "89b540060e915cd8bb5c2256636192bd7abfdc1d623fb2037b007b11e3776b0d",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-011",
+            "number": 11,
+            "image": "png/BKA-011.png",
+            "mind": "mind/BKA-011.mind",
+            "sha256": "c59980d39e34ff69287fa85430664e284d6b0ac30eb50bd37e8007713931a302",
+            "markerScore": 5,
+            "quality": {
+                "features": 826,
+                "coverage": 1,
+                "cells": [36, 56, 114, 40, 40, 28, 30, 59, 72, 20, 29, 136, 22, 28, 49, 67],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 326554,
+            "mindSha256": "05740bc4c3462cc3b752aa5fb70d1e47dd6572161fb21c5762abaf355b637554",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-012",
+            "number": 12,
+            "image": "png/BKA-012.png",
+            "mind": "mind/BKA-012.mind",
+            "sha256": "750e8b8f432dad64ea208e91c61d5a055c15faa104677c99bbdb113ebef952de",
+            "markerScore": 5,
+            "quality": {
+                "features": 833,
+                "coverage": 1,
+                "cells": [52, 94, 58, 67, 58, 30, 28, 104, 94, 49, 24, 26, 27, 61, 35, 26],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 278368,
+            "mindSha256": "3bad819f2f4f21f9c3cb4e16563beff3afb84ce0043d1a213088dc9f85da42c0",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-013",
+            "number": 13,
+            "image": "png/BKA-013.png",
+            "mind": "mind/BKA-013.mind",
+            "sha256": "e1dde540f6d6edc9ab7967ffce5c2e104ffb52170377b1dcfc56baecef7291d5",
+            "markerScore": 5,
+            "quality": {
+                "features": 807,
+                "coverage": 1,
+                "cells": [38, 79, 66, 2, 131, 21, 36, 64, 72, 54, 19, 51, 32, 47, 71, 24],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 289908,
+            "mindSha256": "dbc2d32f032ea5690d598b6a359ce4a0c1c02911399ad9a9e8b3e758413ea864",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-014",
+            "number": 14,
+            "image": "png/BKA-014.png",
+            "mind": "mind/BKA-014.mind",
+            "sha256": "bbee8c8ea877ddca1ba3f9258b1a0b7a1d2f1698967a2bfcfb9986b2e541e41a",
+            "markerScore": 5,
+            "quality": {
+                "features": 805,
+                "coverage": 1,
+                "cells": [39, 52, 83, 2, 64, 61, 44, 18, 131, 63, 29, 26, 52, 70, 14, 57],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 309812,
+            "mindSha256": "dc0922cef4a663d75b0834ca1445eee128aa1ae016f72a2f3db091018d024c87",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-015",
+            "number": 15,
+            "image": "png/BKA-015.png",
+            "mind": "mind/BKA-015.mind",
+            "sha256": "eab51d5fe2dadd03a700a4bf2a3c05540d42b3ddfd6ffaacb3ca166fa870d47a",
+            "markerScore": 5,
+            "quality": {
+                "features": 826,
+                "coverage": 1,
+                "cells": [24, 42, 13, 104, 24, 16, 34, 71, 107, 69, 26, 106, 29, 98, 48, 15],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 314217,
+            "mindSha256": "ad74d2d7836fee5bea4dfc2bf77ad5e3ccd8e87e61b0f05a9da0413de958c9be",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-016",
+            "number": 16,
+            "image": "png/BKA-016.png",
+            "mind": "mind/BKA-016.mind",
+            "sha256": "70d838713d042bfc5398c77a0f1302ca50a3f513f0d460fcc317a5c2f803b775",
+            "markerScore": 5,
+            "quality": {
+                "features": 845,
+                "coverage": 1,
+                "cells": [38, 69, 54, 63, 77, 17, 13, 27, 180, 37, 27, 38, 15, 51, 29, 110],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 343612,
+            "mindSha256": "cae99f98722895a94f9fa744c74fee1cb93af511ac4c66feb38700beb05ab102",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-017",
+            "number": 17,
+            "image": "png/BKA-017.png",
+            "mind": "mind/BKA-017.mind",
+            "sha256": "46e48dd98ffbc377f924e95bdbd4dd97fa6a20efcd91f72908f2311cc4414f61",
+            "markerScore": 5,
+            "quality": {
+                "features": 826,
+                "coverage": 1,
+                "cells": [31, 51, 64, 7, 92, 33, 27, 99, 79, 76, 25, 37, 31, 56, 97, 21],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 317576,
+            "mindSha256": "1f6568ae8adb3cc43f994723a7391c0c8c79195b487e4187843a7feb7f9cab8b",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-018",
+            "number": 18,
+            "image": "png/BKA-018.png",
+            "mind": "mind/BKA-018.mind",
+            "sha256": "284be5eeb6cc72ec900406cbf2fc61dafded8183645c296b02206714400bf769",
+            "markerScore": 5,
+            "quality": {
+                "features": 828,
+                "coverage": 1,
+                "cells": [30, 50, 53, 9, 70, 29, 10, 35, 157, 47, 22, 42, 50, 79, 109, 36],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 327953,
+            "mindSha256": "863c29c5e32c03d4ba3e987535f9b397d0995f92ecddab763bf50b9ed7fc871f",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-019",
+            "number": 19,
+            "image": "png/BKA-019.png",
+            "mind": "mind/BKA-019.mind",
+            "sha256": "1a6cdd9cbd38b61c42aacd366de50ee574593247bd9f63ab77049ba758012ee0",
+            "markerScore": 5,
+            "quality": {
+                "features": 837,
+                "coverage": 1,
+                "cells": [33, 66, 46, 54, 46, 54, 25, 29, 70, 62, 27, 69, 28, 43, 85, 100],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 324609,
+            "mindSha256": "4ccaf297387cf94b25578eae8eec1671ada864c4e3c50bf816ec3d7e9f591a53",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        },
+        {
+            "id": "BKA-020",
+            "number": 20,
+            "image": "png/BKA-020.png",
+            "mind": "mind/BKA-020.mind",
+            "sha256": "202b854f37fd161aaed0e4436a5c461fa475185c08637fb58639b34861484d56",
+            "markerScore": 5,
+            "quality": {
+                "features": 882,
+                "coverage": 1,
+                "cells": [46, 63, 56, 15, 57, 88, 32, 38, 173, 26, 95, 79, 5, 49, 36, 24],
+                "policyVersion": "orb-4.12-grid-v1-provisional"
+            },
+            "isActive": false,
+            "cameraValidated": false,
+            "mindBytes": 312434,
+            "mindSha256": "99a01b3af4b736cab19f5109f802fa1183ab00b85274a08664a3e1fdc16da2aa",
+            "compiler": {
+                "name": "MindAR",
+                "version": "1.2.5",
+                "formatVersion": 2,
+                "targets": 1,
+                "width": 1024,
+                "height": 1024,
+                "matchingProfile": "exclude-shared-branding-and-freak-v1",
+                "tracking": "full image"
+            },
+            "width": 1254,
+            "height": 1254
+        }
+    ],
+    "matchingProfile": {
+        "name": "exclude-shared-branding-and-freak-v1",
+        "sourceCanvas": {
+            "width": 1024,
+            "height": 1024
+        },
+        "excludeRects": [
+            [320, 390, 380, 220],
+            [908, 0, 116, 1024],
+            [0, 0, 90, 500],
+            [100, 20, 110, 135],
+            [0, 900, 250, 124]
+        ],
+        "tracking": "Full artwork. Shared branding excluded only from matchingData; shared FREAK descriptors (Hamming <= 96) removed and cluster indices rebuilt."
+    },
+    "validation": {
+        "syntheticPassed": true,
+        "physicalCameraTested": false
+    }
+}

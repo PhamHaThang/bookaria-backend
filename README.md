@@ -29,6 +29,29 @@ pnpm dev                 # API:    http://localhost:4000/api/v1/health
 pnpm dev:worker          # Worker (hoặc đặt RUN_WORKER_IN_PROCESS=true để chạy chung API)
 ```
 
+## Khởi tạo dữ liệu
+
+Chạy trong thư mục backend sau khi cấu hình `.env` và bật Postgres:
+
+```bash
+pnpm db:migrate
+pnpm db:seed                # Tạo admin nếu chưa có
+pnpm db:seed:markers --dry-run  # Kiểm tra bộ marker, không upload/ghi DB
+pnpm db:seed:markers        # Tải tệp còn thiếu và đăng ký marker
+```
+
+Bộ 20 marker đi kèm nằm ở `assets/bookaria-markers/`: `png/` chứa ảnh gốc,
+`mind/` chứa nhận diện đã biên dịch và `manifest.json` lưu checksum/điểm từng mẫu.
+Seed giữ nguyên cặp ảnh/nhận diện, không biên dịch lại trên backend.
+
+Seed marker dùng `DATABASE_URL` và `CLOUDINARY_URL` trong `.env`. Tệp đã có trên
+Cloudinary với cùng Public ID sẽ không được upload lại; marker đã có trong DB
+được giữ nguyên, kể cả trạng thái bật/tắt. Marker mới mặc định **bật** và có thể được cấp cho trang mới.
+Có thể bật/tắt từng marker trong **Quản trị → Bộ marker Bookaria**.
+
+Để dùng bộ khác, truyền thư mục chứa `manifest.json` vào `pnpm db:seed:markers "<thư mục>"`
+hoặc đặt `BOOKARIA_MARKER_DIR` trong `.env`. Tham số thư mục được ưu tiên hơn biến môi trường.
+
 ## Kiểm tra trước khi push
 ```bash
 pnpm check               # biome + typecheck + test
