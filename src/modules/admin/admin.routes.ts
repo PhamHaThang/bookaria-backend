@@ -28,6 +28,8 @@ export const adminRouter = () => {
         }),
         adminController.testMarker,
     );
+    router.post('/bookaria-markers/upload-signature', adminController.prepareMarkerUpload);
+    router.post('/bookaria-markers/register', adminController.importMarker);
     router.get('/bookaria-markers', adminController.getBookariaMarkers);
     router.post('/bookaria-markers', adminController.createBookariaMarker);
     router.patch('/bookaria-markers/:markerId', adminController.updateBookariaMarker);

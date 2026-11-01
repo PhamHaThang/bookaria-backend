@@ -282,12 +282,13 @@ export const adminRepository = {
             mindPublicId: string;
             seed: number;
             markerScore: number | null;
+            isActive?: boolean;
         },
     ): Promise<BookariaMarkerRow> {
         const { rows } = await db.query<BookariaMarkerRow>(
             `INSERT INTO bookaria_markers
-                (number, image_public_id, mind_public_id, seed, marker_score, validated_at)
-             VALUES ($1, $2, $3, $4, $5, now())
+                (number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active)
+             VALUES ($1, $2, $3, $4, $5, now(), $6)
              RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
                        marker_score, is_active`,
             [
@@ -296,6 +297,7 @@ export const adminRepository = {
                 marker.mindPublicId,
                 marker.seed,
                 marker.markerScore,
+                marker.isActive ?? true,
             ],
         );
         return rows[0] as BookariaMarkerRow;

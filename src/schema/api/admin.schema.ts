@@ -29,6 +29,7 @@ import {
     UserStatusSchema,
 } from '../enums.schema';
 import { MarkerScoreSchema } from '../marker.schema';
+import { UploadSignatureSchema } from './assets.schema';
 import { EmailSchema, NewPasswordSchema } from './auth.schema';
 
 // --- Dashboard -----------------------------------------------------------------------------------
@@ -209,6 +210,33 @@ export const UpdateCategoryBodySchema = z
 export type UpdateCategoryBody = z.infer<typeof UpdateCategoryBodySchema>;
 
 // --- Bookaria marker set -------------------------------------------------------------------------
+export const MarkerUploadBodySchema = z.object({
+    imageFormat: z.enum(['png', 'jpg', 'webp']),
+    imageBytes: z
+        .int()
+        .min(1)
+        .max(10 * 1024 * 1024),
+    mindBytes: z
+        .int()
+        .min(1)
+        .max(5 * 1024 * 1024),
+});
+export type MarkerUploadBody = z.infer<typeof MarkerUploadBodySchema>;
+const markerUploadSignature = UploadSignatureSchema.omit({ assetId: true });
+export const MarkerUploadResultSchema = z.object({
+    imagePublicId: z.string(),
+    mindPublicId: z.string(),
+    image: markerUploadSignature,
+    mind: markerUploadSignature,
+});
+export type MarkerUploadResult = z.infer<typeof MarkerUploadResultSchema>;
+export const ImportBookariaMarkerBodySchema = z.object({
+    imagePublicId: z.string().min(1).max(300),
+    mindPublicId: z.string().min(1).max(300),
+    isActive: z.boolean().default(false),
+});
+export type ImportBookariaMarkerBody = z.infer<typeof ImportBookariaMarkerBodySchema>;
+
 /** Adds a pre-built marker to the shared set. */
 export const CreateBookariaMarkerBodySchema = z.object({
     number: z.int().positive(),

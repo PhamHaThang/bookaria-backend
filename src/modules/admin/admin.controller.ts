@@ -11,7 +11,9 @@ import {
     CreateCategoryBodySchema,
     CreateLibraryAssetBodySchema,
     IdSchema,
+    ImportBookariaMarkerBodySchema,
     LibraryAssetsQuerySchema,
+    MarkerUploadBodySchema,
     ModerationNoteBodySchema,
     PaginationQuerySchema,
     TakedownBodySchema,
@@ -22,8 +24,22 @@ import {
 import { AppError, asyncHandler } from '../../utils';
 import { adminService } from './admin.service';
 import { testMarkerImage } from './marker-test';
+import { importUploadedMarker, prepareMarkerUpload } from './marker-upload';
 
 export const adminController = {
+    prepareMarkerUpload: asyncHandler(async (req: Request, res: Response) => {
+        res.setHeader('Cache-Control', 'no-store');
+        res.json({
+            data: prepareMarkerUpload(getAuth(res), MarkerUploadBodySchema.parse(req.body)),
+        });
+    }),
+    importMarker: asyncHandler(async (req: Request, res: Response) => {
+        const marker = await importUploadedMarker(
+            getAuth(res),
+            ImportBookariaMarkerBodySchema.parse(req.body),
+        );
+        res.status(201).json({ data: marker });
+    }),
     testMarker: asyncHandler(async (req: Request, res: Response) => {
         if (!Buffer.isBuffer(req.body))
             throw new AppError('FILE_TYPE_NOT_ALLOWED', 'Chọn ảnh JPG, PNG hoặc WebP.');
