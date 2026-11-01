@@ -1,7 +1,11 @@
 import { decodePDFRawStream, PDFArray, PDFDict, PDFDocument, PDFName, PDFRawStream } from 'pdf-lib';
 import sharp from 'sharp';
 import { describe, expect, it, vi } from 'vitest';
-import { defaultMarkerTransform } from '../../../schema';
+import {
+    defaultMarkerTransform,
+    layoutMarkerStickerSheets,
+    MARKER_STICKER_SHEET,
+} from '../../../schema';
 import { markerRect, mm, overlaps, qrRect, validatePrintLayout } from '../layout';
 import { type RenderInput, renderPrintPdf } from '../render';
 import { readFont, sampleImages, sampleSource } from './fixtures';
@@ -185,5 +189,95 @@ describe('physical print layout and PDF', () => {
         args.download = vi.fn(args.download);
         await expect(renderPrintPdf(args)).rejects.toThrow();
         expect(args.download).not.toHaveBeenCalled();
+    });
+});
+
+describe('cut-out marker sheets', () => {
+    it('packs twenty 45 mm markers onto three A4 sheets, preserving order and real size', () => {
+        const sheets = layoutMarkerStickerSheets(
+            Array.from({ length: 20 }, (_, i) => ({
+                pageId: String(i),
+                pageNumber: i + 1,
+                markerNumber: i + 1,
+                sizeMm: 45,
+            })),
+        );
+        expect(sheets.map((s) => s.items.length)).toEqual([9, 9, 2]);
+        expect(sheets.flatMap((s) => s.items.map((i) => i.pageNumber))).toEqual(
+            Array.from({ length: 20 }, (_, i) => i + 1),
+        );
+        for (const sheet of sheets)
+            for (const item of sheet.items) {
+                expect(item.sizeMm).toBe(45);
+                expect(item.imageXMm - item.xMm).toBeGreaterThanOrEqual(4);
+                expect(item.yMm + item.heightMm).toBeLessThanOrEqual(
+                    MARKER_STICKER_SHEET.contentBottomMm,
+                );
+                for (const other of sheet.items)
+                    if (item !== other)
+                        expect(
+                            overlaps(
+                                {
+                                    x: item.xMm,
+                                    y: item.yMm,
+                                    width: item.widthMm,
+                                    height: item.heightMm,
+                                },
+                                {
+                                    x: other.xMm,
+                                    y: other.yMm,
+                                    width: other.widthMm,
+                                    height: other.heightMm,
+                                },
+                            ),
+                        ).toBe(false);
+            }
+    });
+    it('keeps variable sizes without resizing and puts large stickers on their own sheet', () => {
+        const sizes = [35, 45, 40, 150, 45];
+        const sheets = layoutMarkerStickerSheets(
+            sizes.map((sizeMm, i) => ({
+                pageId: String(i),
+                pageNumber: i + 1,
+                markerNumber: i + 1,
+                sizeMm,
+            })),
+        );
+        expect(sheets.flatMap((s) => s.items.map((i) => i.sizeMm))).toEqual(sizes);
+        for (const sizeMm of [0, 34, 151, Number.NaN])
+            expect(() =>
+                layoutMarkerStickerSheets([
+                    { pageId: 'p', pageNumber: 1, markerNumber: 1, sizeMm },
+                ]),
+            ).toThrow();
+        expect(layoutMarkerStickerSheets([])).toEqual([]);
+    });
+    it('exports packed sheets using only marker images and includes the book QR on every sheet', async () => {
+        const args = await input();
+        args.request.kind = 'MARKER_SHEET';
+        const first = required(args.source.pages[0]);
+        args.source.pages = Array.from({ length: 20 }, (_, i) => ({
+            ...first,
+            pageId: `00000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`,
+        }));
+        args.download = vi.fn(args.download);
+        const pdf = await PDFDocument.load(await renderPrintPdf(args));
+        expect(pdf.getPageCount()).toBe(3);
+        expect(args.download).toHaveBeenCalledTimes(1);
+        for (const page of pdf.getPages()) {
+            const content = pdf.context
+                .lookup(page.node.Contents(), PDFArray)
+                .asArray()
+                .map((ref) => {
+                    const stream = pdf.context.lookup(ref);
+                    if (!(stream instanceof PDFRawStream)) throw new Error('Missing content');
+                    return Buffer.from(decodePDFRawStream(stream).decode()).toString();
+                })
+                .join('');
+            // The QR is drawn as hundreds of vector modules, not fetched from storage.
+            expect(content.match(/\nf\n/g)?.length ?? 0).toBeGreaterThan(200);
+            expect(page.getWidth()).toBeCloseTo(mm(210));
+            expect(page.getHeight()).toBeCloseTo(mm(297));
+        }
     });
 });

@@ -167,3 +167,70 @@ export function markerToMm(t: MarkerTransform, page: PageGeometry) {
         sizeMm: t.size * width,
     };
 }
+
+/** A4 cut-out sheets. All coordinates use millimetres from the top-left. */
+export const MARKER_STICKER_SHEET = {
+    widthMm: 210,
+    heightMm: 297,
+    marginMm: 14,
+    gapMm: 6,
+    contentTopMm: 68,
+    contentBottomMm: 274,
+    paddingMm: 4,
+    cutMarginMm: 1,
+    labelHeightMm: 11,
+    qr: { xMm: 158, yMm: 14, sizeMm: 34 },
+    qrFrame: { xMm: 157, yMm: 13, widthMm: 36, heightMm: 36 },
+} as const;
+export type MarkerStickerItem = {
+    pageId: string;
+    pageNumber: number;
+    markerNumber: number;
+    sizeMm: number;
+};
+export function layoutMarkerStickerSheets<T extends MarkerStickerItem>(markers: readonly T[]) {
+    type Item = T & {
+        xMm: number;
+        yMm: number;
+        widthMm: number;
+        heightMm: number;
+        imageXMm: number;
+        imageYMm: number;
+    };
+    const sheets: { items: Item[] }[] = [];
+    const c = MARKER_STICKER_SHEET;
+    let x = c.marginMm,
+        y: number = c.contentTopMm,
+        rowHeight = 0;
+    for (const marker of markers) {
+        if (!Number.isFinite(marker.sizeMm) || marker.sizeMm < 35 - 0.03 || marker.sizeMm > 150)
+            throw new RangeError(
+                'Tờ tem hỗ trợ marker có cạnh từ 35 đến 150 mm. Không tự co giãn marker.',
+            );
+        const width = Math.max(54, marker.sizeMm + 2 * c.paddingMm);
+        const height = marker.sizeMm + 2 * c.paddingMm + c.labelHeightMm;
+        if (x + width > c.widthMm - c.marginMm) {
+            x = c.marginMm;
+            y += rowHeight + c.gapMm;
+            rowHeight = 0;
+        }
+        if (!sheets.length || y + height > c.contentBottomMm) {
+            sheets.push({ items: [] });
+            x = c.marginMm;
+            y = c.contentTopMm;
+            rowHeight = 0;
+        }
+        sheets[sheets.length - 1]?.items.push({
+            ...marker,
+            xMm: x,
+            yMm: y,
+            widthMm: width,
+            heightMm: height,
+            imageXMm: x + (width - marker.sizeMm) / 2,
+            imageYMm: y + c.paddingMm,
+        });
+        x += width + c.gapMm;
+        rowHeight = Math.max(rowHeight, height);
+    }
+    return sheets;
+}

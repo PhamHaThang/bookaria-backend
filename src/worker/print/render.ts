@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import sharp from 'sharp';
 import { JobError } from '../../modules/jobs/jobs.types';
 import type { PrintFile, PrintSource } from '../../modules/print/print.source';
-import type { PrintPdfBody } from '../../schema';
+import { layoutMarkerStickerSheets, MARKER_STICKER_SHEET, type PrintPdfBody } from '../../schema';
 import { MAX_OUTPUT_BYTES } from '../publish/mind';
 import { coverQrRect, markerRect, mm, qrRect, type Rect, validatePrintLayout } from './layout';
 import { MAX_IMAGE_BYTES } from './storage';
@@ -41,25 +41,6 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
                     'Tiêu đề có ký tự ngoài font in; dùng ký tự được Noto Sans hỗ trợ.',
                 );
         page.drawText(value.normalize('NFC'), { x: mm(x), y: mm(y), size, font, color });
-    }
-    function title(
-        page: PDFPage,
-        value: string,
-        x: number,
-        top: number,
-        width: number,
-        size: number,
-        maxLines = 3,
-    ) {
-        const lines = wrap(value, font, size, mm(width));
-        if (lines.length > maxLines)
-            throw new JobError(
-                'PRINT_TITLE_SIZE',
-                'Tiêu đề quá dài cho bố cục in; rút ngắn tiêu đề rồi xuất bản lại.',
-            );
-        lines.forEach((line, index) => {
-            text(page, line, x, top - (index * size * 1.35 * 25.4) / 72, size);
-        });
     }
     function rect(page: PDFPage, box: Rect, color = rgb(1, 1, 1)) {
         page.drawRectangle({
@@ -160,6 +141,7 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
         }
         return pending;
     }
+    const printMarkers = new Map<string, Promise<Buffer>>();
     async function drawImage(page: PDFPage, file: PrintFile, box: Rect, square = false) {
         const value = await image(file);
         if (
@@ -172,7 +154,22 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
                     ? 'Ảnh marker phải vuông.'
                     : 'Tỷ lệ ảnh trang không khớp khổ sách; không tự crop hoặc kéo méo ảnh nhận diện.',
             );
-        const embedded = await doc.embedPng(value.png);
+        let bytes = value.png;
+        if (square) {
+            // Keep the physical size unchanged; 300 dpi avoids embedding oversized source artwork.
+            const pixels = Math.ceil((box.width / 25.4) * 300);
+            const key = `${JSON.stringify(file)}:${pixels}`;
+            let pending = printMarkers.get(key);
+            if (!pending) {
+                pending = sharp(value.png)
+                    .resize({ width: pixels, withoutEnlargement: true })
+                    .png({ compressionLevel: 9, adaptiveFiltering: true })
+                    .toBuffer();
+                printMarkers.set(key, pending);
+            }
+            bytes = await pending;
+        }
+        const embedded = await doc.embedPng(bytes);
         page.drawImage(embedded, {
             x: mm(box.x),
             y: mm(box.y),
@@ -242,82 +239,122 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
             await input.progress?.(10 + Math.round((75 * (index + 1)) / source.pages.length));
         }
     } else {
-        for (const [index, p] of source.pages.entries()) {
-            if (p.marker.mode !== 'BOOKARIA_MARKER') continue;
+        const c = MARKER_STICKER_SHEET;
+        const sheets = layoutMarkerStickerSheets(
+            source.pages.flatMap((p, index) => {
+                if (p.marker.mode !== 'BOOKARIA_MARKER') return [];
+                return [
+                    {
+                        pageId: p.pageId,
+                        pageNumber: index + 1,
+                        markerNumber: p.marker.number,
+                        sizeMm: (markerRect(source, p) as Rect).width,
+                        image: p.marker.image,
+                    },
+                ];
+            }),
+        );
+        const cut = (page: PDFPage, x: number, top: number, width: number, height: number) => {
+            page.drawRectangle({
+                x: mm(x),
+                y: mm(c.heightMm - top - height),
+                width: mm(width),
+                height: mm(height),
+                borderColor: rgb(0.66, 0.66, 0.66),
+                borderWidth: 0.5,
+                borderDashArray: [mm(1.2), mm(1)],
+            });
+        };
+        for (const [sheetIndex, sheet] of sheets.entries()) {
             signal.throwIfAborted();
-            const page = doc.addPage([mm(210), mm(297)]),
-                marker = markerRect(source, p) as Rect;
-            text(page, 'BOOKARIA / TỜ TEM MARKER', 18, 279, 16);
-            title(page, source.title, 18, 267, 174, 11, 2);
+            const page = doc.addPage([mm(c.widthMm), mm(c.heightMm)]);
+            // Vector Bookaria symbol; keep the print header sharp at any resolution.
+            for (const x of [18, 26]) {
+                for (const [radius, color] of [
+                    [3.6, black],
+                    [2.8, rgb(1, 1, 1)],
+                    [0.95, black],
+                ] as const)
+                    page.drawEllipse({
+                        x: mm(x),
+                        y: mm(c.heightMm - 19.5),
+                        xScale: mm(radius),
+                        yScale: mm(radius),
+                        color,
+                    });
+            }
+            text(page, 'Bookaria', 34, c.heightMm - 22, 18);
+            const titleLines = wrap(source.title, font, 12, mm(130));
+            for (const [i, value] of titleLines.slice(0, 2).entries()) {
+                let line = value;
+                if (i === 1 && titleLines.length > 2) {
+                    while (line && font.widthOfTextAtSize(`${line}…`, 12) > mm(130))
+                        line = line.slice(0, -1);
+                    line += '…';
+                }
+                text(page, line, 14, c.heightMm - 37 - i * 5.5, 12);
+            }
             text(
                 page,
-                `Trang ${index + 1}  |  Marker #${p.marker.number}  |  Phiên bản ${input.versionNo}`,
-                18,
-                251,
-                11,
-            );
-            text(
-                page,
-                `Cạnh ảnh marker: ${marker.width.toFixed(2)} mm. In 100%, không Fit to page.`,
-                18,
-                241,
-                10,
+                'Cắt theo nét đứt. Dán QR lên bìa, marker vào trang tương ứng.',
+                14,
+                c.heightMm - 55,
+                8.5,
                 grey,
             );
-            await drawImage(
-                page,
-                p.marker.image,
-                { x: 18, y: 230 - marker.height, width: marker.width, height: marker.height },
-                true,
-            );
-            text(page, 'SƠ ĐỒ DÁN (THU NHỎ)', 18, 69, 10);
-            const scale = Math.min(56 / source.widthMm, 42 / source.heightMm),
-                diagram = {
-                    x: 18,
-                    y: 20,
-                    width: source.widthMm * scale,
-                    height: source.heightMm * scale,
-                };
-            page.drawRectangle({
-                x: mm(diagram.x),
-                y: mm(diagram.y),
-                width: mm(diagram.width),
-                height: mm(diagram.height),
-                borderColor: grey,
-                borderWidth: 0.6,
+            cut(page, c.qrFrame.xMm, c.qrFrame.yMm, c.qrFrame.widthMm, c.qrFrame.heightMm);
+            qr(page, {
+                x: c.qr.xMm,
+                y: c.heightMm - c.qr.yMm - c.qr.sizeMm,
+                width: c.qr.sizeMm,
+                height: c.qr.sizeMm,
             });
-            rect(
-                page,
-                {
-                    x: diagram.x + marker.x * scale,
-                    y: diagram.y + marker.y * scale,
-                    width: marker.width * scale,
-                    height: marker.height * scale,
-                },
-                rgb(0.2, 0.2, 0.2),
-            );
-            text(page, `Mép trái: ${marker.x.toFixed(2)} mm`, 84, 55, 10);
-            text(
-                page,
-                `Mép trên: ${(source.heightMm - marker.y - marker.height).toFixed(2)} mm`,
-                84,
-                47,
-                10,
-            );
-            text(
-                page,
-                `Khổ trang: ${source.widthMm.toFixed(2)} x ${source.heightMm.toFixed(2)} mm`,
-                84,
-                39,
-                10,
-            );
-            line(page, 130, 16, 180, 16);
-            line(page, 130, 14, 130, 18);
-            line(page, 180, 14, 180, 18);
-            text(page, 'Đo đoạn này: 50 mm', 130, 9, 9);
-            await input.progress?.(10 + Math.round((75 * (index + 1)) / source.pages.length));
+            const centered = (value: string, top: number, size: number, center: number) =>
+                text(
+                    page,
+                    value,
+                    center - font.widthOfTextAtSize(value, size) / mm(2),
+                    c.heightMm - top,
+                    size,
+                );
+            centered('Quét để mở sách', 53, 8, 175);
+            centered('Dán lên bìa sách', 58, 7, 175);
+            for (const item of sheet.items) {
+                cut(
+                    page,
+                    item.imageXMm - c.cutMarginMm,
+                    item.imageYMm - c.cutMarginMm,
+                    item.sizeMm + 2 * c.cutMarginMm,
+                    item.sizeMm + 2 * c.cutMarginMm,
+                );
+                await drawImage(
+                    page,
+                    item.image,
+                    {
+                        x: item.imageXMm,
+                        y: c.heightMm - item.imageYMm - item.sizeMm,
+                        width: item.sizeMm,
+                        height: item.sizeMm,
+                    },
+                    true,
+                );
+                const center = item.xMm + item.widthMm / 2;
+                centered(`Trang ${item.pageNumber}`, item.imageYMm + item.sizeMm + 5, 8.5, center);
+                centered(
+                    `Cạnh ${Number(item.sizeMm.toFixed(1))} mm`,
+                    item.imageYMm + item.sizeMm + 9,
+                    7.5,
+                    center,
+                );
+            }
+            line(page, 14, 17, 196, 17);
+            text(page, 'In 100% / Actual size. Không chọn Fit to page.', 14, 10, 8, grey);
+            const footer = `Phiên bản ${input.versionNo} | Tờ ${sheetIndex + 1}/${sheets.length}`;
+            text(page, footer, 196 - font.widthOfTextAtSize(footer, 8) / mm(1), 10, 8, grey);
+            await input.progress?.(10 + Math.round((75 * (sheetIndex + 1)) / sheets.length));
         }
     }
+
     signal.throwIfAborted();
     const bytes = Buffer.from(await doc.save());
     if (bytes.length > MAX_OUTPUT_BYTES)
