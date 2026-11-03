@@ -17,6 +17,8 @@ export function publicOrigin(origin: string): URL {
     return base;
 }
 
-export function viewerLink(origin: string, slug: string): string {
-    return new URL(`/b/${encodeURIComponent(slug)}`, publicOrigin(origin)).toString();
+export function viewerLink(origin: string, slug: string, mode?: 'ar'): string {
+    const url = new URL(`/b/${encodeURIComponent(slug)}`, publicOrigin(origin));
+    if (mode === 'ar') url.searchParams.set('mode', 'ar');
+    return url.toString();
 }

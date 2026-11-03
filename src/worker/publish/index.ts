@@ -72,6 +72,7 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
         }
         const slug = snapshot.book.slug ?? generateBookSlug(snapshot.book.title);
         const url = viewerLink(viewerOrigin, slug);
+        const qrUrl = viewerLink(viewerOrigin, slug, 'ar');
         const prefix = `bookaria/published/${snapshot.book.id}/v${snapshot.version}/${ctx.job.id}-${ctx.job.attempts}`;
         const groups: ManifestGroup[] = [],
             storedGroups: PublishedFiles['groups'] = [];
@@ -129,13 +130,13 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
         await ctx.setProgress(80);
         await upload(
             'qr.png',
-            await QRCode.toBuffer(url, { width: 512, margin: 4, errorCorrectionLevel: 'M' }),
+            await QRCode.toBuffer(qrUrl, { width: 512, margin: 4, errorCorrectionLevel: 'M' }),
             'image/png',
         );
         await upload(
             'qr.svg',
             Buffer.from(
-                await QRCode.toString(url, { type: 'svg', margin: 4, errorCorrectionLevel: 'M' }),
+                await QRCode.toString(qrUrl, { type: 'svg', margin: 4, errorCorrectionLevel: 'M' }),
             ),
             'image/svg+xml',
         );

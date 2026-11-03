@@ -35,7 +35,7 @@ export function createExportPdfHandler(
             source: version.source,
             request: payload.request,
             versionNo: version.version_no,
-            url: viewerLink(viewerOrigin, version.slug),
+            url: viewerLink(viewerOrigin, version.slug, 'ar'),
             fontBytes,
             signal: ctx.signal,
             download: storage.download,
