@@ -3,11 +3,17 @@ import { IdSchema } from '../common.schema';
 import { PageSchema, PageSummarySchema } from '../dto.schema';
 import { PageFormatSchema } from '../enums.schema';
 import { PageWidthMmSchema } from '../marker.schema';
-import { PageSettingsSchema, SceneSchema, SceneWarningSchema } from '../scene.schema';
+import {
+    PageSettingsSchema,
+    SceneSchema,
+    SceneWarningSchema,
+    WorkflowVariablesSchema,
+} from '../scene.schema';
 
 const draftId = IdSchema.transform((id) => id.toLowerCase());
 export const BookDraftSnapshotSchema = z.object({
     bookId: IdSchema,
+    workflowVariables: WorkflowVariablesSchema.optional(),
     revision: z.string().regex(/^[a-f0-9]{64}$/),
     geometry: z.object({
         pageFormat: PageFormatSchema,
@@ -37,6 +43,7 @@ export type BookDraftPageChange = z.infer<typeof BookDraftPageChangeSchema>;
 export const SaveBookDraftBodySchema = z
     .object({
         revision: BookDraftSnapshotSchema.shape.revision,
+        workflowVariables: WorkflowVariablesSchema.optional(),
         order: z.array(draftId).max(1000),
         changes: z.array(BookDraftPageChangeSchema).max(1000),
     })

@@ -81,12 +81,63 @@ export const pagesService = {
             const byId = new Map(rows.map((row) => [row.id, row]));
             if (snapshot.revision !== body.revision) {
                 // A lost response can safely retry the same client-generated ids and content.
-                if (!(await draftAlreadyApplied(db, rows, body)))
+                if (!(await draftAlreadyApplied(db, rows, body, book)))
                     throw new AppError(
                         'REVISION_CONFLICT',
                         'Sách đã thay đổi ở nơi khác. Bản nháp của bạn vẫn được giữ.',
                     );
                 return draftSaveResult(db, snapshot, body.changes, [], book);
+            }
+            const definitions = body.workflowVariables ?? book.workflow_variables ?? [];
+            const removed = (book.workflow_variables || []).filter(
+                (old) =>
+                    body.workflowVariables && !definitions.some((next) => next.key === old.key),
+            );
+            // Registry edits must also check unchanged pages; scene edits check new pages too.
+            const prospectiveScenes: Scene[] = [];
+            if (body.workflowVariables) {
+                for (const id of body.order) {
+                    const changed = body.changes.find((change) => change.id === id)?.scene;
+                    if (changed) prospectiveScenes.push(changed);
+                    else if (byId.has(id))
+                        prospectiveScenes.push(
+                            SceneSchema.parse((await pagesRepository.loadScene(db, id))?.scene),
+                        );
+                }
+            } else {
+                prospectiveScenes.push(
+                    ...body.changes.flatMap((change) => (change.scene ? [change.scene] : [])),
+                );
+            }
+            for (const scene of prospectiveScenes) {
+                for (const action of scene.interactions.flatMap((rule) => rule.actions)) {
+                    const key =
+                        action.type === 'setState'
+                            ? action.key
+                            : action.type === 'condition' && action.test.type === 'variable'
+                              ? action.test.key
+                              : null;
+                    if (removed.some((item) => item.key === key))
+                        throw fieldError(
+                            'workflowVariables',
+                            'Thông tin đang được dùng trong luồng. Hãy sửa các bước sử dụng trước khi xóa.',
+                        );
+                    const def = definitions.find((item) => item.key === key);
+                    if (
+                        def &&
+                        ((action.type === 'setState' &&
+                            (typeof action.value !== def.type ||
+                                (action.operation === 'increment' && def.type !== 'number') ||
+                                (action.operation === 'toggle' && def.type !== 'boolean'))) ||
+                            (action.type === 'condition' &&
+                                action.test.type === 'variable' &&
+                                typeof action.test.value !== def.type))
+                    )
+                        throw fieldError(
+                            'workflowVariables',
+                            `Thông tin “${def.name}” đang được sử dụng với loại dữ liệu khác.`,
+                        );
+                }
             }
             const changes = new Map(body.changes.map((page) => [page.id, page]));
             const newIds = body.order.filter((id) => !byId.has(id));
@@ -194,6 +245,13 @@ export const pagesService = {
                 }
             }
             if (body.order.length) await pagesRepository.reorderPages(db, body.order);
+            if (body.workflowVariables) {
+                await db.query('UPDATE books SET workflow_variables=$2::jsonb WHERE id=$1', [
+                    bookId,
+                    JSON.stringify(body.workflowVariables),
+                ]);
+                book.workflow_variables = body.workflowVariables;
+            }
             await pagesRepository.updateBookUpdatedAt(db, bookId);
             const saved = draftSnapshot(bookId, book, await pagesRepository.getPages(db, bookId));
             return draftSaveResult(db, saved, body.changes, jobs, book);
@@ -845,12 +903,27 @@ function draftSnapshot(bookId: string, book: EditableBook, rows: PageRow[]) {
     return BookDraftSnapshotSchema.parse({
         bookId,
         geometry,
-        revision: createHash('sha256').update(canonical({ geometry, authored })).digest('hex'),
+        workflowVariables: book.workflow_variables || [],
+        revision: createHash('sha256')
+            .update(
+                canonical({ geometry, authored, workflowVariables: book.workflow_variables || [] }),
+            )
+            .digest('hex'),
         pages: rows.map(toPageSummary),
         pageRevisions: Object.fromEntries(rows.map((row) => [row.id, row.revision])),
     });
 }
-async function draftAlreadyApplied(db: Queryable, rows: PageRow[], body: SaveBookDraftBody) {
+async function draftAlreadyApplied(
+    db: Queryable,
+    rows: PageRow[],
+    body: SaveBookDraftBody,
+    book: EditableBook,
+) {
+    if (
+        body.workflowVariables &&
+        canonical(body.workflowVariables) !== canonical(book.workflow_variables || [])
+    )
+        return false;
     if (
         rows.length !== body.order.length ||
         rows.some((row, index) => row.id !== body.order[index])

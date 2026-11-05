@@ -77,6 +77,112 @@ suite('whole-book draft commits', () => {
         other = await account();
     });
     afterAll(() => setMediaStorage(undefined));
+    it('commits book memory with scenes, preserves identity on rename, and protects used definitions', async () => {
+        const { bookId, ids, image, base } = await fixture();
+        const definition = {
+            key: 'state_mission',
+            name: 'Đã tìm khủng long',
+            type: 'boolean',
+            initialValue: false,
+        };
+        const scene = SceneSchema.parse({
+            schemaVersion: 1,
+            objects: [],
+            interactions: [
+                {
+                    id: 'memory-flow',
+                    trigger: { type: 'onPageEnter' },
+                    actions: [
+                        { type: 'setState', key: definition.key, operation: 'set', value: true },
+                    ],
+                },
+            ],
+        });
+        const newId = randomUUID();
+        const body = {
+            revision: base.revision,
+            order: [...ids, newId],
+            workflowVariables: [definition],
+            changes: [{ id: newId, imageAssetId: image, scene }],
+        };
+        const saved = await commit(bookId, body);
+        expect(saved.status).toBe(200);
+        expect(saved.body.data.snapshot.workflowVariables).toEqual([definition]);
+        expect((await commit(bookId, body)).status).toBe(200);
+        expect(
+            (await request(app).get(`/api/v1/books/${bookId}`).set(headers(owner.token))).body.data
+                .workflowVariables,
+        ).toEqual([definition]);
+        const renamed = { ...definition, name: 'Đã khám phá' };
+        const rename = await commit(bookId, {
+            revision: saved.body.data.snapshot.revision,
+            order: body.order,
+            workflowVariables: [renamed],
+            changes: [],
+        });
+        expect(rename.status).toBe(200);
+        const revision = rename.body.data.snapshot.revision;
+        expect(
+            (
+                await commit(bookId, {
+                    revision,
+                    order: body.order,
+                    changes: [],
+                    workflowVariables: [],
+                })
+            ).status,
+        ).toBe(400);
+        expect(
+            (
+                await commit(bookId, {
+                    revision,
+                    order: body.order,
+                    changes: [],
+                    workflowVariables: [{ ...renamed, type: 'number', initialValue: 0 }],
+                })
+            ).status,
+        ).toBe(400);
+        expect(
+            (
+                await commit(bookId, {
+                    revision,
+                    order: body.order,
+                    changes: [
+                        {
+                            id: newId,
+                            scene: SceneSchema.parse({
+                                ...scene,
+                                interactions: [
+                                    {
+                                        ...scene.interactions[0],
+                                        actions: [
+                                            {
+                                                type: 'setState',
+                                                key: definition.key,
+                                                operation: 'increment',
+                                                value: 5,
+                                            },
+                                        ],
+                                    },
+                                ],
+                            }),
+                        },
+                    ],
+                })
+            ).status,
+        ).toBe(400);
+        expect((await snapshot(bookId)).body.data.workflowVariables).toEqual([renamed]);
+        expect(
+            (
+                await commit(bookId, {
+                    revision,
+                    order: body.order,
+                    changes: [{ id: newId, scene: empty }],
+                    workflowVariables: [],
+                })
+            ).status,
+        ).toBe(200);
+    });
     it('commits creation, deletion, title, settings, scene and order in one transaction; retries do not duplicate', async () => {
         const { bookId, ids, image, base } = await fixture(),
             newId = randomUUID(),

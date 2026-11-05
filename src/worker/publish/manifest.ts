@@ -188,6 +188,7 @@ export function makeManifest(
         bookId: book.id,
         version: snapshot.version,
         title: book.title,
+        workflowVariables: book.workflow_variables || [],
         trackerEngine: 'mindar',
         generatedAt,
         targetGroups: groups,

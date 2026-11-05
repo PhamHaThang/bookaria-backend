@@ -31,7 +31,7 @@ import {
     MarkerWarningSchema,
     PageWidthMmSchema,
 } from './marker.schema';
-import { PageSettingsSchema, SceneSchema } from './scene.schema';
+import { PageSettingsSchema, SceneSchema, WorkflowVariablesSchema } from './scene.schema';
 
 export const UserRefSchema = z.object({
     id: z.string(),
@@ -100,6 +100,7 @@ export const CurrentVersionRefSchema = z.object({
     publishedAt: IsoDateTimeSchema,
 });
 export const BookDetailSchema = BookSummarySchema.extend({
+    workflowVariables: WorkflowVariablesSchema.optional(),
     description: z.string().nullable(),
     ageMin: z.int().min(0).nullable(),
     ageMax: z.int().min(0).nullable(),

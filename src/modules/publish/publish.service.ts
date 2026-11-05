@@ -297,6 +297,20 @@ export function buildPublishCheck(input: CheckInput): PublishCheck {
             continue;
         }
 
+        for (const rule of scene.data.interactions)
+            for (const action of rule.actions) {
+                if (
+                    action.type === 'navigate' &&
+                    action.navigation.target === 'page' &&
+                    !pageIds.has(action.navigation.pageId || '')
+                )
+                    errors.push({
+                        code: 'INTERACTION_INVALID',
+                        interactionId: rule.id,
+                        message: `${label}: luồng trỏ đến trang đã bị xóa.`,
+                        ...here,
+                    });
+            }
         for (const issue of findSceneReferenceIssues(scene.data)) {
             errors.push({
                 code: 'INTERACTION_INVALID',

@@ -135,6 +135,7 @@ export function publicationContentHash(snapshot: PublishSnapshot): string {
                 'topic',
                 'age_min',
                 'age_max',
+                'workflow_variables',
             ].map((key) => [key, b[key]]),
         ),
     } as unknown as PublishSnapshot);

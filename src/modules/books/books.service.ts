@@ -58,6 +58,7 @@ export const booksService = {
         return BookDetailSchema.parse({
             ...toSummary(book),
             description: book.description,
+            workflowVariables: book.workflow_variables,
             ageMin: book.age_min,
             ageMax: book.age_max,
             language: book.language,

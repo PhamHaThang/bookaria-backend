@@ -2670,6 +2670,107 @@
                                                     "type": "string",
                                                     "format": "uuid"
                                                 },
+                                                "workflowVariables": {
+                                                    "maxItems": 200,
+                                                    "type": "array",
+                                                    "items": {
+                                                        "oneOf": [
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 64,
+                                                                        "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 100
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string",
+                                                                        "enum": ["number"]
+                                                                    },
+                                                                    "initialValue": {
+                                                                        "type": "number",
+                                                                        "minimum": -1000000000,
+                                                                        "maximum": 1000000000
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "name",
+                                                                    "type",
+                                                                    "initialValue"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 64,
+                                                                        "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 100
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string",
+                                                                        "enum": ["boolean"]
+                                                                    },
+                                                                    "initialValue": {
+                                                                        "type": "boolean"
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "name",
+                                                                    "type",
+                                                                    "initialValue"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            },
+                                                            {
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "key": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 64,
+                                                                        "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                    },
+                                                                    "name": {
+                                                                        "type": "string",
+                                                                        "minLength": 1,
+                                                                        "maxLength": 100
+                                                                    },
+                                                                    "type": {
+                                                                        "type": "string",
+                                                                        "enum": ["string"]
+                                                                    },
+                                                                    "initialValue": {
+                                                                        "type": "string",
+                                                                        "maxLength": 500
+                                                                    }
+                                                                },
+                                                                "required": [
+                                                                    "key",
+                                                                    "name",
+                                                                    "type",
+                                                                    "initialValue"
+                                                                ],
+                                                                "additionalProperties": false
+                                                            }
+                                                        ]
+                                                    }
+                                                },
                                                 "revision": {
                                                     "type": "string",
                                                     "pattern": "^[a-f0-9]{64}$"
@@ -2878,6 +2979,104 @@
                                         "type": "string",
                                         "pattern": "^[a-f0-9]{64}$"
                                     },
+                                    "workflowVariables": {
+                                        "maxItems": 200,
+                                        "type": "array",
+                                        "items": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "key": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 64,
+                                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 100
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": ["number"]
+                                                        },
+                                                        "initialValue": {
+                                                            "type": "number",
+                                                            "minimum": -1000000000,
+                                                            "maximum": 1000000000
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "key",
+                                                        "name",
+                                                        "type",
+                                                        "initialValue"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "key": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 64,
+                                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 100
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": ["boolean"]
+                                                        },
+                                                        "initialValue": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "key",
+                                                        "name",
+                                                        "type",
+                                                        "initialValue"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "key": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 64,
+                                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                        },
+                                                        "name": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 100
+                                                        },
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": ["string"]
+                                                        },
+                                                        "initialValue": {
+                                                            "type": "string",
+                                                            "maxLength": 500
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "key",
+                                                        "name",
+                                                        "type",
+                                                        "initialValue"
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    },
                                     "order": {
                                         "maxItems": 1000,
                                         "type": "array",
@@ -2951,6 +3150,107 @@
                                                         "bookId": {
                                                             "type": "string",
                                                             "format": "uuid"
+                                                        },
+                                                        "workflowVariables": {
+                                                            "maxItems": 200,
+                                                            "type": "array",
+                                                            "items": {
+                                                                "oneOf": [
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "key": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 64,
+                                                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                            },
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 100
+                                                                            },
+                                                                            "type": {
+                                                                                "type": "string",
+                                                                                "enum": ["number"]
+                                                                            },
+                                                                            "initialValue": {
+                                                                                "type": "number",
+                                                                                "minimum": -1000000000,
+                                                                                "maximum": 1000000000
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "key",
+                                                                            "name",
+                                                                            "type",
+                                                                            "initialValue"
+                                                                        ],
+                                                                        "additionalProperties": false
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "key": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 64,
+                                                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                            },
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 100
+                                                                            },
+                                                                            "type": {
+                                                                                "type": "string",
+                                                                                "enum": ["boolean"]
+                                                                            },
+                                                                            "initialValue": {
+                                                                                "type": "boolean"
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "key",
+                                                                            "name",
+                                                                            "type",
+                                                                            "initialValue"
+                                                                        ],
+                                                                        "additionalProperties": false
+                                                                    },
+                                                                    {
+                                                                        "type": "object",
+                                                                        "properties": {
+                                                                            "key": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 64,
+                                                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                                                            },
+                                                                            "name": {
+                                                                                "type": "string",
+                                                                                "minLength": 1,
+                                                                                "maxLength": 100
+                                                                            },
+                                                                            "type": {
+                                                                                "type": "string",
+                                                                                "enum": ["string"]
+                                                                            },
+                                                                            "initialValue": {
+                                                                                "type": "string",
+                                                                                "maxLength": 500
+                                                                            }
+                                                                        },
+                                                                        "required": [
+                                                                            "key",
+                                                                            "name",
+                                                                            "type",
+                                                                            "initialValue"
+                                                                        ],
+                                                                        "additionalProperties": false
+                                                                    }
+                                                                ]
+                                                            }
                                                         },
                                                         "revision": {
                                                             "type": "string",
@@ -17609,6 +17909,457 @@
                 }
             }
         },
+        "/admin/bookaria-markers/upload-signature": {
+            "post": {
+                "operationId": "postAdminMarkerUploadSignature",
+                "tags": ["admin"],
+                "summary": "Chuẩn bị tải cặp ảnh và nhận diện marker",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "imageFormat": {
+                                        "type": "string",
+                                        "enum": ["png", "jpg", "webp"]
+                                    },
+                                    "imageBytes": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 10485760
+                                    },
+                                    "mindBytes": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "maximum": 5242880
+                                    }
+                                },
+                                "required": ["imageFormat", "imageBytes", "mindBytes"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "imagePublicId": {
+                                                    "type": "string"
+                                                },
+                                                "mindPublicId": {
+                                                    "type": "string"
+                                                },
+                                                "image": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "uploadUrl": {
+                                                            "type": "string",
+                                                            "format": "uri"
+                                                        },
+                                                        "fields": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "api_key": {
+                                                                    "type": "string"
+                                                                },
+                                                                "public_id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "timestamp": {
+                                                                    "type": "integer",
+                                                                    "minimum": -9007199254740991,
+                                                                    "maximum": 9007199254740991
+                                                                },
+                                                                "signature": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "api_key",
+                                                                "public_id",
+                                                                "timestamp",
+                                                                "signature"
+                                                            ],
+                                                            "additionalProperties": {}
+                                                        },
+                                                        "expiresAt": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "uploadUrl",
+                                                        "fields",
+                                                        "expiresAt"
+                                                    ],
+                                                    "additionalProperties": false
+                                                },
+                                                "mind": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "uploadUrl": {
+                                                            "type": "string",
+                                                            "format": "uri"
+                                                        },
+                                                        "fields": {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "api_key": {
+                                                                    "type": "string"
+                                                                },
+                                                                "public_id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "timestamp": {
+                                                                    "type": "integer",
+                                                                    "minimum": -9007199254740991,
+                                                                    "maximum": 9007199254740991
+                                                                },
+                                                                "signature": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "api_key",
+                                                                "public_id",
+                                                                "timestamp",
+                                                                "signature"
+                                                            ],
+                                                            "additionalProperties": {}
+                                                        },
+                                                        "expiresAt": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "uploadUrl",
+                                                        "fields",
+                                                        "expiresAt"
+                                                    ],
+                                                    "additionalProperties": false
+                                                }
+                                            },
+                                            "required": [
+                                                "imagePublicId",
+                                                "mindPublicId",
+                                                "image",
+                                                "mind"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/bookaria-markers/register": {
+            "post": {
+                "operationId": "postAdminMarkerImport",
+                "tags": ["admin"],
+                "summary": "Đăng ký cặp marker đã tải và tự cấp số",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "imagePublicId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 300
+                                    },
+                                    "mindPublicId": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 300
+                                    },
+                                    "isActive": {
+                                        "default": false,
+                                        "type": "boolean"
+                                    }
+                                },
+                                "required": ["imagePublicId", "mindPublicId"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Đã tạo",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookariaMarker"
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/admin/bookaria-markers/{markerId}": {
             "patch": {
                 "operationId": "patchAdminBookariaMarkersByMarkerId",
@@ -19478,10 +20229,6 @@
                                 "default": false,
                                 "type": "boolean"
                             },
-                            "editorHidden": {
-                                "default": false,
-                                "type": "boolean"
-                            },
                             "groupId": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -19522,7 +20269,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "assetId"
                         ],
@@ -19622,10 +20368,6 @@
                                 "default": false,
                                 "type": "boolean"
                             },
-                            "editorHidden": {
-                                "default": false,
-                                "type": "boolean"
-                            },
                             "groupId": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -19652,7 +20394,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "assetId",
                             "opacity"
@@ -19750,10 +20491,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -20106,7 +20843,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "text",
                             "style"
@@ -20207,10 +20943,6 @@
                                 "default": false,
                                 "type": "boolean"
                             },
-                            "editorHidden": {
-                                "default": false,
-                                "type": "boolean"
-                            },
                             "groupId": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -20249,7 +20981,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "assetId",
                             "autoplay",
@@ -20338,7 +21069,7 @@
                                 "additionalProperties": false
                             },
                             "visible": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "billboard": {
@@ -20350,10 +21081,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -20395,7 +21122,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "assetId",
                             "autoplay",
@@ -20498,10 +21224,6 @@
                                 "default": false,
                                 "type": "boolean"
                             },
-                            "editorHidden": {
-                                "default": false,
-                                "type": "boolean"
-                            },
                             "groupId": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -20542,7 +21264,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "size",
                             "showHint"
@@ -20640,10 +21361,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -21015,7 +21732,6 @@
                             "billboard",
                             "snapToPaper",
                             "locked",
-                            "editorHidden",
                             "type",
                             "text",
                             "style",
@@ -21078,6 +21794,67 @@
                                 },
                                 "required": ["type", "objectId"],
                                 "additionalProperties": false
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onMarkerFound"]
+                                    }
+                                },
+                                "required": ["type"],
+                                "additionalProperties": false
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onMarkerLost"]
+                                    }
+                                },
+                                "required": ["type"],
+                                "additionalProperties": false
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onAnimationEnd"]
+                                    },
+                                    "objectId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "clip": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    }
+                                },
+                                "required": ["type", "objectId"],
+                                "additionalProperties": false
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onAnswer"]
+                                    },
+                                    "questionId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "answer": {
+                                        "default": "any",
+                                        "type": "string",
+                                        "enum": ["any", "correct", "incorrect"]
+                                    }
+                                },
+                                "required": ["type", "questionId", "answer"],
+                                "additionalProperties": false
                             }
                         ]
                     },
@@ -21093,6 +21870,68 @@
                         "default": "ignore",
                         "type": "string",
                         "enum": ["ignore", "restart"]
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "type": "number",
+                                "enum": [1]
+                            },
+                            "edges": {
+                                "minItems": 1,
+                                "maxItems": 40,
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                        },
+                                        "target": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                        },
+                                        "port": {
+                                            "default": "next",
+                                            "type": "string",
+                                            "enum": ["next", "true", "false"]
+                                        }
+                                    },
+                                    "required": ["source", "target", "port"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        },
+                        "required": ["version", "edges"],
+                        "additionalProperties": false
+                    },
+                    "editorLayout": {
+                        "minItems": 1,
+                        "maxItems": 21,
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                },
+                                "x": {
+                                    "type": "number",
+                                    "minimum": -100000,
+                                    "maximum": 100000
+                                },
+                                "y": {
+                                    "type": "number",
+                                    "minimum": -100000,
+                                    "maximum": 100000
+                                }
+                            },
+                            "required": ["id", "x", "y"],
+                            "additionalProperties": false
+                        }
                     }
                 },
                 "required": ["id", "enabled", "trigger", "actions", "onRetrigger"],
@@ -21279,6 +22118,258 @@
                             }
                         },
                         "required": ["type", "url", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["condition"]
+                            },
+                            "test": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["answer"]
+                                            },
+                                            "questionId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "result": {
+                                                "type": "string",
+                                                "enum": ["correct", "incorrect"]
+                                            }
+                                        },
+                                        "required": ["type", "questionId", "result"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["interactionCount"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "min": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "min"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["visible"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "value": {
+                                                "type": "boolean"
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "value"],
+                                        "additionalProperties": false
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "test", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["setState"]
+                            },
+                            "key": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                            },
+                            "operation": {
+                                "type": "string",
+                                "enum": ["set", "increment", "toggle"]
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "boolean"
+                                    },
+                                    {
+                                        "type": "number",
+                                        "minimum": -1000000000,
+                                        "maximum": 1000000000
+                                    },
+                                    {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "key", "operation", "value", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["askQuestion"]
+                            },
+                            "question": {
+                                "type": "object",
+                                "properties": {
+                                    "questionId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 500
+                                    },
+                                    "choices": {
+                                        "minItems": 2,
+                                        "maxItems": 6,
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                                },
+                                                "text": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 200
+                                                }
+                                            },
+                                            "required": ["id", "text"],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "correctChoiceId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    }
+                                },
+                                "required": ["questionId", "title", "choices", "correctChoiceId"],
+                                "additionalProperties": false
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "question", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["navigate"]
+                            },
+                            "navigation": {
+                                "type": "object",
+                                "properties": {
+                                    "target": {
+                                        "type": "string",
+                                        "enum": ["page", "next", "previous", "end"]
+                                    },
+                                    "pageId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                },
+                                "required": ["target"],
+                                "additionalProperties": false
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "navigation", "delayMsSchema"],
                         "additionalProperties": false
                     },
                     {
@@ -21523,6 +22614,92 @@
                         "type": "string",
                         "format": "date-time",
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                    },
+                    "workflowVariables": {
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["number"]
+                                        },
+                                        "initialValue": {
+                                            "type": "number",
+                                            "minimum": -1000000000,
+                                            "maximum": 1000000000
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["boolean"]
+                                        },
+                                        "initialValue": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["string"]
+                                        },
+                                        "initialValue": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                }
+                            ]
+                        }
                     },
                     "description": {
                         "nullable": true,
@@ -21920,6 +23097,92 @@
                     "bookId": {
                         "type": "string",
                         "format": "uuid"
+                    },
+                    "workflowVariables": {
+                        "maxItems": 200,
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["number"]
+                                        },
+                                        "initialValue": {
+                                            "type": "number",
+                                            "minimum": -1000000000,
+                                            "maximum": 1000000000
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["boolean"]
+                                        },
+                                        "initialValue": {
+                                            "type": "boolean"
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "key": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 64,
+                                            "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                        },
+                                        "name": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 100
+                                        },
+                                        "type": {
+                                            "type": "string",
+                                            "enum": ["string"]
+                                        },
+                                        "initialValue": {
+                                            "type": "string",
+                                            "maxLength": 500
+                                        }
+                                    },
+                                    "required": ["key", "name", "type", "initialValue"],
+                                    "additionalProperties": false
+                                }
+                            ]
+                        }
                     },
                     "version": {
                         "type": "integer",
@@ -22495,6 +23758,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -22584,10 +23850,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -22628,6 +23890,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -22717,10 +23982,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -22748,6 +24009,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -22837,10 +24101,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -23179,6 +24439,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -23268,10 +24531,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -23311,6 +24570,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -23388,7 +24650,7 @@
                                 }
                             },
                             "visible": {
-                                "default": true,
+                                "default": false,
                                 "type": "boolean"
                             },
                             "billboard": {
@@ -23400,10 +24662,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -23443,6 +24701,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -23532,10 +24793,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -23577,6 +24834,9 @@
                     {
                         "type": "object",
                         "properties": {
+                            "editorHidden": {
+                                "type": "boolean"
+                            },
                             "id": {
                                 "type": "string",
                                 "pattern": "^[A-Za-z0-9_-]{1,50}$"
@@ -23666,10 +24926,6 @@
                                 "type": "boolean"
                             },
                             "locked": {
-                                "default": false,
-                                "type": "boolean"
-                            },
-                            "editorHidden": {
                                 "default": false,
                                 "type": "boolean"
                             },
@@ -24076,6 +25332,63 @@
                                     }
                                 },
                                 "required": ["type", "objectId"]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onMarkerFound"]
+                                    }
+                                },
+                                "required": ["type"]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onMarkerLost"]
+                                    }
+                                },
+                                "required": ["type"]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onAnimationEnd"]
+                                    },
+                                    "objectId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "clip": {
+                                        "type": "string",
+                                        "maxLength": 100
+                                    }
+                                },
+                                "required": ["type", "objectId"]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["onAnswer"]
+                                    },
+                                    "questionId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "answer": {
+                                        "default": "any",
+                                        "type": "string",
+                                        "enum": ["any", "correct", "incorrect"]
+                                    }
+                                },
+                                "required": ["type", "questionId"]
                             }
                         ]
                     },
@@ -24091,6 +25404,65 @@
                         "default": "ignore",
                         "type": "string",
                         "enum": ["ignore", "restart"]
+                    },
+                    "workflow": {
+                        "type": "object",
+                        "properties": {
+                            "version": {
+                                "type": "number",
+                                "enum": [1]
+                            },
+                            "edges": {
+                                "minItems": 1,
+                                "maxItems": 40,
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                        },
+                                        "target": {
+                                            "type": "string",
+                                            "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                        },
+                                        "port": {
+                                            "default": "next",
+                                            "type": "string",
+                                            "enum": ["next", "true", "false"]
+                                        }
+                                    },
+                                    "required": ["source", "target"]
+                                }
+                            }
+                        },
+                        "required": ["version", "edges"]
+                    },
+                    "editorLayout": {
+                        "minItems": 1,
+                        "maxItems": 21,
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string",
+                                    "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                },
+                                "x": {
+                                    "type": "number",
+                                    "minimum": -100000,
+                                    "maximum": 100000
+                                },
+                                "y": {
+                                    "type": "number",
+                                    "minimum": -100000,
+                                    "maximum": 100000
+                                }
+                            },
+                            "required": ["id", "x", "y"]
+                        }
                     }
                 },
                 "required": ["id", "trigger", "actions"]
@@ -24270,6 +25642,247 @@
                             }
                         },
                         "required": ["type", "url"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["condition"]
+                            },
+                            "test": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["answer"]
+                                            },
+                                            "questionId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "result": {
+                                                "type": "string",
+                                                "enum": ["correct", "incorrect"]
+                                            }
+                                        },
+                                        "required": ["type", "questionId", "result"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["interactionCount"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "min": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "min"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["visible"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "value": {
+                                                "type": "boolean"
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "value"]
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "test"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["setState"]
+                            },
+                            "key": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 64,
+                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                            },
+                            "operation": {
+                                "type": "string",
+                                "enum": ["set", "increment", "toggle"]
+                            },
+                            "value": {
+                                "anyOf": [
+                                    {
+                                        "type": "boolean"
+                                    },
+                                    {
+                                        "type": "number",
+                                        "minimum": -1000000000,
+                                        "maximum": 1000000000
+                                    },
+                                    {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "key", "operation", "value"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["askQuestion"]
+                            },
+                            "question": {
+                                "type": "object",
+                                "properties": {
+                                    "questionId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    },
+                                    "title": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 500
+                                    },
+                                    "choices": {
+                                        "minItems": 2,
+                                        "maxItems": 6,
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                                },
+                                                "text": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 200
+                                                }
+                                            },
+                                            "required": ["id", "text"]
+                                        }
+                                    },
+                                    "correctChoiceId": {
+                                        "type": "string",
+                                        "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                    }
+                                },
+                                "required": ["questionId", "title", "choices", "correctChoiceId"]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "question"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["navigate"]
+                            },
+                            "navigation": {
+                                "type": "object",
+                                "properties": {
+                                    "target": {
+                                        "type": "string",
+                                        "enum": ["page", "next", "previous", "end"]
+                                    },
+                                    "pageId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
+                                    "message": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                },
+                                "required": ["target"]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "navigation"]
                     },
                     {
                         "type": "object",

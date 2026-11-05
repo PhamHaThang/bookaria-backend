@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createCloudinaryStorage } from '../../../lib/cloudinary';
 import { capturePrintSource } from '../../../modules/print/print.source';
+import { publicationContentHash } from '../../../modules/publish/publish.snapshot';
 import type { PublishSnapshot } from '../../../modules/publish/publish.types';
 import { makeManifest } from '../manifest';
 
@@ -39,6 +40,21 @@ function snapshot(): PublishSnapshot {
     } as unknown as PublishSnapshot;
 }
 describe('one-source publication and frozen print geometry', () => {
+    it('freezes memory defaults in the manifest and detects changes before republishing', () => {
+        const source = snapshot(),
+            previous = publicationContentHash(source);
+        source.book.workflow_variables = [
+            { key: 'score', name: 'Điểm khám phá', type: 'number', initialValue: 10 },
+        ];
+        const manifest = makeManifest(
+            source,
+            [],
+            { url: media.deliveryUrl },
+            '2026-11-05T00:00:00Z',
+        );
+        expect(manifest.workflowVariables).toEqual(source.book.workflow_variables);
+        expect(publicationContentHash(source)).not.toBe(previous);
+    });
     it('publishes the same deterministic JPEG layout used for marker compilation, without another asset', () => {
         const manifest = makeManifest(
             snapshot(),

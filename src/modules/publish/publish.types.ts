@@ -1,4 +1,4 @@
-import type { AssetStatus, MarkerMode } from '../../schema';
+import type { AssetStatus, MarkerMode, WorkflowVariable } from '../../schema';
 import type { AssetRow } from '../assets/assets.types';
 
 export interface CheckAsset {
@@ -63,6 +63,7 @@ export type BookVersions = {
 
 export interface PublishSnapshot {
     book: {
+        workflow_variables?: WorkflowVariable[];
         id: string;
         owner_id: string;
         title: string;

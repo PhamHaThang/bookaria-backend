@@ -231,6 +231,18 @@ export const TriggerSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('onPageEnter') }),
     z.object({ type: z.literal('onPageLeave') }),
     z.object({ type: z.literal('onTap'), objectId: SceneIdSchema }),
+    z.object({ type: z.literal('onMarkerFound') }),
+    z.object({ type: z.literal('onMarkerLost') }),
+    z.object({
+        type: z.literal('onAnimationEnd'),
+        objectId: SceneIdSchema,
+        clip: z.string().max(100).optional(),
+    }),
+    z.object({
+        type: z.literal('onAnswer'),
+        questionId: SceneIdSchema,
+        answer: z.enum(['any', 'correct', 'incorrect']).default('any'),
+    }),
 ]);
 export type Trigger = z.infer<typeof TriggerSchema>;
 
@@ -245,6 +257,122 @@ const durationMsSchema = z.int().min(0).max(SCENE_LIMITS.maxDurationMs);
  * Actions run in order: playAudio, stopAudio, playAnimation, setVisible,
  * toggleVisible, playVideo, openUrl, wait. `transformTo` is the move/rotate/scale action.
  */
+export const StateKeySchema = z
+    .string()
+    .trim()
+    .min(1)
+    .max(64)
+    .regex(
+        /^[a-zA-Z][a-zA-Z0-9_.:-]*$/,
+        'Dùng chữ không dấu, số, dấu gạch hoặc chấm cho mã ghi nhớ.',
+    );
+export const StateValueSchema = z.union([
+    z.boolean(),
+    z.number().min(-1e9).max(1e9),
+    z.string().max(500),
+]);
+/** Author-defined reader information. The stable key is separate from its editable Vietnamese name. */
+export const WorkflowVariableSchema = z.discriminatedUnion('type', [
+    z.object({
+        key: StateKeySchema,
+        name: z.string().trim().min(1).max(100),
+        type: z.literal('number'),
+        initialValue: z.number().min(-1e9).max(1e9),
+    }),
+    z.object({
+        key: StateKeySchema,
+        name: z.string().trim().min(1).max(100),
+        type: z.literal('boolean'),
+        initialValue: z.boolean(),
+    }),
+    z.object({
+        key: StateKeySchema,
+        name: z.string().trim().min(1).max(100),
+        type: z.literal('string'),
+        initialValue: z.string().max(500),
+    }),
+]);
+export type WorkflowVariable = z.infer<typeof WorkflowVariableSchema>;
+export const WorkflowVariablesSchema = z
+    .array(WorkflowVariableSchema)
+    .max(200)
+    .superRefine((items, ctx) => {
+        const keys = new Set<string>(),
+            names = new Set<string>();
+        items.forEach((item, index) => {
+            const name = item.name.normalize('NFC').toLocaleLowerCase('vi');
+            if (keys.has(item.key))
+                ctx.addIssue({
+                    code: 'custom',
+                    path: [index, 'key'],
+                    message: 'Thông tin ghi nhớ bị trùng mã.',
+                });
+            if (names.has(name))
+                ctx.addIssue({
+                    code: 'custom',
+                    path: [index, 'name'],
+                    message: 'Tên thông tin đã được dùng.',
+                });
+            keys.add(item.key);
+            names.add(name);
+        });
+    });
+export const ConditionSchema = z.discriminatedUnion('type', [
+    z
+        .object({
+            type: z.literal('variable'),
+            key: StateKeySchema,
+            operator: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
+            value: StateValueSchema,
+        })
+        .refine((test) => ['eq', 'ne'].includes(test.operator) || typeof test.value === 'number', {
+            message: 'So sánh lớn hơn / nhỏ hơn cần một số.',
+        }),
+    z.object({
+        type: z.literal('answer'),
+        questionId: SceneIdSchema,
+        result: z.enum(['correct', 'incorrect']),
+    }),
+    z.object({
+        type: z.literal('interactionCount'),
+        objectId: SceneIdSchema,
+        min: z.int().min(1).max(1000000),
+    }),
+    z.object({ type: z.literal('visible'), objectId: SceneIdSchema, value: z.boolean() }),
+]);
+export type WorkflowCondition = z.infer<typeof ConditionSchema>;
+export const QuestionSchema = z
+    .object({
+        questionId: SceneIdSchema,
+        title: z.string().trim().min(1).max(500),
+        choices: z
+            .array(z.object({ id: SceneIdSchema, text: z.string().trim().min(1).max(200) }))
+            .min(2)
+            .max(6),
+        correctChoiceId: SceneIdSchema,
+    })
+    .superRefine((question, ctx) => {
+        if (
+            new Set(question.choices.map((choice) => choice.id)).size !== question.choices.length ||
+            !question.choices.some((choice) => choice.id === question.correctChoiceId)
+        )
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Đáp án phải có mã riêng và có một đáp án đúng trong danh sách.',
+            });
+    });
+export type WorkflowQuestion = z.infer<typeof QuestionSchema>;
+export const NavigationSchema = z
+    .object({
+        target: z.enum(['page', 'next', 'previous', 'end']),
+        pageId: IdSchema.optional(),
+        message: z.string().trim().max(500).optional(),
+    })
+    .refine((navigation) => navigation.target !== 'page' || !!navigation.pageId, {
+        message: 'Chọn trang cần chuyển đến.',
+    });
+export type WorkflowNavigation = z.infer<typeof NavigationSchema>;
+
 export const ActionSchema = z.discriminatedUnion('type', [
     z.object({
         type: z.literal('playAudio'),
@@ -278,6 +406,27 @@ export const ActionSchema = z.discriminatedUnion('type', [
     }),
     z.object({ type: z.literal('playVideo'), objectId: SceneIdSchema, delayMsSchema }),
     z.object({ type: z.literal('openUrl'), url: HttpUrlSchema, delayMsSchema }),
+    z.object({ type: z.literal('condition'), test: ConditionSchema, delayMsSchema }),
+    z
+        .object({
+            type: z.literal('setState'),
+            key: StateKeySchema,
+            operation: z.enum(['set', 'increment', 'toggle']),
+            value: StateValueSchema,
+            delayMsSchema,
+        })
+        .superRefine((action, ctx) => {
+            if (
+                (action.operation === 'increment' && typeof action.value !== 'number') ||
+                (action.operation === 'toggle' && typeof action.value !== 'boolean')
+            )
+                ctx.addIssue({
+                    code: 'custom',
+                    message: 'Tăng điểm cần một số; bật/tắt cần giá trị đúng/sai.',
+                });
+        }),
+    z.object({ type: z.literal('askQuestion'), question: QuestionSchema, delayMsSchema }),
+    z.object({ type: z.literal('navigate'), navigation: NavigationSchema, delayMsSchema }),
     z.object({ type: z.literal('wait'), ms: z.int().min(0).max(SCENE_LIMITS.maxDelayMs) }),
     z
         .object({
@@ -300,19 +449,120 @@ export const ActionSchema = z.discriminatedUnion('type', [
 export type Action = z.infer<typeof ActionSchema>;
 export type ActionType = Action['type'];
 
-export const InteractionRuleSchema = z.object({
-    id: SceneIdSchema,
-    name: z.string().trim().max(100).optional(),
-    /** Disabled rules are kept but never run (TT-06). */
-    enabled: z.boolean().default(true),
-    trigger: TriggerSchema,
-    actions: z.array(ActionSchema).min(1).max(SCENE_LIMITS.maxActionsPerRule),
-    /**
-     * What happens when the trigger fires again while the actions are still running:
-     * `ignore` (default) or `restart` from the first action.
-     */
-    onRetrigger: z.enum(['ignore', 'restart']).default('ignore'),
-});
+export const InteractionRuleSchema = z
+    .object({
+        id: SceneIdSchema,
+        name: z.string().trim().max(100).optional(),
+        /** Disabled rules are kept but never run (TT-06). */
+        enabled: z.boolean().default(true),
+        trigger: TriggerSchema,
+        actions: z.array(ActionSchema).min(1).max(SCENE_LIMITS.maxActionsPerRule),
+        /**
+         * What happens when the trigger fires again while the actions are still running:
+         * `ignore` (default) or `restart` from the first action.
+         */
+        onRetrigger: z.enum(['ignore', 'restart']).default('ignore'),
+        /** Connected workflow v1; absent on legacy sequential rules. */
+        workflow: z
+            .object({
+                version: z.literal(1),
+                edges: z
+                    .array(
+                        z.object({
+                            source: SceneIdSchema,
+                            target: SceneIdSchema,
+                            port: z.enum(['next', 'true', 'false']).default('next'),
+                        }),
+                    )
+                    .min(1)
+                    .max(SCENE_LIMITS.maxActionsPerRule * 2),
+            })
+            .optional(),
+        /** Stable node ids and positions. actions[i] belongs to editorLayout[i+1]. */
+        editorLayout: z
+            .array(
+                z.object({
+                    id: SceneIdSchema,
+                    x: z.number().min(-100000).max(100000),
+                    y: z.number().min(-100000).max(100000),
+                }),
+            )
+            .min(1)
+            .max(SCENE_LIMITS.maxActionsPerRule + 1)
+            .optional(),
+    })
+    .superRefine((rule, ctx) => {
+        const problem = (message: string) =>
+            ctx.addIssue({ code: 'custom', path: ['workflow'], message });
+        if (!rule.workflow && rule.actions.some((action) => action.type === 'condition'))
+            problem('Điều kiện cần luồng có nhánh Đúng và Sai.');
+        if (
+            rule.trigger.type === 'onPageLeave' &&
+            rule.actions.some(
+                (action) => action.type === 'navigate' || action.type === 'askQuestion',
+            )
+        )
+            problem('Câu hỏi và chuyển trang cần chạy trước khi rời trang.');
+        if (rule.workflow && !rule.editorLayout) problem('Luồng cần danh sách mã node và vị trí.');
+        if (!rule.editorLayout) return;
+        if (
+            rule.editorLayout.length !== rule.actions.length + 1 ||
+            rule.editorLayout[0]?.id !== 'start' ||
+            new Set(rule.editorLayout.map((node) => node.id)).size !== rule.editorLayout.length
+        )
+            ctx.addIssue({
+                code: 'custom',
+                path: ['editorLayout'],
+                message: 'Bố cục phải có một điểm bắt đầu và một vị trí cho mỗi hành động.',
+            });
+        if (!rule.workflow) return;
+        const nodeIds = rule.editorLayout.map((node) => node.id);
+        const actionById = new Map(
+            rule.actions.map((action, index) => [nodeIds[index + 1] || `action-${index}`, action]),
+        );
+        const output = new Map<string, Set<string>>();
+        const links = new Map<string, string[]>();
+        for (const edge of rule.workflow.edges) {
+            if (
+                !nodeIds.includes(edge.source) ||
+                !nodeIds.includes(edge.target) ||
+                edge.target === 'start'
+            ) {
+                problem('Dây nối trỏ đến node không hợp lệ.');
+                continue;
+            }
+            const condition = actionById.get(edge.source)?.type === 'condition';
+            if (condition ? edge.port === 'next' : edge.port !== 'next')
+                problem('Chọn đúng cổng ra của node.');
+            const ports = output.get(edge.source) || new Set<string>();
+            if (ports.has(edge.port)) problem('Mỗi cổng chỉ nối đến một bước.');
+            ports.add(edge.port);
+            output.set(edge.source, ports);
+            links.set(edge.source, [...(links.get(edge.source) || []), edge.target]);
+        }
+        if (!output.get('start')?.has('next')) problem('Nối sự kiện bắt đầu với bước đầu tiên.');
+        for (const [id, action] of actionById) {
+            if (action.type === 'condition' && output.get(id)?.size !== 2)
+                problem('Điều kiện cần cả nhánh Đúng và Sai.');
+            if (action.type === 'navigate' && output.has(id))
+                problem('Chuyển trang là bước cuối của nhánh.');
+        }
+        const visiting = new Set<string>(),
+            visited = new Set<string>();
+        const visit = (id: string) => {
+            if (visiting.has(id)) {
+                problem('Không hỗ trợ vòng lặp trong luồng.');
+                return;
+            }
+            if (visited.has(id)) return;
+            visiting.add(id);
+            for (const next of links.get(id) || []) visit(next);
+            visiting.delete(id);
+            visited.add(id);
+        };
+        visit('start');
+        if (visited.size !== nodeIds.length) problem('Có node chưa nối từ sự kiện bắt đầu.');
+    });
 export type InteractionRule = z.infer<typeof InteractionRuleSchema>;
 
 // ---------------------------------------------------------------------------
@@ -387,6 +637,14 @@ export interface SceneReferenceIssue {
 export function findSceneReferenceIssues(scene: Scene): SceneReferenceIssue[] {
     const objects = new Map(scene.objects.map((o) => [o.id, o]));
     const issues: SceneReferenceIssue[] = [];
+    const questionIds = new Set(
+        scene.interactions.flatMap((rule) =>
+            rule.actions.flatMap((action) =>
+                action.type === 'askQuestion' ? [action.question.questionId] : [],
+            ),
+        ),
+    );
+    const seenQuestions = new Set<string>();
 
     const need = (
         rule: InteractionRule,
@@ -421,7 +679,47 @@ export function findSceneReferenceIssues(scene: Scene): SceneReferenceIssue[] {
                 'sự kiện chạm',
             );
         }
+        if (rule.trigger.type === 'onAnimationEnd')
+            need(rule, null, rule.trigger.objectId, ['model'], 'kết thúc hoạt ảnh');
+        if (rule.trigger.type === 'onAnswer') {
+            const questionId = rule.trigger.questionId;
+            if (
+                !scene.interactions.some((item) =>
+                    item.actions.some(
+                        (action) =>
+                            action.type === 'askQuestion' &&
+                            action.question.questionId === questionId,
+                    ),
+                )
+            )
+                issues.push({
+                    interactionId: rule.id,
+                    actionIndex: null,
+                    message: 'Chọn câu hỏi có trong trang này.',
+                });
+        }
         rule.actions.forEach((action, i) => {
+            if (action.type === 'askQuestion') {
+                if (seenQuestions.has(action.question.questionId))
+                    issues.push({
+                        interactionId: rule.id,
+                        actionIndex: i,
+                        message: 'Mỗi câu hỏi cần một mã riêng.',
+                    });
+                seenQuestions.add(action.question.questionId);
+            }
+            if (
+                action.type === 'condition' &&
+                action.test.type === 'answer' &&
+                !questionIds.has(action.test.questionId)
+            )
+                issues.push({
+                    interactionId: rule.id,
+                    actionIndex: i,
+                    message: 'Điều kiện trỏ tới câu hỏi không có trong trang.',
+                });
+            if (action.type === 'condition' && 'objectId' in action.test)
+                need(rule, i, action.test.objectId, null, 'điều kiện');
             switch (action.type) {
                 case 'playAnimation':
                     need(rule, i, action.objectId, ['model'], 'chạy animation');

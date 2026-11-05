@@ -877,6 +877,76 @@ suite('pages (tích hợp)', () => {
             expect(page.body.data.scene.objects[0].id).toBe('t1');
         });
 
+        it('preserves workflow node positions and execution order through the scene API', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const editorLayout = [
+                { id: 'start', x: -150, y: 80 },
+                { id: 'second-on-screen', x: 900, y: -45 },
+                { id: 'first-on-screen', x: 200, y: 360 },
+            ];
+            const actions = [
+                { type: 'wait', ms: 100 },
+                { type: 'wait', ms: 250 },
+            ];
+            const saved = await save(token, pageId, 0, {
+                ...emptyScene,
+                interactions: [
+                    { id: 'intro', trigger: { type: 'onPageEnter' }, actions, editorLayout },
+                ],
+            });
+            expect(saved.status).toBe(200);
+            const reopened = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(reopened.status).toBe(200);
+            expect(reopened.body.data.scene.interactions[0].editorLayout).toEqual(editorLayout);
+            expect(reopened.body.data.scene.interactions[0].actions).toEqual(actions);
+        });
+
+        it('saves and reloads true/false workflow branches without flattening them', async () => {
+            const { token, userId } = await signUp();
+            const { pageId } = await pageWith(token, userId);
+            const editorLayout = [
+                { id: 'start', x: 0, y: 0 },
+                { id: 'check', x: 310, y: 80 },
+                { id: 'yes', x: 620, y: -80 },
+                { id: 'no', x: 620, y: 220 },
+            ];
+            const actions = [
+                {
+                    type: 'condition',
+                    test: { type: 'variable', key: 'score', operator: 'gte', value: 3 },
+                },
+                { type: 'setState', key: 'unlocked', operation: 'set', value: true },
+                { type: 'setState', key: 'unlocked', operation: 'set', value: false },
+            ];
+            const workflow = {
+                version: 1,
+                edges: [
+                    { source: 'start', target: 'check', port: 'next' },
+                    { source: 'check', target: 'yes', port: 'true' },
+                    { source: 'check', target: 'no', port: 'false' },
+                ],
+            };
+            const response = await save(token, pageId, 0, {
+                ...emptyScene,
+                interactions: [
+                    {
+                        id: 'unlock',
+                        trigger: { type: 'onMarkerFound' },
+                        actions,
+                        editorLayout,
+                        workflow,
+                    },
+                ],
+            });
+            expect(response.status).toBe(200);
+            const reopened = await request(app).get(`/api/v1/pages/${pageId}`).set(auth(token));
+            expect(reopened.status).toBe(200);
+            expect(reopened.body.data.scene.interactions[0].workflow).toEqual(workflow);
+            expect(reopened.body.data.scene.interactions[0].editorLayout).toEqual(editorLayout);
+            expect(reopened.body.data.scene.interactions[0].actions).toMatchObject(actions);
+        });
+
         it('uses one visibility flag through saving, reopening and showing an old hidden object', async () => {
             const { token, userId } = await signUp();
             const { pageId } = await pageWith(token, userId);

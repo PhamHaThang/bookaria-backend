@@ -3,7 +3,12 @@ import { ManifestAssetSchema } from './asset.schema';
 import { HttpUrlSchema, IdSchema, IsoDateTimeSchema } from './common.schema';
 import { MarkerModeSchema } from './enums.schema';
 import { MARKER_RULES, MarkerTransformSchema } from './marker.schema';
-import { PageSettingsSchema, PublishedSceneSchema, sceneAssetIds } from './scene.schema';
+import {
+    PageSettingsSchema,
+    PublishedSceneSchema,
+    sceneAssetIds,
+    WorkflowVariablesSchema,
+} from './scene.schema';
 
 export const MANIFEST_SCHEMA_VERSION = 1 as const;
 
@@ -76,6 +81,7 @@ export const ManifestSchema = z
     .object({
         schemaVersion: z.literal(MANIFEST_SCHEMA_VERSION),
         bookId: IdSchema,
+        workflowVariables: WorkflowVariablesSchema.optional(),
         /** Version number of the published book. */
         version: z.int().positive(),
         title: z.string(),
@@ -134,6 +140,15 @@ export const ManifestSchema = z
                     fail(['pages', i, 'marker', 'number'], 'Số marker bị dùng hai lần');
                 bookariaNumbers.add(n);
             }
+            for (const rule of p.scene.interactions)
+                for (const action of rule.actions) {
+                    if (
+                        action.type === 'navigate' &&
+                        action.navigation.target === 'page' &&
+                        !m.pages.some((target) => target.pageId === action.navigation.pageId)
+                    )
+                        fail(['pages', i, 'scene'], 'Luồng chuyển đến trang không còn tồn tại.');
+                }
             // Every asset the page uses must be listed.
             for (const assetId of sceneAssetIds(p.scene, p.settings)) {
                 if (!m.assets[assetId])

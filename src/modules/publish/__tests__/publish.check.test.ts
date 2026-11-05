@@ -111,6 +111,30 @@ describe('buildPublishCheck', () => {
         ]);
     });
 
+    it('workflow navigation checks that the target page still belongs to the book', () => {
+        const targetId = '11111111-1111-4111-8111-111111111111';
+        const scene = {
+            ...emptyScene,
+            interactions: [
+                {
+                    id: 'go',
+                    trigger: { type: 'onPageEnter' },
+                    actions: [
+                        { type: 'navigate', navigation: { target: 'page', pageId: targetId } },
+                    ],
+                },
+            ],
+        };
+        const missing = buildPublishCheck(input([page('source', { scene })]));
+        expect(missing.errors).toMatchObject([
+            { code: 'INTERACTION_INVALID', interactionId: 'go', pageId: 'source' },
+        ]);
+        expect(
+            buildPublishCheck(input([page('source', { scene }), page(targetId, { orderIndex: 1 })]))
+                .canPublish,
+        ).toBe(true);
+    });
+
     it('scene không đọc được trả lỗi thay vì làm hỏng kiểm tra', () => {
         const result = buildPublishCheck(input([page('a', { scene: { schemaVersion: 9 } })]));
         expect(result.errors).toMatchObject([{ code: 'INTERACTION_INVALID', pageId: 'a' }]);

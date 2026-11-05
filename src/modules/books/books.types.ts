@@ -1,4 +1,4 @@
-import type { BookStatus, BookVisibility, PageFormat } from '../../schema';
+import type { BookStatus, BookVisibility, PageFormat, WorkflowVariable } from '../../schema';
 
 export interface BookRow {
     id: string;
@@ -15,6 +15,7 @@ export interface BookRow {
 }
 
 export interface BookDetailRow extends BookRow {
+    workflow_variables: WorkflowVariable[];
     description: string | null;
     age_min: number | null;
     age_max: number | null;
@@ -29,6 +30,7 @@ export interface BookDetailRow extends BookRow {
 }
 /** The editable columns of a book, locked for the rest of the transaction (`FOR UPDATE`). */
 export interface EditableBook {
+    workflow_variables?: WorkflowVariable[];
     age_min: number | null;
     age_max: number | null;
     page_format: PageFormat;
