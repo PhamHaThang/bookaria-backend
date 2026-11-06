@@ -1,5 +1,5 @@
 import { type Document, type JSONDocument, NodeIO } from '@gltf-transform/core';
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { draco, simplify, unpartition, weld } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer';
@@ -14,7 +14,11 @@ export const MAX_OUTPUT_MODEL_BYTES = 5 * 1024 * 1024;
 const TARGET_TRIANGLES = 50_000;
 
 // Các định dạng texture được hỗ trợ.
-const TEXTURE_SUPPORTED_FORMATS: readonly string[] = ['image/png', 'image/jpeg'] as const;
+const TEXTURE_SUPPORTED_FORMATS: readonly string[] = [
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+] as const;
 
 // 16 megapixel
 const TEXTURE_MAX_PIXELS = 16_777_216;
@@ -153,7 +157,7 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
         if (!TEXTURE_SUPPORTED_FORMATS.includes(texture.getMimeType())) {
             throw new JobError(
                 'UNSUPPORTED_TEXTURE',
-                'Hãy xuất texture của mô hình ở định dạng PNG hoặc JPEG.',
+                'Hãy xuất texture của mô hình ở định dạng PNG, JPEG hoặc WebP.',
             );
         }
         try {
@@ -164,15 +168,23 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
                 fit: 'inside',
                 withoutEnlargement: true,
             });
-            const png = texture.getMimeType() === 'image/png';
-            const output = png
-                ? await processor.png({ compressionLevel: 9 }).toBuffer()
-                : await processor.jpeg({ quality: 80 }).toBuffer();
-            texture.setImage(output);
+            const mimeType = texture.getMimeType();
+            const output =
+                mimeType === 'image/webp'
+                    ? await processor.webp({ lossless: true }).toBuffer()
+                    : mimeType === 'image/png'
+                      ? await processor.png({ compressionLevel: 9 }).toBuffer()
+                      : await processor.jpeg({ quality: 80 }).toBuffer();
+            texture.setImage(output).setMimeType(mimeType);
         } catch {
             throw new JobError('INVALID_TEXTURE', 'Texture hỏng hoặc vượt giới hạn 16 megapixel.');
         }
         signal.throwIfAborted();
+    }
+
+    // GLB output has no PNG/JPEG fallback, so WebP support must be declared as required.
+    if (root.listTextures().some((texture) => texture.getMimeType() === 'image/webp')) {
+        doc.createExtension(EXTTextureWebP).setRequired(true);
     }
 
     const after = triangleCount(doc);
