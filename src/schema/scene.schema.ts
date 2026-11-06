@@ -76,10 +76,24 @@ export type TextStyle = z.infer<typeof TextStyleSchema>;
 
 const textSchema = z.string().trim().min(1).max(SCENE_LIMITS.maxTextChars);
 
+/** Reader control on the page plane; speed is page widths per second. */
+export const ModelControlSchema = z.object({
+    enabled: z.boolean().default(false),
+    speed: z.number().min(0.01).max(5).default(0.3),
+    bounds: z.enum(['page', 'free']).default('page'),
+    autoRotate: z.boolean().default(true),
+    /** glTF local axis pointing towards the model's front, before its authored rotation. */
+    forwardAxis: z.enum(['+z', '-z', '+x', '-x', '+y', '-y']).default('+z'),
+    idleClip: z.string().min(1).max(100).optional(),
+    moveClip: z.string().min(1).max(100).optional(),
+});
+export type ModelControl = z.infer<typeof ModelControlSchema>;
+
 export const ModelObjectSchema = z.object({
     ...objectBase,
     type: z.literal('model'),
     assetId: IdSchema,
+    controls: ModelControlSchema.optional(),
     animation: z
         .object({
             clip: z.string().min(1).max(100),
@@ -374,6 +388,12 @@ export const NavigationSchema = z
 export type WorkflowNavigation = z.infer<typeof NavigationSchema>;
 
 export const ActionSchema = z.discriminatedUnion('type', [
+    z.object({
+        type: z.literal('controlModel'),
+        objectId: SceneIdSchema,
+        operation: z.enum(['enable', 'disable', 'reset']).default('enable'),
+        delayMsSchema,
+    }),
     z.object({
         type: z.literal('playAudio'),
         assetId: IdSchema,
@@ -721,6 +741,9 @@ export function findSceneReferenceIssues(scene: Scene): SceneReferenceIssue[] {
             if (action.type === 'condition' && 'objectId' in action.test)
                 need(rule, i, action.test.objectId, null, 'điều kiện');
             switch (action.type) {
+                case 'controlModel':
+                    need(rule, i, action.objectId, ['model'], 'điều khiển mô hình');
+                    break;
                 case 'playAnimation':
                     need(rule, i, action.objectId, ['model'], 'chạy animation');
                     break;

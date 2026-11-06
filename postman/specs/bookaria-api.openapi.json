@@ -20241,6 +20241,53 @@
                                 "type": "string",
                                 "format": "uuid"
                             },
+                            "controls": {
+                                "type": "object",
+                                "properties": {
+                                    "enabled": {
+                                        "default": false,
+                                        "type": "boolean"
+                                    },
+                                    "speed": {
+                                        "default": 0.3,
+                                        "type": "number",
+                                        "minimum": 0.01,
+                                        "maximum": 5
+                                    },
+                                    "bounds": {
+                                        "default": "page",
+                                        "type": "string",
+                                        "enum": ["page", "free"]
+                                    },
+                                    "autoRotate": {
+                                        "default": true,
+                                        "type": "boolean"
+                                    },
+                                    "forwardAxis": {
+                                        "default": "+z",
+                                        "type": "string",
+                                        "enum": ["+z", "-z", "+x", "-x", "+y", "-y"]
+                                    },
+                                    "idleClip": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    },
+                                    "moveClip": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    }
+                                },
+                                "required": [
+                                    "enabled",
+                                    "speed",
+                                    "bounds",
+                                    "autoRotate",
+                                    "forwardAxis"
+                                ],
+                                "additionalProperties": false
+                            },
                             "animation": {
                                 "type": "object",
                                 "properties": {
@@ -21939,6 +21986,32 @@
             },
             "Action": {
                 "oneOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["controlModel"]
+                            },
+                            "objectId": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                            },
+                            "operation": {
+                                "default": "enable",
+                                "type": "string",
+                                "enum": ["enable", "disable", "reset"]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "objectId", "operation", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
                     {
                         "type": "object",
                         "properties": {
@@ -23865,6 +23938,45 @@
                                 "type": "string",
                                 "format": "uuid"
                             },
+                            "controls": {
+                                "type": "object",
+                                "properties": {
+                                    "enabled": {
+                                        "default": false,
+                                        "type": "boolean"
+                                    },
+                                    "speed": {
+                                        "default": 0.3,
+                                        "type": "number",
+                                        "minimum": 0.01,
+                                        "maximum": 5
+                                    },
+                                    "bounds": {
+                                        "default": "page",
+                                        "type": "string",
+                                        "enum": ["page", "free"]
+                                    },
+                                    "autoRotate": {
+                                        "default": true,
+                                        "type": "boolean"
+                                    },
+                                    "forwardAxis": {
+                                        "default": "+z",
+                                        "type": "string",
+                                        "enum": ["+z", "-z", "+x", "-x", "+y", "-y"]
+                                    },
+                                    "idleClip": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    },
+                                    "moveClip": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 100
+                                    }
+                                }
+                            },
                             "animation": {
                                 "type": "object",
                                 "properties": {
@@ -25469,6 +25581,31 @@
             },
             "ActionInput": {
                 "oneOf": [
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["controlModel"]
+                            },
+                            "objectId": {
+                                "type": "string",
+                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                            },
+                            "operation": {
+                                "default": "enable",
+                                "type": "string",
+                                "enum": ["enable", "disable", "reset"]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "objectId"]
+                    },
                     {
                         "type": "object",
                         "properties": {
