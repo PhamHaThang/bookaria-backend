@@ -220,6 +220,23 @@ suite('PUBLISH_BOOK transaction and public API', () => {
             s.pages[0],
             replacement,
         ]);
+        expect((await publishService.publishCheck(s.owner, s.bookId)).errors).toContainEqual(
+            expect.objectContaining({ code: 'MARKER_STALE', pageId: s.pages[0] }),
+        );
+        // Replacing the page image requires a fresh compilation and analysis certificate.
+        const replacementMind = `bookaria/${s.owner}/${randomUUID()}.mind`;
+        fixtureTargets.set(replacementMind, real);
+        await pool.query(
+            `UPDATE pages SET marker_mind_public_id=$2,marker_report=$3::jsonb,marker_score=NULL
+             WHERE id=$1`,
+            [
+                s.pages[0],
+                replacementMind,
+                JSON.stringify(
+                    markerReportFixture(replacement, replacementMind, DATABASE_A4_ASPECT, real),
+                ),
+            ],
+        );
         expect(await runJob(await enqueue(s), pipeline().handler)).toBe('done');
         const latestVersionId = (await versions(s))[1].id;
         expect(
