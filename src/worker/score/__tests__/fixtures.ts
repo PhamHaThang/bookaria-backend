@@ -1,4 +1,33 @@
+import { encode } from '@msgpack/msgpack';
 import sharp from 'sharp';
+
+/** Synthetic compiled target for handler transaction tests, not camera calibration. */
+export function compiledFixture(): Buffer {
+    return Buffer.from(
+        encode({
+            v: 2,
+            dataList: [
+                {
+                    targetImage: { width: 640, height: 640 },
+                    matchingData: [
+                        {
+                            width: 640,
+                            height: 640,
+                            maximaPoints: Array.from({ length: 180 }, (_, i) => ({
+                                x: (i % 10) * 64 + 20,
+                                y: (Math.floor(i / 10) % 10) * 64 + 20,
+                                scale: 1,
+                                descriptors: Array(21).fill(i),
+                            })),
+                            minimaPoints: [],
+                        },
+                    ],
+                    trackingData: [{}],
+                },
+            ],
+        }),
+    );
+}
 
 /** Reproducible synthetic illustration; not a calibration dataset. */
 export async function illustration(seed = 7, cornerOnly = false): Promise<Buffer> {

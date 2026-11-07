@@ -13,15 +13,15 @@ import {
     snapshotHash,
 } from '../../modules/publish/publish.snapshot';
 import type { PublishSnapshot } from '../../modules/publish/publish.types';
-import { JobResultsSchema, type ManifestGroup } from '../../schema';
+import { JobResultsSchema, type ManifestGroup, MarkerReportSchema } from '../../schema';
 import { generateBookSlug } from '../../utils';
 import { assertPublishable, makeManifest } from './manifest';
 import {
     compressGroup,
-    decodeSingleMind,
     encodeGroup,
     MAX_OUTPUT_BYTES,
     type MindTarget,
+    readPublicationMind,
 } from './mind';
 import { commitPublication, type PublishedFiles } from './repo';
 import { createPublishStorage, type PublishStorage } from './storage';
@@ -76,6 +76,7 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
         const prefix = `bookaria/published/${snapshot.book.id}/v${snapshot.version}/${ctx.job.id}-${ctx.job.attempts}`;
         const groups: ManifestGroup[] = [],
             storedGroups: PublishedFiles['groups'] = [];
+        const markerDigests = new Set<string>();
         let targets: MindTarget[] = [],
             pageIds: string[] = [],
             groupBytes = 0,
@@ -107,13 +108,17 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
                           ?.mind_public_id;
             if (!publicId) throw new JobError('MISSING_MIND', 'Thiếu file .mind của trang.');
             const bytes = await storage.downloadMind(publicId, ctx.signal);
+            const expectedDigest =
+                page.marker_mode === 'CUSTOM_MARKER'
+                    ? MarkerReportSchema.parse(page.marker_report).source?.mindDigest
+                    : undefined;
+            const target = readPublicationMind(bytes, expectedDigest, markerDigests);
             totalInput += bytes.length;
             if (totalInput > 100 * 1024 * 1024)
                 throw new JobError(
                     'PUBLISH_INPUT_SIZE',
                     'Tổng .mind vượt 100 MiB cho một lần xuất bản.',
                 );
-            const target = decodeSingleMind(bytes);
             if (
                 targets.length === 10 ||
                 (targets.length > 0 && encodeGroup([...targets, target]).length > MAX_OUTPUT_BYTES)

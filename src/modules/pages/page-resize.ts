@@ -57,6 +57,11 @@ export async function resizePageImages(
         if (page.marker_mode === 'CUSTOM_MARKER') {
             if (!next.markerMindPublicId)
                 throw fieldError('pageImages', 'Thiếu dữ liệu nhận diện của ảnh trang mới.');
+            if (next.markerMindPublicId === page.marker_mind_public_id)
+                throw fieldError(
+                    'pageImages',
+                    'Khổ trang đã thay đổi. Cần biên dịch tệp marker mới, không dùng lại tệp cũ.',
+                );
             if (await pagesRepository.hasOpenScoreJob(db, page.id))
                 throw new AppError('JOB_IN_PROGRESS');
         }

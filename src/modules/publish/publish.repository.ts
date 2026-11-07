@@ -19,7 +19,7 @@ export const publishRepository = {
         } = {},
     ): Promise<PublishableBook | undefined> {
         const { rows } = await db.query<PublishableBook>(
-            `SELECT b.id, b.page_aspect, (b.taken_down_at IS NOT NULL) AS taken_down, (u.email_verified_at IS NOT NULL) AS email_verified
+            `SELECT b.id, b.page_aspect, b.page_format, b.page_width_mm, (b.taken_down_at IS NOT NULL) AS taken_down, (u.email_verified_at IS NOT NULL) AS email_verified
             FROM books AS b
             JOIN users u ON u.id = b.owner_id
             WHERE b.id = $1 AND b.owner_id = $2 AND b.deleted_at IS NULL
@@ -30,9 +30,18 @@ export const publishRepository = {
     },
     async getPagesOfBookForChecking(db: Queryable, bookId: string): Promise<CheckPageRow[]> {
         const { rows } = await db.query<CheckPageRow>(
-            `SELECT p.id, p.order_index, p.marker_mode, p.marker_score, p.marker_report, p.scene, a.id AS image_id, a.status AS image_status, a.size_bytes AS image_bytes
+            `SELECT p.id, p.order_index, p.marker_mode, p.marker_score, p.marker_report, p.scene,
+                p.marker_mind_public_id, p.bookaria_marker_id, p.bookaria_marker_transform,
+                m.mind_public_id AS bookaria_mind_public_id, m.is_active AS marker_active,
+                (m.validated_at IS NOT NULL) AS marker_validated, score.status AS marker_job_status,
+                a.id AS image_id, a.status AS image_status, a.size_bytes AS image_bytes
             FROM pages AS p
             LEFT JOIN assets AS a ON p.image_asset_id = a.id AND a.deleted_at IS NULL
+            LEFT JOIN bookaria_markers m ON m.id = p.bookaria_marker_id
+            LEFT JOIN LATERAL (
+                SELECT j.status FROM jobs j WHERE j.ref_type='PAGE' AND j.ref_id=p.id AND j.type='SCORE_MARKER'
+                ORDER BY j.created_at DESC, j.id DESC LIMIT 1
+            ) score ON true
             WHERE p.book_id = $1
             ORDER BY p.order_index`,
             [bookId],

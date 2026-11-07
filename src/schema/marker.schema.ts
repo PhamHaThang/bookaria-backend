@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { HttpUrlSchema, IdSchema } from './common.schema';
 import type { PageFormat } from './enums.schema';
+import { MarkerAnalysisMetricsSchema } from './marker-analysis.schema';
 
 /**
  * Bookaria marker rules
@@ -16,7 +17,7 @@ export const MARKER_RULES = {
     minEdgeMarginMm: 12,
     /** The main 3D object should stay within this many marker sides of the marker (a warning). */
     stableRadiusInMarkerSides: 3,
-    /** Custom markers need at least this score (1-5 stars) to be published. */
+    /** Deprecated compatibility value. Publication no longer uses a star threshold. */
     minPublishScore: 3,
     /** Pages the Viewer loads at once; one `.mind` file per group. */
     maxPagesPerGroup: 10,
@@ -32,7 +33,7 @@ export const REFERENCE_PAGE_WIDTH_MM = 210;
 /** Stored as numeric(5,1), shared by the API and print geometry. */
 export const PageWidthMmSchema = z.number().min(0.1).max(1000).multipleOf(0.1);
 
-/** Marker score: 0 = not scored yet is stored as NULL, 1-5 stars otherwise. */
+/** Legacy star score. New MindAR reports store NULL and carry independent `analysis` metrics. */
 export const MarkerScoreSchema = z.int().min(0).max(5);
 
 /**
@@ -61,6 +62,12 @@ export const MarkerWarningSchema = z.union([
         'NO_MARKER_AVAILABLE',
         'MARKER_TOO_SMALL',
         'MARKER_NEAR_EDGE',
+        'REANALYZE_REQUIRED',
+        'STALE_MARKER',
+        'NO_FEATURES',
+        'DISTRIBUTION_LOW',
+        'UNIQUENESS_LOW',
+        'IMAGE_SMALL',
     ]),
     z.templateLiteral(['SIMILAR_TO:', IdSchema]),
 ]);
@@ -68,9 +75,21 @@ export type MarkerWarning = z.infer<typeof MarkerWarningSchema>;
 
 /** Result of scoring a custom marker (`pages.marker_report`). */
 export const MarkerReportSchema = z.object({
+    /** The analyzed immutable inputs. Older reports must be analyzed again before publishing. */
+    source: z
+        .object({
+            imageAssetId: IdSchema,
+            mindPublicId: z.string().min(1).max(500),
+            pageAspect: z.number().min(0.2).max(5),
+            imageDigest: z.string().regex(/^[a-f0-9]{64}$/),
+            mindDigest: z.string().regex(/^[a-f0-9]{64}$/),
+        })
+        .optional(),
+    /** Independent MindAR/Pictarize metrics. No aggregate star score. */
+    analysis: MarkerAnalysisMetricsSchema.optional(),
     /** Number of distinctive feature points. */
     features: z.int().min(0),
-    /** Share of the 4x4 grid cells that contain features (0-1). */
+    /** Occupied cells: 10x10 for MindAR analysis, 4x4 for legacy ORB reports. */
     coverage: z.number().min(0).max(1),
     /** Overlay image that highlights empty areas. */
     heatmapUrl: HttpUrlSchema.nullable(),
@@ -80,6 +99,52 @@ export const MarkerReportSchema = z.object({
     hints: z.array(z.string()),
 });
 export type MarkerReport = z.infer<typeof MarkerReportSchema>;
+
+export function markerReportStatus(
+    input: unknown,
+    source: { imageAssetId: string; mindPublicId: string; pageAspect: number },
+) {
+    if (input == null) return 'missing' as const;
+    const report = MarkerReportSchema.safeParse(input);
+    if (!report.success) return 'invalid' as const;
+    if (!report.data.analysis || !report.data.source) return 'legacy' as const;
+    const analyzed = report.data.source;
+    if (
+        analyzed.imageAssetId !== source.imageAssetId ||
+        analyzed.mindPublicId !== source.mindPublicId ||
+        Math.abs(analyzed.pageAspect - source.pageAspect) > 1e-8
+    )
+        return 'stale' as const;
+    if (report.data.features === 0) return 'empty' as const;
+    return 'ready' as const;
+}
+
+/** Quality is advisory. These thresholds never produce a five-star total or block publishing. */
+export function markerQualityWarnings(
+    report: MarkerReport,
+): { code: 'DISTRIBUTION_LOW' | 'UNIQUENESS_LOW' | 'IMAGE_SMALL'; message: string }[] {
+    const metrics = report.analysis;
+    if (!metrics) return [];
+    const warnings: ReturnType<typeof markerQualityWarnings> = [];
+    if (metrics.distribution < 0.5)
+        warnings.push({
+            code: 'DISTRIBUTION_LOW',
+            message:
+                'Điểm đặc trưng phân bố chưa đều; nên thử quét ảnh trên điện thoại trước khi xuất bản.',
+        });
+    if (metrics.uniqueness < 0.5)
+        warnings.push({
+            code: 'UNIQUENESS_LOW',
+            message:
+                'Ảnh có nhiều đặc trưng lặp; nên thử quét ảnh trên điện thoại trước khi xuất bản.',
+        });
+    if (Math.min(metrics.sourceWidth, metrics.sourceHeight) < 1000)
+        warnings.push({
+            code: 'IMAGE_SMALL',
+            message: 'Ảnh nhận diện có cạnh ngắn dưới 1000 px; nên dùng ảnh gốc lớn hơn.',
+        });
+    return warnings;
+}
 
 // ---------------------------------------------------------------------------
 // Placement geometry

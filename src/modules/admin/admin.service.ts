@@ -39,10 +39,12 @@ import {
     type DismissReportsResult,
     DismissReportsResultSchema,
     type LibraryAssetsQuery,
-    MARKER_RULES,
+    MarkerReportSchema,
+    type MarkerWarning,
     type ModerationItem,
     ModerationItemSchema,
     type ModerationNoteBody,
+    markerQualityWarnings,
     type PaginationMeta,
     type PaginationQuery,
     type TakedownBody,
@@ -157,14 +159,7 @@ export const adminService = {
                     markerMode: page.marker_mode,
                     markerNumber: page.marker_number,
                     markerScore: page.marker_score,
-                    markerWarnings:
-                        page.marker_mode !== 'CUSTOM_MARKER'
-                            ? []
-                            : page.marker_score === null
-                              ? ['NOT_SCORED']
-                              : page.marker_score < MARKER_RULES.minPublishScore
-                                ? ['LOW_SCORE']
-                                : [],
+                    markerWarnings: moderationMarkerWarnings(page.marker_mode, page.marker_report),
                     objectCount: page.object_count,
                 })),
             },
@@ -932,6 +927,16 @@ function markerImageUrl(publicId: string): string {
     const cloudName = new URL(env.CLOUDINARY_URL).hostname;
     const path = publicId.split('/').map(encodeURIComponent).join('/');
     return `https://res.cloudinary.com/${cloudName}/image/upload/${path}`;
+}
+
+function moderationMarkerWarnings(mode: string, input: unknown): MarkerWarning[] {
+    if (mode !== 'CUSTOM_MARKER') return [];
+    if (input == null) return ['NOT_SCORED'];
+    const report = MarkerReportSchema.safeParse(input);
+    if (!report.success || !report.data.analysis || !report.data.source)
+        return ['REANALYZE_REQUIRED'];
+    if (report.data.features === 0) return ['NO_FEATURES'];
+    return markerQualityWarnings(report.data).map((warning) => warning.code);
 }
 
 function slugify(name: string): string {

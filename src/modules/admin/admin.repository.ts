@@ -559,7 +559,7 @@ export const adminRepository = {
     async getModerationPages(db: Queryable, bookId: string): Promise<ModerationPageRow[]> {
         const { rows } = await db.query<ModerationPageRow>(
             `SELECT p.id, p.order_index, p.title, image.thumbnail_url,
-                    p.marker_mode, marker.number AS marker_number, p.marker_score,
+                    p.marker_mode, marker.number AS marker_number, p.marker_score, p.marker_report,
                     jsonb_array_length(coalesce(p.scene->'objects', '[]'::jsonb))::int AS object_count
              FROM pages p
              JOIN assets image ON image.id = p.image_asset_id

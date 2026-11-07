@@ -217,6 +217,9 @@ suite('single page source and atomic layouts', () => {
         };
         const missing = { ...entry, markerMindPublicId: undefined };
         expect((await update({ pageImages: [missing] })).status).toBe(400);
+        expect(
+            (await update({ pageImages: [{ ...entry, markerMindPublicId: oldMind }] })).status,
+        ).toBe(400);
         const saved = await update({ pageImages: [entry] });
         expect(saved.status, JSON.stringify(saved.body)).toBe(200);
         expect((await update({ pageImages: [entry] })).status).toBe(200);

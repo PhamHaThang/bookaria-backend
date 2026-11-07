@@ -1,8 +1,11 @@
+import { createHash } from 'node:crypto';
 import { env } from '../../config';
 import { pool } from '../../db';
 import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { pageImageTransform } from '../../lib/page-image';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { JobResultsSchema, MarkerReportSchema } from '../../schema';
+import { analyzeCompiledMarker } from './pictarize';
 import { scoreRepository } from './repo';
 import { createMarkerStorage, type MarkerStorage } from './storage';
 import type { MarkerSource, PeerComparison } from './types';
@@ -42,6 +45,14 @@ export function createScoreMarkerHandler(
         }
         await ctx.setProgress(5);
         const result = await analyze(target);
+        const sourceSize = pageImageTransform(target.page_aspect);
+        const mind = await storage.downloadMind(target.marker_mind_public_id, ctx.signal);
+        const pictarize = analyzeCompiledMarker(
+            mind,
+            sourceSize.width,
+            sourceSize.height,
+            ctx.signal,
+        );
         await ctx.setProgress(20);
 
         // So sánh với các trang marker Custom khác trong sách
@@ -60,24 +71,40 @@ export function createScoreMarkerHandler(
             await ctx.setProgress(20 + Math.round((60 * (index + 1)) / others.length));
         }
         // Render heatmap và lưu kết quả chấm điểm
-        const png = await processor.heatmap(result, ctx.signal);
+        const png = await processor.heatmap(
+            {
+                ...result,
+                points: pictarize.points.map((point) => ({
+                    x: (point.x * result.width) / pictarize.width,
+                    y: (point.y * result.height) / pictarize.height,
+                })),
+                cells: pictarize.cells,
+            },
+            ctx.signal,
+        );
         const publicId = `bookaria/marker-reports/${target.id}/${ctx.job.id}-${ctx.job.attempts}`;
         const heatmapUrl = await storage.uploadHeatmap(publicId, png, ctx.signal);
         const report = MarkerReportSchema.parse({
-            features: result.features,
-            coverage: result.coverage,
+            source: {
+                imageAssetId: target.image_asset_id,
+                mindPublicId: target.marker_mind_public_id,
+                pageAspect: target.page_aspect,
+                imageDigest: result.digest,
+                mindDigest: createHash('sha256').update(mind).digest('hex'),
+            },
+            analysis: pictarize.analysis,
+            features: pictarize.features,
+            coverage: pictarize.coverage,
             heatmapUrl,
             similarPages: comparisons
                 .filter((p) => p.similarity >= SCORE_POLICY.similarThreshold)
                 .map(({ pageId, similarity }) => ({ pageId, similarity })),
-            hints: result.hints,
+            hints: pictarize.hints,
         });
         ctx.signal.throwIfAborted();
         await ctx.setProgress(95);
-        ctx.onSuccess((db) =>
-            repository.saveResult(db, snapshot, result.score, report, comparisons),
-        );
-        return JobResultsSchema.SCORE_MARKER.parse({ pageId: target.id, score: result.score });
+        ctx.onSuccess((db) => repository.saveResult(db, snapshot, null, report, comparisons));
+        return JobResultsSchema.SCORE_MARKER.parse({ pageId: target.id, score: null });
     };
 }
 

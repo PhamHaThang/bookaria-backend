@@ -11,6 +11,7 @@ import { type MediaStorage, setMediaStorage } from '../../../lib';
 import { JobError, type JobHandler } from '../../../modules/jobs/jobs.types';
 import { publishService } from '../../../modules/publish/publish.service';
 import { ManifestSchema } from '../../../schema';
+import { DATABASE_A4_ASPECT, markerReportFixture } from '../../../test/marker-report-fixture';
 import { handlers } from '../../handlers';
 import { runJob } from '../../runner';
 import { createPublishHandler } from '..';
@@ -20,6 +21,7 @@ import type { PublishStorage } from '../storage';
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
 const real = readFileSync(new URL('./fixtures/card.mind', import.meta.url));
+const fixtureTargets = new Map<string, Buffer>();
 const url: PublishStorage['url'] = ({ publicId }) => `https://example.com/${publicId}`;
 const media: MediaStorage = {
     deliveryUrl: url,
@@ -61,6 +63,31 @@ async function setup(count = 1) {
             VALUES ($1,$2,$3,$4,'CUSTOM_MARKER',$5,4)`,
             [page, bookId, i, id, `bookaria/${owner}/${page}.mind`],
         );
+        // Packaging fixtures use distinct target sizes; they are not camera calibration data.
+        const target = decodeSingleMind(real);
+        const mind =
+            i === 0
+                ? real
+                : Buffer.from(
+                      encode({
+                          v: 2,
+                          dataList: [
+                              {
+                                  ...target,
+                                  targetImage: {
+                                      ...target.targetImage,
+                                      width: target.targetImage.width + i,
+                                  },
+                              },
+                          ],
+                      }),
+                  );
+        const publicId = `bookaria/${owner}/${page}.mind`;
+        fixtureTargets.set(publicId, mind);
+        await pool.query('UPDATE pages SET marker_report=$2::jsonb WHERE id=$1', [
+            page,
+            JSON.stringify(markerReportFixture(id, publicId, DATABASE_A4_ASPECT, mind)),
+        ]);
         pages.push(page);
         assets.push(id);
     }
@@ -88,7 +115,7 @@ function pipeline(hook?: (id: string) => Promise<void>) {
     const uploads = new Map<string, Buffer>();
     const storage: PublishStorage = {
         url,
-        downloadMind: vi.fn(async () => real),
+        downloadMind: vi.fn(async (publicId) => fixtureTargets.get(publicId) || real),
         upload: vi.fn(async (id, bytes) => {
             uploads.set(id, bytes);
             await hook?.(id);
@@ -257,7 +284,41 @@ suite('PUBLISH_BOOK transaction and public API', () => {
                 dataList: [{ ...target, matchingData: [{ padding: new Uint8Array(4_700_000) }] }],
             }),
         );
-        p.storage.downloadMind = async () => large;
+        const largeById = new Map<string, Buffer>();
+        for (const [index, pageId] of s.pages.entries()) {
+            const publicId = `bookaria/${s.owner}/${pageId}.mind`;
+            const bytes =
+                index === 0
+                    ? large
+                    : Buffer.from(
+                          encode({
+                              v: 2,
+                              dataList: [
+                                  {
+                                      ...target,
+                                      targetImage: {
+                                          ...target.targetImage,
+                                          width: target.targetImage.width + index,
+                                      },
+                                      matchingData: [{ padding: new Uint8Array(4_700_000) }],
+                                  },
+                              ],
+                          }),
+                      );
+            largeById.set(publicId, bytes);
+            await pool.query('UPDATE pages SET marker_report=$2::jsonb WHERE id=$1', [
+                pageId,
+                JSON.stringify(
+                    markerReportFixture(
+                        s.assets[index] as string,
+                        publicId,
+                        DATABASE_A4_ASPECT,
+                        bytes,
+                    ),
+                ),
+            ]);
+        }
+        p.storage.downloadMind = async (publicId) => largeById.get(publicId) as Buffer;
         expect(
             await runJob(
                 await enqueue(s),

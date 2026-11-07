@@ -1,10 +1,16 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { type PublishCheck, PublishCheckSchema } from '../../../schema';
+import { markerReportFixture } from '../../../test/marker-report-fixture';
 import { buildPublishCheck, LARGE_DOWNLOAD_BYTES } from '../publish.service';
 import type { CheckAsset, CheckInput, CheckPage } from '../publish.types';
 
 const MB = 1024 * 1024;
 const emptyScene = { schemaVersion: 1, objects: [], interactions: [] };
+const imageId = (id: string) => {
+    const hash = createHash('md5').update(id).digest('hex');
+    return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-8${hash.slice(17, 20)}-${hash.slice(20)}`;
+};
 const asset = (id: string, changes: Partial<CheckAsset> = {}): CheckAsset => ({
     id,
     status: 'READY',
@@ -17,8 +23,17 @@ const page = (id: string, changes: Partial<CheckPage> = {}): CheckPage => ({
     markerMode: 'BOOKARIA_MARKER',
     markerScore: null,
     markerReport: null,
+    markerMindPublicId: `mind-${id}`,
+    markerJobStatus: null,
+    bookariaMarker: {
+        id: `marker-${id}`,
+        mindPublicId: `builtin-${id}`,
+        active: true,
+        validated: true,
+        transform: { x: 0, y: 0, size: 0.22 },
+    },
     scene: emptyScene,
-    image: asset(`image-${id}`),
+    image: asset(imageId(id)),
     assets: [],
     ...changes,
 });
@@ -33,6 +48,32 @@ const codes = (items: Pick<PublishCheck['errors'][number], 'code'>[]) =>
     items.map((item) => item.code);
 
 describe('buildPublishCheck', () => {
+    it('accepts independent MindAR metrics without manufacturing a five-star score', () => {
+        const report = {
+            ...markerReportFixture(imageId('a'), 'mind-a'),
+            features: 180,
+            coverage: 0.4,
+            heatmapUrl: null,
+            similarPages: [],
+            hints: [],
+            analysis: {
+                policyVersion: 'mindar-pictarize-v1',
+                distribution: 0.4,
+                uniqueness: 0.9,
+                dimension: 1,
+                sourceWidth: 1600,
+                sourceHeight: 1600,
+            },
+        };
+        const result = buildPublishCheck(
+            input([
+                page('a', { markerMode: 'CUSTOM_MARKER', markerScore: null, markerReport: report }),
+            ]),
+        );
+        expect(result.canPublish).toBe(true);
+        expect(result.errors).toEqual([]);
+        expect(result.warnings).toMatchObject([{ code: 'MARKER_DISTRIBUTION_LOW' }]);
+    });
     it('sách hợp lệ có đúng tóm tắt và hợp đồng response', () => {
         const result = buildPublishCheck(
             input([page('a'), page('b', { orderIndex: 1, markerMode: 'NONE' })]),
@@ -78,7 +119,7 @@ describe('buildPublishCheck', () => {
         ]);
     });
 
-    it('marker riêng cần ít nhất 3 sao; marker Bookaria không cần điểm', () => {
+    it('báo cáo cũ phải đánh giá lại thay vì dùng ngưỡng sao', () => {
         const result = buildPublishCheck(
             input([
                 page('a', { markerMode: 'CUSTOM_MARKER', markerScore: null }),
@@ -89,7 +130,8 @@ describe('buildPublishCheck', () => {
         );
         expect(result.errors).toMatchObject([
             { code: 'PAGE_NOT_SCORED', pageId: 'a' },
-            { code: 'PAGE_LOW_SCORE', pageId: 'b' },
+            { code: 'PAGE_NOT_SCORED', pageId: 'b' },
+            { code: 'PAGE_NOT_SCORED', pageId: 'c' },
         ]);
     });
 
@@ -196,6 +238,7 @@ describe('buildPublishCheck', () => {
                 markerMode: 'CUSTOM_MARKER',
                 markerScore: 4,
                 markerReport: {
+                    ...markerReportFixture(imageId(id), `mind-${id}`),
                     features: 100,
                     coverage: 0.8,
                     heatmapUrl: null,

@@ -50,7 +50,7 @@ export const scoreRepository = {
     async saveResult(
         db: Queryable,
         snapshot: MarkerSnapshot,
-        score: number,
+        score: number | null,
         report: MarkerReport,
         comparisons: PeerComparison[],
     ): Promise<void> {

@@ -16,5 +16,6 @@ export * from './enums.schema';
 export * from './error.schema';
 export * from './manifest.schema';
 export * from './marker.schema';
+export * from './marker-analysis.schema';
 export * from './routes.schema';
 export * from './scene.schema';

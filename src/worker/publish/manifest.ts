@@ -29,6 +29,8 @@ export function assertPublishable(snapshot: PublishSnapshot, acceptWarnings: boo
         );
     const check = buildPublishCheck({
         pageAspect: Number(book.page_aspect),
+        pageFormat: book.page_format || 'A4',
+        pageWidthMm: Number(book.page_width_mm),
         emailVerified: true,
         takenDown: false,
         pages: pages.map((p) => {
@@ -77,6 +79,20 @@ export function assertPublishable(snapshot: PublishSnapshot, acceptWarnings: boo
                 markerMode: p.marker_mode,
                 markerScore: p.marker_score,
                 markerReport: p.marker_report,
+                markerMindPublicId: p.marker_mind_public_id,
+                markerJobStatus: null,
+                bookariaMarker: p.bookaria_marker_id
+                    ? (() => {
+                          const marker = markers.find((item) => item.id === p.bookaria_marker_id);
+                          return {
+                              id: p.bookaria_marker_id,
+                              mindPublicId: marker?.mind_public_id || null,
+                              active: marker?.is_active === true,
+                              validated: Boolean(marker?.validated_at),
+                              transform: p.bookaria_marker_transform,
+                          };
+                      })()
+                    : null,
                 scene,
                 image: image
                     ? {

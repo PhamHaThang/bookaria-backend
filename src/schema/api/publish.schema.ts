@@ -11,11 +11,19 @@ import { BookVisibilitySchema } from '../enums.schema';
 
 // --- Publish check ----------------------------------------------------------------
 
-/** Problems that block publishing. `PAGE_NOT_SCORED` and `PAGE_LOW_SCORE` only apply to custom-marker pages. */
+/** Technical marker failures block publication; independent quality metrics are warnings. */
 export const PublishErrorCodeSchema = z.enum([
     'PAGE_NO_IMAGE',
     'PAGE_NOT_SCORED',
     'PAGE_LOW_SCORE',
+    'MARKER_MISSING',
+    'MARKER_PROCESSING',
+    'MARKER_FAILED',
+    'MARKER_INVALID',
+    'MARKER_REANALYZE_REQUIRED',
+    'MARKER_STALE',
+    'MARKER_NO_FEATURES',
+    'MARKER_DUPLICATE',
     'ASSET_NOT_READY',
     'ASSET_FAILED',
     'INTERACTION_INVALID',
@@ -32,6 +40,9 @@ export const PublishWarningCodeSchema = z.enum([
     'TOO_MANY_OBJECTS',
     'OBJECT_OFF_PAGE',
     'LARGE_DOWNLOAD',
+    'MARKER_DISTRIBUTION_LOW',
+    'MARKER_UNIQUENESS_LOW',
+    'MARKER_IMAGE_SMALL',
 ]);
 export type PublishWarningCode = z.infer<typeof PublishWarningCodeSchema>;
 
@@ -42,7 +53,7 @@ const issueLocationSchema = {
     interactionId: SceneIdSchema.optional(),
     objectId: SceneIdSchema.optional(),
     assetId: IdSchema.optional(),
-    /** For PAGE_SIMILAR: the page that looks the same. */
+    /** For PAGE_SIMILAR or MARKER_DUPLICATE: the other affected page. */
     otherPageId: IdSchema.optional(),
 };
 

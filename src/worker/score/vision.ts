@@ -311,9 +311,10 @@ export async function renderHeatmap(
 ): Promise<Buffer> {
     signal.throwIfAborted();
     const { width, height, cells, points } = analysis;
+    const grid = Math.sqrt(cells.length);
     const rects = cells.map(
         (count, i) =>
-            `<rect x="${((i % 4) * width) / 4}" y="${(Math.floor(i / 4) * height) / 4}" width="${width / 4}" height="${height / 4}" fill="${count ? '#22c55e' : '#ef4444'}" fill-opacity="0.14" stroke="#ffffff" stroke-width="1"/>`,
+            `<rect x="${((i % grid) * width) / grid}" y="${(Math.floor(i / grid) * height) / grid}" width="${width / grid}" height="${height / grid}" fill="${count ? '#22c55e' : '#ef4444'}" fill-opacity="0.14" stroke="#ffffff" stroke-width="1"/>`,
     );
     const dots = points.map(
         (p) =>

@@ -5520,7 +5520,13 @@
                                                                     "NOT_SCORED",
                                                                     "NO_MARKER_AVAILABLE",
                                                                     "MARKER_TOO_SMALL",
-                                                                    "MARKER_NEAR_EDGE"
+                                                                    "MARKER_NEAR_EDGE",
+                                                                    "REANALYZE_REQUIRED",
+                                                                    "STALE_MARKER",
+                                                                    "NO_FEATURES",
+                                                                    "DISTRIBUTION_LOW",
+                                                                    "UNIQUENESS_LOW",
+                                                                    "IMAGE_SMALL"
                                                                 ]
                                                             },
                                                             {
@@ -7933,7 +7939,13 @@
                                                                     "NOT_SCORED",
                                                                     "NO_MARKER_AVAILABLE",
                                                                     "MARKER_TOO_SMALL",
-                                                                    "MARKER_NEAR_EDGE"
+                                                                    "MARKER_NEAR_EDGE",
+                                                                    "REANALYZE_REQUIRED",
+                                                                    "STALE_MARKER",
+                                                                    "NO_FEATURES",
+                                                                    "DISTRIBUTION_LOW",
+                                                                    "UNIQUENESS_LOW",
+                                                                    "IMAGE_SMALL"
                                                                 ]
                                                             },
                                                             {
@@ -9979,6 +9991,14 @@
                                                                     "PAGE_NO_IMAGE",
                                                                     "PAGE_NOT_SCORED",
                                                                     "PAGE_LOW_SCORE",
+                                                                    "MARKER_MISSING",
+                                                                    "MARKER_PROCESSING",
+                                                                    "MARKER_FAILED",
+                                                                    "MARKER_INVALID",
+                                                                    "MARKER_REANALYZE_REQUIRED",
+                                                                    "MARKER_STALE",
+                                                                    "MARKER_NO_FEATURES",
+                                                                    "MARKER_DUPLICATE",
                                                                     "ASSET_NOT_READY",
                                                                     "ASSET_FAILED",
                                                                     "INTERACTION_INVALID",
@@ -10027,7 +10047,10 @@
                                                                     "PAGE_HEAVY",
                                                                     "TOO_MANY_OBJECTS",
                                                                     "OBJECT_OFF_PAGE",
-                                                                    "LARGE_DOWNLOAD"
+                                                                    "LARGE_DOWNLOAD",
+                                                                    "MARKER_DISTRIBUTION_LOW",
+                                                                    "MARKER_UNIQUENESS_LOW",
+                                                                    "MARKER_IMAGE_SMALL"
                                                                 ]
                                                             },
                                                             "message": {
@@ -14879,7 +14902,13 @@
                                                                                         "NOT_SCORED",
                                                                                         "NO_MARKER_AVAILABLE",
                                                                                         "MARKER_TOO_SMALL",
-                                                                                        "MARKER_NEAR_EDGE"
+                                                                                        "MARKER_NEAR_EDGE",
+                                                                                        "REANALYZE_REQUIRED",
+                                                                                        "STALE_MARKER",
+                                                                                        "NO_FEATURES",
+                                                                                        "DISTRIBUTION_LOW",
+                                                                                        "UNIQUENESS_LOW",
+                                                                                        "IMAGE_SMALL"
                                                                                     ]
                                                                                 },
                                                                                 {
@@ -19809,7 +19838,13 @@
                                         "NOT_SCORED",
                                         "NO_MARKER_AVAILABLE",
                                         "MARKER_TOO_SMALL",
-                                        "MARKER_NEAR_EDGE"
+                                        "MARKER_NEAR_EDGE",
+                                        "REANALYZE_REQUIRED",
+                                        "STALE_MARKER",
+                                        "NO_FEATURES",
+                                        "DISTRIBUTION_LOW",
+                                        "UNIQUENESS_LOW",
+                                        "IMAGE_SMALL"
                                     ]
                                 },
                                 {
@@ -19886,7 +19921,13 @@
                                         "NOT_SCORED",
                                         "NO_MARKER_AVAILABLE",
                                         "MARKER_TOO_SMALL",
-                                        "MARKER_NEAR_EDGE"
+                                        "MARKER_NEAR_EDGE",
+                                        "REANALYZE_REQUIRED",
+                                        "STALE_MARKER",
+                                        "NO_FEATURES",
+                                        "DISTRIBUTION_LOW",
+                                        "UNIQUENESS_LOW",
+                                        "IMAGE_SMALL"
                                     ]
                                 },
                                 {
@@ -19996,6 +20037,86 @@
             "MarkerReport": {
                 "type": "object",
                 "properties": {
+                    "source": {
+                        "type": "object",
+                        "properties": {
+                            "imageAssetId": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "mindPublicId": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 500
+                            },
+                            "pageAspect": {
+                                "type": "number",
+                                "minimum": 0.2,
+                                "maximum": 5
+                            },
+                            "imageDigest": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            },
+                            "mindDigest": {
+                                "type": "string",
+                                "pattern": "^[a-f0-9]{64}$"
+                            }
+                        },
+                        "required": [
+                            "imageAssetId",
+                            "mindPublicId",
+                            "pageAspect",
+                            "imageDigest",
+                            "mindDigest"
+                        ],
+                        "additionalProperties": false
+                    },
+                    "analysis": {
+                        "type": "object",
+                        "properties": {
+                            "policyVersion": {
+                                "type": "string",
+                                "enum": ["mindar-pictarize-v1"]
+                            },
+                            "distribution": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "uniqueness": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "dimension": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "sourceWidth": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true,
+                                "maximum": 16384
+                            },
+                            "sourceHeight": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true,
+                                "maximum": 16384
+                            }
+                        },
+                        "required": [
+                            "policyVersion",
+                            "distribution",
+                            "uniqueness",
+                            "dimension",
+                            "sourceWidth",
+                            "sourceHeight"
+                        ],
+                        "additionalProperties": false
+                    },
                     "features": {
                         "type": "integer",
                         "minimum": 0,

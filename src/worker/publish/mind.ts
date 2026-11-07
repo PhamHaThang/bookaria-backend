@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { gzipSync } from 'node:zlib';
 import { decode, encode } from '@msgpack/msgpack';
 import { z } from 'zod';
@@ -43,6 +44,28 @@ export function decodeSingleMind(bytes: Uint8Array): MindTarget {
             'Cần .mind MessagePack v2, đúng một target, có matchingData/trackingData. Hãy biên dịch lại bằng MindAR 1.2.5.',
         );
     }
+}
+
+/** Revalidate actual downloaded bytes before adding a target to a publication. */
+export function readPublicationMind(
+    bytes: Uint8Array,
+    expectedDigest: string | undefined,
+    seen: Set<string>,
+): MindTarget {
+    const target = decodeSingleMind(bytes);
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    if (expectedDigest !== undefined && expectedDigest !== digest)
+        throw new JobError(
+            'MARKER_STALE',
+            'Tệp marker đã thay đổi sau khi phân tích. Đánh giá lại ảnh nhận diện rồi xuất bản lại.',
+        );
+    if (seen.has(digest))
+        throw new JobError(
+            'MARKER_DUPLICATE',
+            'Hai trang dùng cùng tệp marker. Chọn marker khác rồi xuất bản lại.',
+        );
+    seen.add(digest);
+    return target;
 }
 
 /**

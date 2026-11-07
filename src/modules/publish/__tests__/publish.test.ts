@@ -2,6 +2,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
+import { DATABASE_A4_ASPECT, markerReportFixture } from '../../../test/marker-report-fixture';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp();
@@ -41,9 +42,20 @@ async function createBook(userId: string, withAr = true) {
         const imageId = image.rows[0]?.id;
         if (!imageId) throw new Error('Không tạo được ảnh thử nghiệm');
         await pool.query(
-            `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode, marker_mind_public_id, marker_score)
-             VALUES ($1, 0, $2, 'CUSTOM_MARKER', 'marker.mind', 3)`,
-            [bookId, imageId],
+            `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode, marker_mind_public_id, marker_score, marker_report)
+             VALUES ($1, 0, $2, 'CUSTOM_MARKER', $3, NULL, $4::jsonb)`,
+            [
+                bookId,
+                imageId,
+                `bookaria/${userId}/marker.mind`,
+                JSON.stringify(
+                    markerReportFixture(
+                        imageId,
+                        `bookaria/${userId}/marker.mind`,
+                        DATABASE_A4_ASPECT,
+                    ),
+                ),
+            ],
         );
     }
     return bookId;

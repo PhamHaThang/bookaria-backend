@@ -12,12 +12,13 @@ import {
     defaultMarkerTransform,
     ERROR_MESSAGES,
     getSceneWarnings,
-    MARKER_RULES,
     MarkerInfoSchema,
     MarkerReportSchema,
     type MarkerTransform,
     MarkerTransformSchema,
     type MarkerWarning,
+    markerQualityWarnings,
+    markerReportStatus,
     type Page,
     PageSchema,
     type PageSettings,
@@ -168,7 +169,11 @@ export const pagesService = {
                     change.imageAssetId !== row.image_asset_id &&
                     row.marker_mode === 'CUSTOM_MARKER'
                 ) {
-                    if (!change.markerMindPublicId || !checkedMinds.has(change.markerMindPublicId))
+                    if (
+                        !change.markerMindPublicId ||
+                        change.markerMindPublicId === row.marker_mind_public_id ||
+                        !checkedMinds.has(change.markerMindPublicId)
+                    )
                         throw fieldError(
                             'markerMindPublicId',
                             'Ảnh nền mới cần được biên dịch marker trước khi lưu.',
@@ -434,6 +439,14 @@ export const pagesService = {
                         'Trang dùng marker riêng cần file .mind biên dịch từ ảnh mới.',
                     );
                 }
+                if (
+                    body.imageAssetId !== pageRow.image_asset_id &&
+                    mind === pageRow.marker_mind_public_id
+                )
+                    throw fieldError(
+                        'markerMindPublicId',
+                        'Ảnh nền đã thay đổi. Cần biên dịch tệp marker mới, không dùng lại tệp cũ.',
+                    );
                 const isMarkerMindValid =
                     mindChecked ?? (await assetsService.isMarkerFileOf(userId, mind));
                 if (!isMarkerMindValid) {
@@ -717,9 +730,18 @@ function toPageSummary(r: PageRow) {
 function warningsOf(r: PageRow): MarkerWarning[] {
     if (r.marker_mode !== 'CUSTOM_MARKER') return [];
     const warnings: MarkerWarning[] = [];
-    if (r.marker_score === null) warnings.push('NOT_SCORED');
-    else if (r.marker_score < MARKER_RULES.minPublishScore) warnings.push('LOW_SCORE');
     const report = MarkerReportSchema.safeParse(r.marker_report);
+    const status = markerReportStatus(r.marker_report, {
+        imageAssetId: r.image_asset_id,
+        mindPublicId: r.marker_mind_public_id || '',
+        pageAspect: r.page_aspect,
+    });
+    if (status === 'missing') warnings.push('NOT_SCORED');
+    else if (status === 'legacy' || status === 'invalid') warnings.push('REANALYZE_REQUIRED');
+    else if (status === 'stale') warnings.push('STALE_MARKER');
+    else if (status === 'empty') warnings.push('NO_FEATURES');
+    else if (report.success)
+        warnings.push(...markerQualityWarnings(report.data).map((item) => item.code));
     if (report.success) {
         for (const s of report.data.similarPages) warnings.push(`SIMILAR_TO:${s.pageId}`);
     }

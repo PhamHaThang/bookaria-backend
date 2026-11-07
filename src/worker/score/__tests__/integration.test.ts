@@ -15,7 +15,7 @@ import { createScoreMarkerHandler } from '..';
 import { scoreRepository } from '../repo';
 import type { MarkerStorage } from '../storage';
 import type { MarkerAnalysis } from '../types';
-import { illustration } from './fixtures';
+import { compiledFixture, illustration } from './fixtures';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
@@ -90,7 +90,7 @@ function fakePipeline(similarity = 0.8) {
         width: 640,
         height: 640,
         png: Buffer.from('png'),
-        digest: 'test',
+        digest: 'a'.repeat(64),
         points: [],
         descriptors: new Uint8Array(),
         cells: Array(16).fill(10),
@@ -100,6 +100,7 @@ function fakePipeline(similarity = 0.8) {
         hints: ['Ngưỡng thử nghiệm.'],
     };
     const storage: MarkerStorage = {
+        downloadMind: vi.fn(async () => compiledFixture()),
         download: vi.fn(async () => Buffer.from('png')),
         uploadHeatmap: vi.fn(async (publicId) => `https://example.com/${publicId}.png`),
     };
@@ -125,10 +126,11 @@ suite('SCORE_MARKER integration', () => {
         expect(await jobState(s.jobId)).toMatchObject({
             status: 'SUCCEEDED',
             progress: 100,
-            result: { pageId: s.target, score: 3 },
+            result: { pageId: s.target, score: null },
         });
         const target = await pageState(s.target);
-        expect(target).toMatchObject({ marker_score: 3, marker_features: 180, revision: 0 });
+        expect(target).toMatchObject({ marker_score: null, marker_features: 180, revision: 0 });
+        expect(target.marker_report.analysis.policyVersion).toBe('mindar-pictarize-v1');
         expect(target.marker_report.similarPages).toEqual([{ pageId: s.peer, similarity: 0.8 }]);
         const peer = await pageState(s.peer);
         expect(peer.marker_score).toBeNull();
@@ -138,7 +140,7 @@ suite('SCORE_MARKER integration', () => {
             .auth(s.token, { type: 'bearer' });
         expect(response.status).toBe(200);
         expect(response.body.data.markerWarnings).toEqual(
-            expect.arrayContaining(['NOT_SCORED', `SIMILAR_TO:${s.target}`]),
+            expect.arrayContaining(['REANALYZE_REQUIRED', `SIMILAR_TO:${s.target}`]),
         );
         const check = await publishService.publishCheck(s.userId, s.bookId);
         expect(check.warnings.filter((w) => w.code === 'PAGE_SIMILAR')).toHaveLength(1);
@@ -147,6 +149,7 @@ suite('SCORE_MARKER integration', () => {
         const s = await setup(1);
         const input = await illustration();
         const storage: MarkerStorage = {
+            downloadMind: async () => compiledFixture(),
             download: async () => input,
             uploadHeatmap: async (_id, png) => {
                 expect(png.subarray(1, 4).toString()).toBe('PNG');
@@ -343,7 +346,7 @@ suite('SCORE_MARKER integration', () => {
         expect((await pageState(s.peer)).marker_report.similarPages).toEqual([]);
         expect((await publishService.publishCheck(s.userId, s.bookId)).errors).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ code: 'PAGE_NOT_SCORED', pageId: s.target }),
+                expect.objectContaining({ code: 'MARKER_PROCESSING', pageId: s.target }),
             ]),
         );
         await runJob(res.body.data.jobId, fakePipeline(0.1).handler);

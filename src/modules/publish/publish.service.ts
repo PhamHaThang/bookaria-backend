@@ -7,8 +7,6 @@ import {
     findSceneReferenceIssues,
     getSceneWarnings,
     type ListBookVersionsQuery,
-    MARKER_RULES,
-    MarkerReportSchema,
     MB,
     type PublishBody,
     type PublishCheck,
@@ -22,6 +20,7 @@ import {
 import { AppError, fieldError } from '../../utils';
 import { booksRepository } from '../books/books.repository';
 import { toSummary } from '../books/books.service';
+import { checkPublicationMarkers } from './marker-publish-policy';
 import { viewerLink } from './publish.link';
 import { publishRepository } from './publish.repository';
 import { publicationContentHash, readPublishSnapshot, snapshotHash } from './publish.snapshot';
@@ -37,6 +36,8 @@ export const publishService = {
         ]);
         return buildPublishCheck({
             pageAspect: Number(book.page_aspect),
+            pageFormat: book.page_format,
+            pageWidthMm: Number(book.page_width_mm),
             emailVerified: book.email_verified,
             takenDown: book.taken_down,
             pages: pages.map((p) => ({
@@ -45,6 +46,17 @@ export const publishService = {
                 markerMode: p.marker_mode,
                 markerScore: p.marker_score,
                 markerReport: p.marker_report,
+                markerMindPublicId: p.marker_mind_public_id,
+                markerJobStatus: p.marker_job_status,
+                bookariaMarker: p.bookaria_marker_id
+                    ? {
+                          id: p.bookaria_marker_id,
+                          mindPublicId: p.bookaria_mind_public_id,
+                          active: p.marker_active === true,
+                          validated: p.marker_validated,
+                          transform: p.bookaria_marker_transform,
+                      }
+                    : null,
                 scene: p.scene,
                 image:
                     p.image_id && p.image_status
@@ -211,7 +223,9 @@ export function buildPublishCheck(input: CheckInput): PublishCheck {
 
     const downloads = new Map<string, number>();
     const pageIds = new Set(input.pages.map((p) => p.id));
-    const similar = new Set<string>();
+    const markers = checkPublicationMarkers(input);
+    errors.push(...markers.errors);
+    warnings.push(...markers.warnings);
 
     for (const page of input.pages) {
         const label = `Trang ${page.orderIndex + 1}`;
@@ -251,39 +265,6 @@ export function buildPublishCheck(input: CheckInput): PublishCheck {
         }
         for (const a of page.assets) {
             downloads.set(a.id, a.sizeBytes);
-        }
-
-        if (page.markerMode === 'CUSTOM_MARKER') {
-            // Kiểm tra điểm số của trang AR
-            if (page.markerScore === null) {
-                errors.push({
-                    code: 'PAGE_NOT_SCORED',
-                    message: `${label} chưa được chấm điểm.`,
-                    ...here,
-                });
-            } else if (page.markerScore < MARKER_RULES.minPublishScore) {
-                errors.push({
-                    code: 'PAGE_LOW_SCORE',
-                    message: `${label} có điểm AR bé hơn ${MARKER_RULES.minPublishScore}.`,
-                    ...here,
-                });
-            }
-
-            // Kiểm tra xem trang AR có bị nhầm lẫn với các trang khác hay không
-            const report = MarkerReportSchema.safeParse(page.markerReport);
-            if (report.success) {
-                for (const s of report.data.similarPages) {
-                    const pair = [page.id, s.pageId].sort().join(':');
-                    if (!pageIds.has(s.pageId) || similar.has(pair)) continue;
-                    similar.add(pair);
-                    warnings.push({
-                        code: 'PAGE_SIMILAR',
-                        message: `${label} dễ bị nhận nhầm với một trang khác.`,
-                        otherPageId: s.pageId,
-                        ...here,
-                    });
-                }
-            }
         }
 
         // Kiểm tra scene của trang AR

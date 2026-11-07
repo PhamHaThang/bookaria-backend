@@ -1,4 +1,4 @@
-import type { AssetStatus, MarkerMode, WorkflowVariable } from '../../schema';
+import type { AssetStatus, MarkerMode, PageFormat, WorkflowVariable } from '../../schema';
 import type { AssetRow } from '../assets/assets.types';
 
 export interface CheckAsset {
@@ -13,6 +13,15 @@ export interface CheckPage {
     markerMode: MarkerMode;
     markerScore: number | null;
     markerReport: unknown;
+    markerMindPublicId: string | null;
+    markerJobStatus: string | null;
+    bookariaMarker: {
+        id: string;
+        mindPublicId: string | null;
+        active: boolean;
+        validated: boolean;
+        transform: unknown;
+    } | null;
     scene: unknown;
     image: CheckAsset | null;
     assets: CheckAsset[];
@@ -20,6 +29,8 @@ export interface CheckPage {
 
 export interface CheckInput {
     pageAspect: number;
+    pageFormat?: PageFormat;
+    pageWidthMm?: number;
     emailVerified: boolean;
     takenDown: boolean;
     pages: CheckPage[];
@@ -31,6 +42,13 @@ export interface CheckPageRow {
     marker_mode: MarkerMode;
     marker_score: number | null;
     marker_report: unknown;
+    marker_mind_public_id: string | null;
+    marker_job_status: string | null;
+    bookaria_marker_id: string | null;
+    bookaria_mind_public_id: string | null;
+    marker_active: boolean | null;
+    marker_validated: boolean;
+    bookaria_marker_transform: unknown;
     scene: unknown;
     image_id: string | null;
     image_status: AssetStatus | null;
@@ -46,6 +64,8 @@ export interface CheckAssetRow {
 export interface PublishableBook {
     id: string;
     page_aspect: string;
+    page_format: PageFormat;
+    page_width_mm: string;
     taken_down: boolean;
     email_verified: boolean;
 }
@@ -70,6 +90,7 @@ export interface PublishSnapshot {
         cover_asset_id?: string | null;
         slug: string | null;
         page_aspect: string;
+        page_format?: PageFormat;
         page_width_mm: string;
         current_version_id: string | null;
         deleted_at: string | null;

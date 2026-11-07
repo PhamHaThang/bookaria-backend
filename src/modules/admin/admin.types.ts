@@ -105,6 +105,7 @@ export interface ModerationBookRow {
 }
 
 export interface ModerationPageRow {
+    marker_report: unknown;
     id: string;
     order_index: number;
     title: string | null;

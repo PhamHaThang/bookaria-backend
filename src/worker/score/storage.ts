@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { type CloudinaryAccount, createCloudinaryStorage, signParams } from '../../lib/cloudinary';
 import { pageImageTransform } from '../../lib/page-image';
 import { JobError } from '../../modules/jobs/jobs.types';
+import { createPublishStorage } from '../publish/storage';
 import type { MarkerSource } from './types';
 
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -38,6 +39,7 @@ export function createMarkerStorage(account: CloudinaryAccount, fetchImpl: typeo
         return response;
     }
     return {
+        downloadMind: createPublishStorage(account, fetchImpl).downloadMind,
         async download(page: MarkerSource, signal: AbortSignal): Promise<Buffer> {
             const response = await request(
                 media.deliveryUrl({
