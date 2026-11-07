@@ -1,5 +1,5 @@
 import fontkit from '@pdf-lib/fontkit';
-import { PDFDocument, type PDFFont, type PDFPage, rgb } from 'pdf-lib';
+import { PDFDocument, type PDFFont, type PDFImage, type PDFPage, rgb } from 'pdf-lib';
 import QRCode from 'qrcode';
 import sharp from 'sharp';
 import { JobError } from '../../modules/jobs/jobs.types';
@@ -103,12 +103,13 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
         return { page, offset };
     }
     let total = 0;
-    const cache = new Map<string, Promise<{ png: Buffer; width: number; height: number }>>();
+    type PrintImage = { bytes: Buffer; format: 'jpg' | 'png'; width: number; height: number };
+    const cache = new Map<string, Promise<PrintImage>>();
     async function image(file: PrintFile) {
         const key = JSON.stringify(file);
         let pending = cache.get(key);
         if (!pending) {
-            pending = (async () => {
+            pending = (async (): Promise<PrintImage> => {
                 signal.throwIfAborted();
                 const bytes = await input.download(file, signal);
                 total += bytes.length;
@@ -118,17 +119,38 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
                         'Giới hạn ảnh: 20 MiB/file, 100 MiB/job.',
                     );
                 try {
-                    const { data, info } = await sharp(bytes, {
+                    const processor = sharp(bytes, {
                         limitInputPixels: 40_000_000,
                         animated: false,
-                    })
-                        .rotate()
-                        .flatten({ background: '#fff' })
-                        .png()
-                        .toBuffer({ resolveWithObject: true });
+                    });
+                    const metadata = await processor.metadata();
+                    // Canonical page JPEGs can be embedded unchanged: converting them to PNG
+                    // expands the PDF and discards the benefit of the original JPEG compression.
+                    if (
+                        metadata.format === 'jpeg' &&
+                        (metadata.orientation ?? 1) === 1 &&
+                        metadata.space === 'srgb'
+                    ) {
+                        // Validate the scan data as well as its header before keeping the original bytes.
+                        await processor.clone().stats();
+                        return {
+                            bytes,
+                            format: 'jpg',
+                            width: metadata.width,
+                            height: metadata.height,
+                        };
+                    }
+                    const normalized = processor.rotate().flatten({ background: '#fff' });
+                    const format = metadata.format === 'jpeg' ? 'jpg' : 'png';
+                    const { data, info } = await (format === 'jpg'
+                        ? normalized
+                              .toColourspace('srgb')
+                              .jpeg({ quality: 94, chromaSubsampling: '4:4:4' })
+                        : normalized.png()
+                    ).toBuffer({ resolveWithObject: true });
                     if (data.length > MAX_IMAGE_BYTES)
-                        throw new JobError('PRINT_IMAGE_SIZE', 'Ảnh PNG sau giải mã vượt 20 MiB.');
-                    return { png: data, width: info.width, height: info.height };
+                        throw new JobError('PRINT_IMAGE_SIZE', 'Ảnh sau chuẩn hóa vượt 20 MiB.');
+                    return { bytes: data, format, width: info.width, height: info.height };
                 } catch (error) {
                     if (error instanceof JobError) throw error;
                     throw new JobError(
@@ -140,6 +162,15 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
             cache.set(key, pending);
         }
         return pending;
+    }
+    const embeddedImages = new Map<string, Promise<PDFImage>>();
+    function embedImage(key: string, bytes: Buffer, format: 'jpg' | 'png') {
+        let embedded = embeddedImages.get(key);
+        if (!embedded) {
+            embedded = format === 'jpg' ? doc.embedJpg(bytes) : doc.embedPng(bytes);
+            embeddedImages.set(key, embedded);
+        }
+        return embedded;
     }
     const printMarkers = new Map<string, Promise<Buffer>>();
     async function drawImage(page: PDFPage, file: PrintFile, box: Rect, square = false) {
@@ -154,22 +185,26 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
                     ? 'Ảnh marker phải vuông.'
                     : 'Tỷ lệ ảnh trang không khớp khổ sách; không tự crop hoặc kéo méo ảnh nhận diện.',
             );
-        let bytes = value.png;
+        let bytes = value.bytes;
+        let format = value.format;
+        let imageKey = JSON.stringify(file);
         if (square) {
             // Keep the physical size unchanged; 300 dpi avoids embedding oversized source artwork.
             const pixels = Math.ceil((box.width / 25.4) * 300);
             const key = `${JSON.stringify(file)}:${pixels}`;
             let pending = printMarkers.get(key);
             if (!pending) {
-                pending = sharp(value.png)
+                pending = sharp(value.bytes)
                     .resize({ width: pixels, withoutEnlargement: true })
                     .png({ compressionLevel: 9, adaptiveFiltering: true })
                     .toBuffer();
                 printMarkers.set(key, pending);
             }
             bytes = await pending;
+            format = 'png';
+            imageKey = key;
         }
-        const embedded = await doc.embedPng(bytes);
+        const embedded = await embedImage(imageKey, bytes, format);
         page.drawImage(embedded, {
             x: mm(box.x),
             y: mm(box.y),
@@ -184,7 +219,11 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
             const factor = Math.min(source.widthMm / value.width, source.heightMm / value.height);
             const width = value.width * factor,
                 height = value.height * factor;
-            const embedded = await doc.embedPng(value.png);
+            const embedded = await embedImage(
+                JSON.stringify(source.cover),
+                value.bytes,
+                value.format,
+            );
             cover.drawImage(embedded, {
                 x: mm(o + (source.widthMm - width) / 2),
                 y: mm(o + (source.heightMm - height) / 2),
@@ -360,7 +399,7 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
     if (bytes.length > MAX_OUTPUT_BYTES)
         throw new JobError(
             'PRINT_OUTPUT_SIZE',
-            'PDF vượt giới hạn 9 MB của bài; giảm dung lượng ảnh nguồn rồi xuất bản lại.',
+            `PDF đầu ra có dung lượng ${(bytes.length / 1_000_000).toFixed(2)} MB (${bytes.length.toLocaleString('vi-VN')} byte), vượt giới hạn ${(MAX_OUTPUT_BYTES / 1_000_000).toFixed(0)} MB (${MAX_OUTPUT_BYTES.toLocaleString('vi-VN')} byte) cho mỗi file xuất ra.`,
         );
     return bytes;
 }

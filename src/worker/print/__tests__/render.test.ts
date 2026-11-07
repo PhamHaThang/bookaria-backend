@@ -27,6 +27,114 @@ async function input(): Promise<RenderInput> {
     };
 }
 describe('physical print layout and PDF', () => {
+    it('keeps a book of compressed JPEG pages below the PDF limit without expanding them to PNG', async () => {
+        const args = await input();
+        const images = new Map<string, Buffer>();
+        let state = 123456789;
+        for (let index = 0; index < 8; index++) {
+            const pixels = Buffer.alloc(768 * 768 * 3);
+            for (let i = 0; i < pixels.length; i++) {
+                state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+                pixels[i] = state >>> 24;
+            }
+            images.set(
+                `photo/${index}`,
+                await sharp(pixels, { raw: { width: 768, height: 768, channels: 3 } })
+                    .jpeg({ quality: 45 })
+                    .toBuffer(),
+            );
+        }
+        args.source.widthMm = args.source.heightMm = 210;
+        args.source.pages = [...images.keys()].map((publicId, index) => ({
+            pageId: `00000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+            title: null,
+            image: { publicId, format: 'jpg' },
+            marker: { mode: 'CUSTOM_MARKER' },
+        }));
+        args.download = async (file) => required(images.get(file.publicId));
+        const bytes = await renderPrintPdf(args);
+        const total = [...images.values()].reduce((sum, image) => sum + image.length, 0);
+        expect(bytes.length).toBeLessThan(total + 100_000);
+        const pdf = await PDFDocument.load(bytes);
+        const streams = pdf.context
+            .enumerateIndirectObjects()
+            .map(([, object]) => object)
+            .filter(
+                (object): object is PDFRawStream =>
+                    object instanceof PDFRawStream &&
+                    object.dict.get(PDFName.of('Filter'))?.toString() === '/DCTDecode',
+            );
+        expect(streams).toHaveLength(8);
+        for (const image of images.values()) {
+            expect(streams.some((stream) => Buffer.from(stream.getContents()).equals(image))).toBe(
+                true,
+            );
+        }
+    });
+    it('reuses one embedded image across repeated pages and the cover', async () => {
+        const args = await input();
+        const file = required(args.source.pages[0]).image;
+        args.source.cover = file;
+        const bytes = await renderPrintPdf(args);
+        const pdf = await PDFDocument.load(bytes);
+        const references = [0, 2, 3].map((index) =>
+            required(required(pdf.getPages()[index]).node.Resources())
+                .lookup(PDFName.of('XObject'), PDFDict)
+                .values()[0]
+                ?.toString(),
+        );
+        expect(new Set(references).size).toBe(1);
+        expect(references[0]).toBeDefined();
+    });
+    it('normalizes an EXIF-rotated JPEG before embedding without changing its print geometry', async () => {
+        const args = await input();
+        const photo = await sharp({
+            create: { width: 594, height: 420, channels: 3, background: '#30a7c2' },
+        })
+            .jpeg()
+            .withMetadata({ orientation: 6 })
+            .toBuffer();
+        args.source.pages = args.source.pages.map((page) => ({
+            ...page,
+            marker: { mode: 'NONE' },
+        }));
+        args.download = async () => photo;
+        const pdf = await PDFDocument.load(await renderPrintPdf(args));
+        const stream = pdf.context
+            .enumerateIndirectObjects()
+            .map(([, object]) => object)
+            .find(
+                (object): object is PDFRawStream =>
+                    object instanceof PDFRawStream &&
+                    object.dict.get(PDFName.of('Filter'))?.toString() === '/DCTDecode',
+            );
+        expect(required(stream).dict.get(PDFName.of('Width'))?.toString()).toBe('420');
+        expect(required(stream).dict.get(PDFName.of('Height'))?.toString()).toBe('594');
+        expect(required(pdf.getPages()[2]).getTrimBox().width).toBeCloseTo(mm(210));
+    });
+    it('rejects JPEG files with valid dimensions but truncated scan data', async () => {
+        const args = await input();
+        const jpeg = await sharp({
+            create: { width: 840, height: 1188, channels: 3, background: '#30a7c2' },
+        })
+            .jpeg()
+            .toBuffer();
+        args.download = async () => jpeg.subarray(0, Math.floor(jpeg.length / 2));
+        await expect(renderPrintPdf(args)).rejects.toMatchObject({ code: 'PRINT_IMAGE_DECODE' });
+    });
+    it('still rejects a genuinely oversized serialized PDF and reports its exact byte count', async () => {
+        const save = vi
+            .spyOn(PDFDocument.prototype, 'save')
+            .mockResolvedValue(new Uint8Array(9_000_001));
+        try {
+            await expect(renderPrintPdf(await input())).rejects.toMatchObject({
+                code: 'PRINT_OUTPUT_SIZE',
+                message: expect.stringContaining('9.000.001 byte'),
+            });
+        } finally {
+            save.mockRestore();
+        }
+    });
     it('prints the uploaded cover centered with its original aspect and uses a vector logo when absent', async () => {
         const args = await input();
         const image = await sharp({
