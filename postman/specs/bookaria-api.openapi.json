@@ -21942,6 +21942,54 @@
                                 "properties": {
                                     "type": {
                                         "type": "string",
+                                        "enum": ["onStateCondition"]
+                                    },
+                                    "test": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"],
+                                        "additionalProperties": false
+                                    }
+                                },
+                                "required": ["type", "test"],
+                                "additionalProperties": false
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
                                         "enum": ["onPageLeave"]
                                     }
                                 },
@@ -22320,6 +22368,121 @@
                             "type": {
                                 "type": "string",
                                 "enum": ["condition"]
+                            },
+                            "test": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["answer"]
+                                            },
+                                            "questionId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "result": {
+                                                "type": "string",
+                                                "enum": ["correct", "incorrect"]
+                                            }
+                                        },
+                                        "required": ["type", "questionId", "result"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["interactionCount"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "min": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "min"],
+                                        "additionalProperties": false
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["visible"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "value": {
+                                                "type": "boolean"
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "value"],
+                                        "additionalProperties": false
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "test", "delayMsSchema"],
+                        "additionalProperties": false
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["waitUntil"]
                             },
                             "test": {
                                 "oneOf": [
@@ -25547,6 +25710,52 @@
                                 "properties": {
                                     "type": {
                                         "type": "string",
+                                        "enum": ["onStateCondition"]
+                                    },
+                                    "test": {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"]
+                                    }
+                                },
+                                "required": ["type", "test"]
+                            },
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
                                         "enum": ["onPageLeave"]
                                     }
                                 },
@@ -25907,6 +26116,116 @@
                             "type": {
                                 "type": "string",
                                 "enum": ["condition"]
+                            },
+                            "test": {
+                                "oneOf": [
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["variable"]
+                                            },
+                                            "key": {
+                                                "type": "string",
+                                                "minLength": 1,
+                                                "maxLength": 64,
+                                                "pattern": "^[a-zA-Z][a-zA-Z0-9_.:-]*$"
+                                            },
+                                            "operator": {
+                                                "type": "string",
+                                                "enum": ["eq", "ne", "gt", "gte", "lt", "lte"]
+                                            },
+                                            "value": {
+                                                "anyOf": [
+                                                    {
+                                                        "type": "boolean"
+                                                    },
+                                                    {
+                                                        "type": "number",
+                                                        "minimum": -1000000000,
+                                                        "maximum": 1000000000
+                                                    },
+                                                    {
+                                                        "type": "string",
+                                                        "maxLength": 500
+                                                    }
+                                                ]
+                                            }
+                                        },
+                                        "required": ["type", "key", "operator", "value"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["answer"]
+                                            },
+                                            "questionId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "result": {
+                                                "type": "string",
+                                                "enum": ["correct", "incorrect"]
+                                            }
+                                        },
+                                        "required": ["type", "questionId", "result"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["interactionCount"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "min": {
+                                                "type": "integer",
+                                                "minimum": 1,
+                                                "maximum": 1000000
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "min"]
+                                    },
+                                    {
+                                        "type": "object",
+                                        "properties": {
+                                            "type": {
+                                                "type": "string",
+                                                "enum": ["visible"]
+                                            },
+                                            "objectId": {
+                                                "type": "string",
+                                                "pattern": "^[A-Za-z0-9_-]{1,50}$"
+                                            },
+                                            "value": {
+                                                "type": "boolean"
+                                            }
+                                        },
+                                        "required": ["type", "objectId", "value"]
+                                    }
+                                ]
+                            },
+                            "delayMsSchema": {
+                                "default": 0,
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 60000
+                            }
+                        },
+                        "required": ["type", "test"]
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["waitUntil"]
                             },
                             "test": {
                                 "oneOf": [

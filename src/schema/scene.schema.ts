@@ -241,24 +241,6 @@ export type SceneObjectType = SceneObject['type'];
 // ---------------------------------------------------------------------------
 // Interactions: "When [trigger] then [actions...]"
 // ---------------------------------------------------------------------------
-export const TriggerSchema = z.discriminatedUnion('type', [
-    z.object({ type: z.literal('onPageEnter') }),
-    z.object({ type: z.literal('onPageLeave') }),
-    z.object({ type: z.literal('onTap'), objectId: SceneIdSchema }),
-    z.object({ type: z.literal('onMarkerFound') }),
-    z.object({ type: z.literal('onMarkerLost') }),
-    z.object({
-        type: z.literal('onAnimationEnd'),
-        objectId: SceneIdSchema,
-        clip: z.string().max(100).optional(),
-    }),
-    z.object({
-        type: z.literal('onAnswer'),
-        questionId: SceneIdSchema,
-        answer: z.enum(['any', 'correct', 'incorrect']).default('any'),
-    }),
-]);
-export type Trigger = z.infer<typeof TriggerSchema>;
 
 export const EasingSchema = z.enum(['linear', 'easeIn', 'easeOut', 'easeInOut']);
 export type Easing = z.infer<typeof EasingSchema>;
@@ -331,17 +313,18 @@ export const WorkflowVariablesSchema = z
             names.add(name);
         });
     });
+export const VariableConditionSchema = z
+    .object({
+        type: z.literal('variable'),
+        key: StateKeySchema,
+        operator: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
+        value: StateValueSchema,
+    })
+    .refine((test) => ['eq', 'ne'].includes(test.operator) || typeof test.value === 'number', {
+        message: 'So sánh lớn hơn / nhỏ hơn cần một số.',
+    });
 export const ConditionSchema = z.discriminatedUnion('type', [
-    z
-        .object({
-            type: z.literal('variable'),
-            key: StateKeySchema,
-            operator: z.enum(['eq', 'ne', 'gt', 'gte', 'lt', 'lte']),
-            value: StateValueSchema,
-        })
-        .refine((test) => ['eq', 'ne'].includes(test.operator) || typeof test.value === 'number', {
-            message: 'So sánh lớn hơn / nhỏ hơn cần một số.',
-        }),
+    VariableConditionSchema,
     z.object({
         type: z.literal('answer'),
         questionId: SceneIdSchema,
@@ -355,6 +338,27 @@ export const ConditionSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('visible'), objectId: SceneIdSchema, value: z.boolean() }),
 ]);
 export type WorkflowCondition = z.infer<typeof ConditionSchema>;
+
+export const TriggerSchema = z.discriminatedUnion('type', [
+    z.object({ type: z.literal('onPageEnter') }),
+    z.object({ type: z.literal('onStateCondition'), test: VariableConditionSchema }),
+    z.object({ type: z.literal('onPageLeave') }),
+    z.object({ type: z.literal('onTap'), objectId: SceneIdSchema }),
+    z.object({ type: z.literal('onMarkerFound') }),
+    z.object({ type: z.literal('onMarkerLost') }),
+    z.object({
+        type: z.literal('onAnimationEnd'),
+        objectId: SceneIdSchema,
+        clip: z.string().max(100).optional(),
+    }),
+    z.object({
+        type: z.literal('onAnswer'),
+        questionId: SceneIdSchema,
+        answer: z.enum(['any', 'correct', 'incorrect']).default('any'),
+    }),
+]);
+export type Trigger = z.infer<typeof TriggerSchema>;
+
 export const QuestionSchema = z
     .object({
         questionId: SceneIdSchema,
@@ -427,6 +431,7 @@ export const ActionSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('playVideo'), objectId: SceneIdSchema, delayMsSchema }),
     z.object({ type: z.literal('openUrl'), url: HttpUrlSchema, delayMsSchema }),
     z.object({ type: z.literal('condition'), test: ConditionSchema, delayMsSchema }),
+    z.object({ type: z.literal('waitUntil'), test: ConditionSchema, delayMsSchema }),
     z
         .object({
             type: z.literal('setState'),
@@ -519,10 +524,13 @@ export const InteractionRuleSchema = z
         if (
             rule.trigger.type === 'onPageLeave' &&
             rule.actions.some(
-                (action) => action.type === 'navigate' || action.type === 'askQuestion',
+                (action) =>
+                    action.type === 'navigate' ||
+                    action.type === 'askQuestion' ||
+                    action.type === 'waitUntil',
             )
         )
-            problem('Câu hỏi và chuyển trang cần chạy trước khi rời trang.');
+            problem('Câu hỏi, bước chờ điều kiện và chuyển trang cần chạy trước khi rời trang.');
         if (rule.workflow && !rule.editorLayout) problem('Luồng cần danh sách mã node và vị trí.');
         if (!rule.editorLayout) return;
         if (
@@ -729,7 +737,7 @@ export function findSceneReferenceIssues(scene: Scene): SceneReferenceIssue[] {
                 seenQuestions.add(action.question.questionId);
             }
             if (
-                action.type === 'condition' &&
+                (action.type === 'condition' || action.type === 'waitUntil') &&
                 action.test.type === 'answer' &&
                 !questionIds.has(action.test.questionId)
             )
@@ -738,7 +746,10 @@ export function findSceneReferenceIssues(scene: Scene): SceneReferenceIssue[] {
                     actionIndex: i,
                     message: 'Điều kiện trỏ tới câu hỏi không có trong trang.',
                 });
-            if (action.type === 'condition' && 'objectId' in action.test)
+            if (
+                (action.type === 'condition' || action.type === 'waitUntil') &&
+                'objectId' in action.test
+            )
                 need(rule, i, action.test.objectId, null, 'điều kiện');
             switch (action.type) {
                 case 'controlModel':

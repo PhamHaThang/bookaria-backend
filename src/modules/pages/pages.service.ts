@@ -111,11 +111,17 @@ export const pagesService = {
                 );
             }
             for (const scene of prospectiveScenes) {
-                for (const action of scene.interactions.flatMap((rule) => rule.actions)) {
+                for (const action of scene.interactions.flatMap((rule) => [
+                    ...rule.actions,
+                    ...(rule.trigger.type === 'onStateCondition' ? [rule.trigger] : []),
+                ])) {
                     const key =
                         action.type === 'setState'
                             ? action.key
-                            : action.type === 'condition' && action.test.type === 'variable'
+                            : (action.type === 'condition' ||
+                                    action.type === 'waitUntil' ||
+                                    action.type === 'onStateCondition') &&
+                                action.test.type === 'variable'
                               ? action.test.key
                               : null;
                     if (removed.some((item) => item.key === key))
@@ -130,7 +136,9 @@ export const pagesService = {
                             (typeof action.value !== def.type ||
                                 (action.operation === 'increment' && def.type !== 'number') ||
                                 (action.operation === 'toggle' && def.type !== 'boolean'))) ||
-                            (action.type === 'condition' &&
+                            ((action.type === 'condition' ||
+                                action.type === 'waitUntil' ||
+                                action.type === 'onStateCondition') &&
                                 action.test.type === 'variable' &&
                                 typeof action.test.value !== def.type))
                     )
