@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+    BOOK_AGE_MAX,
     HttpUrlSchema,
     IdSchema,
     IsoDateTimeSchema,
@@ -44,7 +45,7 @@ export const CreateBookSourceSchema = z.discriminatedUnion('type', [
 ]);
 export type CreateBookSource = z.infer<typeof CreateBookSourceSchema>;
 
-const AgeSchema = z.int().min(0).max(150);
+const AgeSchema = z.int().min(0).max(BOOK_AGE_MAX);
 
 const checkAges = (b: { ageMin?: number | null | undefined; ageMax?: number | null | undefined }) =>
     b.ageMin == null || b.ageMax == null || b.ageMin <= b.ageMax;

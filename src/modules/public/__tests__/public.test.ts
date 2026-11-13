@@ -172,6 +172,17 @@ suite('GET /public/books/:slug', () => {
         expect(book.coverUrl).toBeNull();
     });
 
+    it('lists and opens books for adult readers', async () => {
+        const { slug } = await shelve({ book: { age_min: 21, age_max: 150 } });
+        const detail = await get(`/books/${slug}`);
+        expect(detail.status).toBe(200);
+        expect(detail.body.data).toMatchObject({ ageMin: 21, ageMax: 150 });
+
+        const list = await get('/books?age=25');
+        expect(list.status).toBe(200);
+        expect(slugsOf(list)).toContain(slug);
+    });
+
     it('lets a browser keep the answer for a minute', async () => {
         const s = await shelve();
         const res = await get(`/books/${s.slug}`);
@@ -377,7 +388,7 @@ suite('GET /public/books', () => {
 
     it('rejects a bad query with 400', async () => {
         for (const q of [
-            'age=19',
+            'age=151',
             'age=x',
             'sort=best',
             'limit=0',

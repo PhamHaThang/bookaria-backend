@@ -26,6 +26,8 @@ export const SlugSchema = z
     .max(80)
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+export const BOOK_AGE_MAX = 150;
+
 /** `vi`, `en`, `en-US`. */
 export const LanguageSchema = z.string().regex(/^[a-z]{2}(?:-[A-Z]{2})?$/);
 

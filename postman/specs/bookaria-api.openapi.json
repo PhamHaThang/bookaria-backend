@@ -12122,7 +12122,7 @@
                         "schema": {
                             "type": "integer",
                             "minimum": 0,
-                            "maximum": 18
+                            "maximum": 150
                         }
                     },
                     {
@@ -12192,13 +12192,13 @@
                                                         "nullable": true,
                                                         "type": "integer",
                                                         "minimum": 0,
-                                                        "maximum": 18
+                                                        "maximum": 150
                                                     },
                                                     "ageMax": {
                                                         "nullable": true,
                                                         "type": "integer",
                                                         "minimum": 0,
-                                                        "maximum": 18
+                                                        "maximum": 150
                                                     },
                                                     "arPageCount": {
                                                         "type": "integer",
@@ -12388,13 +12388,13 @@
                                                                 "nullable": true,
                                                                 "type": "integer",
                                                                 "minimum": 0,
-                                                                "maximum": 18
+                                                                "maximum": 150
                                                             },
                                                             "ageMax": {
                                                                 "nullable": true,
                                                                 "type": "integer",
                                                                 "minimum": 0,
-                                                                "maximum": 18
+                                                                "maximum": 150
                                                             },
                                                             "arPageCount": {
                                                                 "type": "integer",
@@ -23371,13 +23371,13 @@
                         "nullable": true,
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 18
+                        "maximum": 150
                     },
                     "ageMax": {
                         "nullable": true,
                         "type": "integer",
                         "minimum": 0,
-                        "maximum": 18
+                        "maximum": 150
                     },
                     "version": {
                         "type": "object",

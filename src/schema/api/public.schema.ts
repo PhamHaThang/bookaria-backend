@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import {
+    BOOK_AGE_MAX,
     HttpUrlSchema,
     IdSchema,
     IsoDateTimeSchema,
@@ -15,7 +16,7 @@ import { DeviceTypeSchema, ReportReasonSchema } from '../enums.schema';
 /** `GET /public/books?q=&age=&topic=&language=&sort=` (discovery page) */
 export const PublicBooksQuerySchema = PaginationQuerySchema.extend({
     q: z.string().trim().max(100).optional(),
-    age: z.coerce.number().int().min(0).max(18).optional(),
+    age: z.coerce.number().int().min(0).max(BOOK_AGE_MAX).optional(),
     topic: z.string().trim().max(50).optional(),
     language: LanguageSchema.optional(),
     sort: z.enum(['newest', 'popular']).default('newest'),
@@ -29,8 +30,8 @@ export const PublicBookCardSchema = z.object({
     coverUrl: HttpUrlSchema.nullable(),
     author: UserRefSchema,
     language: LanguageSchema,
-    ageMin: z.int().min(0).max(18).nullable(),
-    ageMax: z.int().min(0).max(18).nullable(),
+    ageMin: z.int().min(0).max(BOOK_AGE_MAX).nullable(),
+    ageMax: z.int().min(0).max(BOOK_AGE_MAX).nullable(),
     arPageCount: z.int().min(0),
 });
 export type PublicBookCard = z.infer<typeof PublicBookCardSchema>;
