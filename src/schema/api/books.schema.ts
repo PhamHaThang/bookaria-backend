@@ -165,3 +165,18 @@ export const BookStatsSchema = z.object({
 });
 
 export type BookStats = z.infer<typeof BookStatsSchema>;
+
+/** Aggregate reading activity for the signed-in author. Windows end today in UTC. */
+export const StudioReadingStatsSchema = z.object({
+    opensLast7Days: z.int().nonnegative(),
+    opensPrevious7Days: z.int().nonnegative(),
+    opensByDay: z.array(BookStatsSchema.shape.opensByDay.element).length(14),
+    topBooks: z
+        .array(
+            BookSummarySchema.pick({ id: true, title: true, coverUrl: true }).extend({
+                opens: z.int().positive(),
+            }),
+        )
+        .max(3),
+});
+export type StudioReadingStats = z.infer<typeof StudioReadingStatsSchema>;

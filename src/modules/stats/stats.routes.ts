@@ -10,3 +10,9 @@ export const statsRouter = () => {
 
     return router;
 };
+
+export const studioReadingStatsRouter = () => {
+    const router = Router();
+    router.get('/reading-stats', requireAuth, statsController.getStudioReadingStats);
+    return router;
+};

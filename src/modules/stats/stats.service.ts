@@ -1,12 +1,51 @@
 import { withTransaction } from '../../db';
-import { type BookStats, BookStatsSchema, type StatsQuery } from '../../schema';
+import {
+    type BookStats,
+    BookStatsSchema,
+    type StatsQuery,
+    StudioReadingStatsSchema,
+} from '../../schema';
 import { AppError } from '../../utils';
+import { assetsService } from '../assets/assets.service';
 import { statsRepository } from './stats.repository';
 
 const DAYS = { '7d': 7, '30d': 30, '90d': 90 } as const;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const statsService = {
+    async getStudioReadingStats(userId: string, now = new Date()) {
+        const lastWeekStart = getSinceDate('7d', now);
+        const start = lastWeekStart - 7 * DAY_MS;
+        const since = new Date(start);
+        const until = new Date(lastWeekStart + 7 * DAY_MS);
+        const { days, topBooks } = await withTransaction(async (db) => {
+            await db.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+            return {
+                days: await statsRepository.getAuthorOpens(db, userId, since, until),
+                topBooks: await statsRepository.getAuthorTopBooks(db, userId, since, until),
+            };
+        });
+        const opensByDate = new Map(days.map((day) => [day.day, day.opens]));
+        const opensByDay = Array.from({ length: 14 }, (_, index) => {
+            const date = toDayString(start + index * DAY_MS);
+            return { date, opens: opensByDate.get(date) ?? 0 };
+        });
+        return StudioReadingStatsSchema.parse({
+            opensByDay,
+            opensLast7Days: opensByDay.slice(7).reduce((total, day) => total + day.opens, 0),
+            opensPrevious7Days: opensByDay.slice(0, 7).reduce((total, day) => total + day.opens, 0),
+            topBooks: topBooks.map(({ id, title, opens, public_id, resource_type }) => ({
+                id,
+                title,
+                opens,
+                coverUrl:
+                    public_id && resource_type
+                        ? assetsService.coverUrl({ public_id, resource_type })
+                        : null,
+            })),
+        });
+    },
+
     async getTotalStats(
         userId: string,
         bookId: string,

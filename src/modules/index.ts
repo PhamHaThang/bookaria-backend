@@ -11,7 +11,7 @@ import { authorPreviewRouter, publicPreviewRouter } from './previews/preview.rou
 import { printRouter } from './print/print.routes';
 import { publicRouter } from './public/public.routes';
 import { publishRouter } from './publish/publish.routes';
-import { statsRouter } from './stats/stats.routes';
+import { statsRouter, studioReadingStatsRouter } from './stats/stats.routes';
 
 export interface ApiRouterOptions {
     rateLimit: boolean;
@@ -22,6 +22,7 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use(healthRouter);
     router.use('/auth', authRouter({ rateLimit: options.rateLimit }));
     router.use('/me', meRouter({ rateLimit: options.rateLimit }));
+    router.use('/studio', studioReadingStatsRouter());
     router.use('/books/:bookId/pages', bookPagesRouter());
     router.use('/books/:bookId/previews', authorPreviewRouter(options.rateLimit));
     router.use('/books/:bookId', printRouter(options.rateLimit));

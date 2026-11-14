@@ -2,6 +2,43 @@ import type { Queryable } from '../../db';
 import type { PageStatsRow, TotalStatsRow } from './stats.types';
 
 export const statsRepository = {
+    async getAuthorOpens(db: Queryable, userId: string, since: Date, until: Date) {
+        const { rows } = await db.query<{ day: string; opens: number }>(
+            `SELECT to_char(e.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day,
+                    COUNT(*)::int AS opens
+               FROM books b
+               JOIN view_events e ON e.book_id = b.id
+              WHERE b.owner_id = $1 AND b.deleted_at IS NULL
+                AND e.event = 'OPEN' AND e.created_at >= $2 AND e.created_at < $3
+              GROUP BY 1`,
+            [userId, since, until],
+        );
+        return rows;
+    },
+
+    async getAuthorTopBooks(db: Queryable, userId: string, since: Date, until: Date) {
+        const { rows } = await db.query<{
+            id: string;
+            title: string;
+            public_id: string | null;
+            resource_type: 'image' | 'video' | 'raw' | null;
+            opens: number;
+        }>(
+            `SELECT b.id, b.title, a.original_public_id AS public_id, a.resource_type,
+                    COUNT(*)::int AS opens
+               FROM books b
+               JOIN view_events e ON e.book_id = b.id
+               LEFT JOIN assets a ON a.id = b.cover_asset_id AND a.deleted_at IS NULL
+              WHERE b.owner_id = $1 AND b.deleted_at IS NULL
+                AND e.event = 'OPEN' AND e.created_at >= $2 AND e.created_at < $3
+              GROUP BY b.id, a.id
+              ORDER BY opens DESC, b.id
+              LIMIT 3`,
+            [userId, since, until],
+        );
+        return rows;
+    },
+
     // Kiểm tra xem một cuốn sách có thuộc sở hữu của người dùng hay không
     async isBookOwnedByUser(db: Queryable, ownerId: string, bookId: string): Promise<boolean> {
         const { rows } = await db.query(

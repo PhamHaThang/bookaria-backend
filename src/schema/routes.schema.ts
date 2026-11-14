@@ -59,6 +59,7 @@ import {
     CreateBookResultSchema,
     ListBooksQuerySchema,
     StatsQuerySchema,
+    StudioReadingStatsSchema,
     TemplateSummarySchema,
     TrashBookItemSchema,
     TrashBooksQuerySchema,
@@ -463,6 +464,14 @@ export const routes: Route[] = [
         access: 'author',
         summary: 'Danh sách sách mẫu',
         responses: { 200: dataResponse(z.array(TemplateSummarySchema)) },
+    },
+    {
+        id: 'getStudioReadingStats',
+        method: 'GET',
+        path: '/studio/reading-stats',
+        access: 'author',
+        summary: 'Lượt mở sách 14 ngày gần đây và ba sách được mở nhiều nhất của tác giả',
+        responses: { 200: dataResponse(StudioReadingStatsSchema) },
     },
     {
         id: 'getBooksByBookIdStats',

@@ -3,7 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
-import { BookStatsSchema } from '../../../schema';
+import { BookStatsSchema, StudioReadingStatsSchema } from '../../../schema';
 import { getSinceDate, statsService } from '../stats.service';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -391,5 +391,45 @@ suite('GET /books/:bookId/stats', () => {
         await addEvents(bookId, [{ event: 'OPEN', session }]);
         const res = await get(a, bookId);
         expect(JSON.stringify(res.body)).not.toContain(session);
+    });
+});
+
+suite('GET /studio/reading-stats', () => {
+    it('requires authentication and aggregates owned, active books across UTC days', async () => {
+        const path = '/api/v1/studio/reading-stats';
+        expect((await request(app).get(path)).status).toBe(401);
+        const author = await signUp();
+        const other = await signUp();
+        const [first, second, trashed, anotherAuthor] = [
+            await newBook(author, 'Sách thứ nhất'),
+            await newBook(author, 'Sách thứ hai'),
+            await newBook(author, 'Sách đã xóa'),
+            await newBook(other, 'Sách của tác giả khác'),
+        ];
+        const day = new Date().toISOString().slice(0, 10);
+        const utc = Date.parse(day);
+        const date = (daysAgo: number) => new Date(utc - daysAgo * 86400000).toISOString();
+        await addEvents(first, [
+            { event: 'OPEN', at: date(0) },
+            { event: 'OPEN', at: date(6) },
+            { event: 'OPEN', at: date(7) },
+            { event: 'OPEN', at: date(14) },
+            { event: 'TAP', at: date(0) },
+        ]);
+        await addEvents(second, [{ event: 'OPEN', at: date(0) }]);
+        await addEvents(trashed, [{ event: 'OPEN', at: date(0) }]);
+        await addEvents(anotherAuthor, [{ event: 'OPEN', at: date(0) }]);
+        await pool.query('UPDATE books SET deleted_at = now() WHERE id = $1', [trashed]);
+        const response = await request(app).get(path).set(as(author));
+        expect(response.status).toBe(200);
+        const data = StudioReadingStatsSchema.parse(response.body.data);
+        expect(data.opensLast7Days).toBe(3);
+        expect(data.opensPrevious7Days).toBe(1);
+        expect(data.opensByDay[0]).toEqual({ date: date(13).slice(0, 10), opens: 0 });
+        expect(data.opensByDay.at(-1)).toEqual({ date: day, opens: 2 });
+        expect(data.topBooks).toEqual([
+            { id: first, title: 'Sách thứ nhất', opens: 3, coverUrl: null },
+            { id: second, title: 'Sách thứ hai', opens: 1, coverUrl: null },
+        ]);
     });
 });
