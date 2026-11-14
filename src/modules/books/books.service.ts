@@ -10,9 +10,9 @@ import {
     CreateBookResultSchema,
     type ListBooksQuery,
     type PaginationMeta,
-    type PaginationQuery,
     pageWidthMm,
     TrashBookItemSchema,
+    type TrashBooksQuery,
     type UpdateBookBody,
 } from '../../schema';
 import { AppError, buildPaginationMeta, fieldError, toOffset } from '../../utils';
@@ -40,10 +40,11 @@ export const booksService = {
     },
     async getTrashBooks(
         userId: string,
-        q: PaginationQuery,
+        q: TrashBooksQuery,
     ): Promise<{ rows: BookSummary[]; meta: PaginationMeta }> {
         const { rows, total } = await booksRepository.getTrashBooks(pool, userId, {
             trashDays: TRASH_DAYS,
+            status: q.status,
             limit: q.limit,
             offset: toOffset(q),
         });

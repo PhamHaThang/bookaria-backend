@@ -4,7 +4,7 @@ import {
     CreateBookBodySchema,
     IdSchema,
     ListBooksQuerySchema,
-    PaginationQuerySchema,
+    TrashBooksQuerySchema,
     UpdateBookBodySchema,
     UpdateVisibilityBodySchema,
 } from '../../schema';
@@ -17,7 +17,7 @@ export const booksController = {
         res.json({ data: rows, meta });
     }),
     getTrashBooks: asyncHandler(async (req: Request, res: Response) => {
-        const q = PaginationQuerySchema.parse(req.query);
+        const q = TrashBooksQuerySchema.parse(req.query);
         const { rows, meta } = await booksService.getTrashBooks(getAuth(res).userId, q);
         res.json({ data: rows, meta });
     }),

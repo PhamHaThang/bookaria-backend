@@ -54,25 +54,32 @@ export const booksRepository = {
         ownerId: string,
         opts: {
             trashDays: number;
+            status?: string | undefined;
             limit: number;
             offset: number;
         },
     ): Promise<{ rows: BookRow[]; total: number }> {
-        const { trashDays, limit, offset } = opts;
-        const clause = `b.owner_id = $1 AND b.deleted_at IS NOT NULL AND b.deleted_at > NOW() - MAKE_INTERVAL(days => $2)`;
+        const { trashDays, status, limit, offset } = opts;
+        const params = [ownerId, trashDays];
+        const clauses = ['b.owner_id = $1', 'b.deleted_at > NOW() - MAKE_INTERVAL(days => $2)'];
+        if (status) {
+            params.push(status);
+            clauses.push(`b.status = $${params.length}`);
+        }
+        const where = clauses.join(' AND ');
         const { rows } = await db.query<BookRow>(
             `
             SELECT ${SUMMARY_COLUMNS}
             FROM books b
             ${COVER_JOIN}
-            WHERE ${clause}
-            ORDER BY b.deleted_at DESC, b.id LIMIT $3 OFFSET $4
+            WHERE ${where}
+            ORDER BY b.deleted_at DESC, b.id LIMIT $${params.length + 1} OFFSET $${params.length + 2}
         `,
-            [ownerId, trashDays, limit, offset],
+            [...params, limit, offset],
         );
         const count = await db.query<{ total: number }>(
-            `SELECT count(*)::int AS total FROM books b ${COVER_JOIN} WHERE ${clause}`,
-            [ownerId, trashDays],
+            `SELECT count(*)::int AS total FROM books b ${COVER_JOIN} WHERE ${where}`,
+            params,
         );
         return { rows, total: count.rows[0]?.total ?? 0 };
     },

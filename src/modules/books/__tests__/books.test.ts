@@ -353,6 +353,36 @@ suite('books (tích hợp)', () => {
     });
 
     describe('thùng rác: DELETE, GET /books/trash, POST /books/:bookId/restore', () => {
+        it('lọc sách trong thùng rác theo trạng thái trước khi phân trang', async () => {
+            const { token } = await signUp();
+            const first = (await createBook(token)).body.data.book.id;
+            const second = (await createBook(token)).body.data.book.id;
+            expect(
+                (await request(app).delete(`/api/v1/books/${first}`).set(auth(token))).status,
+            ).toBe(204);
+            expect(
+                (await request(app).delete(`/api/v1/books/${second}`).set(auth(token))).status,
+            ).toBe(204);
+
+            const drafts = await request(app)
+                .get('/api/v1/books/trash?status=DRAFT&limit=1')
+                .set(auth(token));
+            expect(drafts.status).toBe(200);
+            expect(drafts.body.meta).toMatchObject({ total: 2, totalPages: 2 });
+            expect(drafts.body.data).toEqual([expect.objectContaining({ status: 'DRAFT' })]);
+
+            const published = await request(app)
+                .get('/api/v1/books/trash?status=PUBLISHED')
+                .set(auth(token));
+            expect(published.status).toBe(200);
+            expect(published.body.meta.total).toBe(0);
+            expect(published.body.data).toEqual([]);
+            expect(
+                (await request(app).get('/api/v1/books/trash?status=unknown').set(auth(token)))
+                    .status,
+            ).toBe(400);
+        });
+
         it('xoá mềm -> biến khỏi danh sách, hiện trong thùng rác, khôi phục lại được', async () => {
             const { token } = await signUp();
             const id = (await createBook(token)).body.data.book.id;

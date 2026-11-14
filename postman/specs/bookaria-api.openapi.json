@@ -2436,6 +2436,15 @@
                             "minimum": 1,
                             "maximum": 100
                         }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": ["DRAFT", "PUBLISHED", "CHANGED"]
+                        }
                     }
                 ],
                 "responses": {

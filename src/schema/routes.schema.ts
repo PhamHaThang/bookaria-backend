@@ -61,6 +61,7 @@ import {
     StatsQuerySchema,
     TemplateSummarySchema,
     TrashBookItemSchema,
+    TrashBooksQuerySchema,
     UpdateBookBodySchema,
     UpdateVisibilityBodySchema,
 } from './api/books.schema';
@@ -357,7 +358,7 @@ export const routes: Route[] = [
         path: '/books/trash',
         access: 'author',
         summary: 'Sách trong thùng rác (đăng ký route trước `/books/:bookId`)',
-        query: PaginationQuerySchema,
+        query: TrashBooksQuerySchema,
         responses: { 200: pagedResponse(TrashBookItemSchema) },
     },
     {

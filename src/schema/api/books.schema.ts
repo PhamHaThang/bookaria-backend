@@ -30,6 +30,11 @@ export const ListBooksQuerySchema = PaginationQuerySchema.extend({
 });
 export type ListBooksQuery = z.infer<typeof ListBooksQuerySchema>;
 
+export const TrashBooksQuerySchema = PaginationQuerySchema.extend({
+    status: BookStatusSchema.optional(),
+});
+export type TrashBooksQuery = z.infer<typeof TrashBooksQuerySchema>;
+
 export const TrashBookItemSchema = BookSummarySchema.extend({
     deletedAt: IsoDateTimeSchema,
 });
