@@ -66,6 +66,7 @@ import {
     UpdateBookBodySchema,
     UpdateVisibilityBodySchema,
 } from './api/books.schema';
+import { InteractionAiBodySchema, InteractionAiResultSchema } from './api/interaction-ai.schema';
 import {
     ChangePasswordBodySchema,
     MarkNotificationsReadBodySchema,
@@ -605,6 +606,24 @@ export const routes: Route[] = [
         body: SaveSceneBodySchema,
         responses: { 200: dataResponse(SaveSceneResultSchema) },
         errors: ['NOT_FOUND', 'REVISION_CONFLICT', 'FILE_TOO_LARGE'],
+    },
+    {
+        id: 'postPagesByPageIdInteractionProposals',
+        method: 'POST',
+        path: '/pages/:pageId/interaction-proposals',
+        access: 'author',
+        summary: 'Tạo đề xuất tương tác AI cho bản nháp, không lưu cảnh',
+        params: params.pageId,
+        body: InteractionAiBodySchema,
+        responses: { 200: dataResponse(InteractionAiResultSchema) },
+        errors: [
+            'NOT_FOUND',
+            'REVISION_CONFLICT',
+            'VALIDATION_ERROR',
+            'RATE_LIMITED',
+            'FILE_TOO_LARGE',
+            'AI_UNAVAILABLE',
+        ],
     },
     {
         id: 'postPagesByPageIdMarkerRescore',

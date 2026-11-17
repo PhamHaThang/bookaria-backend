@@ -135,6 +135,16 @@ export const assetsRepository = {
         );
         return rows[0];
     },
+    async readyAssetMetadata(db: Queryable, userId: string, assetIds: string[]) {
+        if (!assetIds.length) return [];
+        const { rows } = await db.query<Pick<AssetRow, 'id' | 'type' | 'name' | 'meta'>>(
+            `SELECT id, type, name, meta FROM assets
+             WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL AND status = 'READY'
+               AND (owner_id = $2 OR owner_id IS NULL)`,
+            [assetIds, userId],
+        );
+        return rows;
+    },
     async lockAssetForUpdate(
         db: Queryable,
         userId: string,

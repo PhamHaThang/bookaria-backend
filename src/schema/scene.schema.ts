@@ -487,6 +487,15 @@ export const InteractionRuleSchema = z
          * `ignore` (default) or `restart` from the first action.
          */
         onRetrigger: z.enum(['ignore', 'restart']).default('ignore'),
+        /** Repeat a bounded, sequential movement segment until the page run is cancelled. */
+        movementLoop: z
+            .object({
+                startId: SceneIdSchema,
+                endId: SceneIdSchema,
+                initial: TransformSchema,
+                pauseMs: z.int().min(0).max(SCENE_LIMITS.maxDelayMs).default(0),
+            })
+            .optional(),
         /** Connected workflow v1; absent on legacy sequential rules. */
         workflow: z
             .object({
@@ -510,6 +519,15 @@ export const InteractionRuleSchema = z
                     id: SceneIdSchema,
                     x: z.number().min(-100000).max(100000),
                     y: z.number().min(-100000).max(100000),
+                    /** Authoring settings for the movement segment starting at this node. */
+                    movement: z
+                        .object({
+                            endId: SceneIdSchema,
+                            sourceEndId: SceneIdSchema,
+                            direction: z.enum(['forward', 'alternate']),
+                            finish: z.enum(['last', 'initial']),
+                        })
+                        .optional(),
                 }),
             )
             .min(1)
@@ -519,6 +537,11 @@ export const InteractionRuleSchema = z
     .superRefine((rule, ctx) => {
         const problem = (message: string) =>
             ctx.addIssue({ code: 'custom', path: ['workflow'], message });
+        if (
+            rule.movementLoop &&
+            (!rule.workflow || !rule.editorLayout || rule.trigger.type === 'onPageLeave')
+        )
+            problem('Lặp chuyển động cần một luồng có bố cục và không thể bắt đầu khi rời trang.');
         if (!rule.workflow && rule.actions.some((action) => action.type === 'condition'))
             problem('Điều kiện cần luồng có nhánh Đúng và Sai.');
         if (
@@ -590,6 +613,39 @@ export const InteractionRuleSchema = z
         };
         visit('start');
         if (visited.size !== nodeIds.length) problem('Có node chưa nối từ sự kiện bắt đầu.');
+        if (rule.movementLoop) {
+            const { startId, endId } = rule.movementLoop;
+            const first = actionById.get(startId);
+            if (first?.type !== 'transformTo') {
+                problem('Điểm bắt đầu lặp phải là một bước chuyển động.');
+                return;
+            }
+            const seen = new Set<string>();
+            let id: string | undefined = startId;
+            while (id && !seen.has(id)) {
+                seen.add(id);
+                const action = actionById.get(id);
+                if (
+                    !action ||
+                    (action.type !== 'wait' &&
+                        (action.type !== 'transformTo' || action.objectId !== first.objectId))
+                ) {
+                    problem('Đoạn lặp chỉ gồm chuyển động của cùng một đối tượng và bước chờ.');
+                    return;
+                }
+                if (
+                    id !== startId &&
+                    rule.workflow.edges.filter((edge) => edge.target === id).length !== 1
+                ) {
+                    problem('Không nối nhánh khác vào giữa đoạn chuyển động lặp.');
+                    return;
+                }
+                if (id === endId) return;
+                const outputs: string[] = links.get(id) || [];
+                id = outputs.length === 1 ? outputs[0] : undefined;
+            }
+            problem('Điểm kết thúc lặp cần nằm trong chuỗi chuyển động được nối từ điểm bắt đầu.');
+        }
     });
 export type InteractionRule = z.infer<typeof InteractionRuleSchema>;
 

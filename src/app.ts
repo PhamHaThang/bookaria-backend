@@ -45,7 +45,11 @@ export function createApp(options: AppOptions = {}) {
     app.use((req, res, next) => {
         if (req.method === 'PUT' && /^\/api\/v1\/books\/[^/]+\/draft\/?$/i.test(req.path))
             return jsonBookDraft(req, res, next);
-        if (req.method === 'PATCH' && /^\/api\/v1\/pages\/[^/]+\/scene\/?$/i.test(req.path)) {
+        if (
+            (req.method === 'PATCH' && /^\/api\/v1\/pages\/[^/]+\/scene\/?$/i.test(req.path)) ||
+            (req.method === 'POST' &&
+                /^\/api\/v1\/pages\/[^/]+\/interaction-proposals\/?$/i.test(req.path))
+        ) {
             return jsonScene(req, res, next);
         }
         return jsonDefault(req, res, next);

@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { interactionAiController } from '../interaction-ai/interaction-ai.controller';
 import { pagesController } from './pages.controller';
 
 export const bookPagesRouter = () => {
@@ -19,9 +20,20 @@ export const bookPagesRouter = () => {
     router.patch('/reorder', pagesController.reorderPages);
     return router;
 };
-export const pagesRouter = () => {
+export const pagesRouter = (options: { rateLimit: boolean }) => {
     const router = Router();
     router.use(requireAuth);
+
+    router.post(
+        '/:pageId/interaction-proposals',
+        rateLimitMiddleware({
+            enabled: options.rateLimit,
+            windowMs: 60 * 60 * 1000,
+            limit: 60,
+            key: (_req, res) => getAuth(res).userId,
+        }),
+        interactionAiController,
+    );
 
     // [GET] /pages/:pageId
     router.get('/:pageId', pagesController.getPage);

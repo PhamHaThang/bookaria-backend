@@ -2,6 +2,8 @@
 
 API và worker của Bookaria (Node.js, Express, PostgreSQL).
 
+Trợ lý tạo tương tác bằng tiếng Việt: [cấu hình OpenAI và sử dụng](docs/AI-INTERACTIONS.md), [bộ tác vụ và thực nghiệm A/B/C](research/interaction-ai/README.md).
+
 ## Yêu cầu
 - Node.js theo `.nvmrc` (>= 22)
 - pnpm đúng phiên bản trong `packageManager` của `package.json` (xem mục Cài pnpm)

@@ -32,6 +32,7 @@ export const ErrorCodeSchema = z.enum([
     'MARKER_POOL_EXHAUSTED',
     'MARKER_DUPLICATE',
     'INTERNAL_ERROR',
+    'AI_UNAVAILABLE',
 ]);
 
 export type ErrorCode = z.infer<typeof ErrorCodeSchema>;
@@ -67,6 +68,7 @@ export const HTTP_STATUS: Record<ErrorCode, number> = {
     ACCOUNT_LOCKED: 423,
     RATE_LIMITED: 429,
     INTERNAL_ERROR: 500,
+    AI_UNAVAILABLE: 503,
 };
 
 /**
@@ -100,6 +102,7 @@ export const ERROR_MESSAGES: Record<ErrorCode, string> = {
     MARKER_POOL_EXHAUSTED: 'Sách đã dùng hết số marker Bookaria.',
     MARKER_DUPLICATE: 'Số hoặc seed marker đã tồn tại.',
     INTERNAL_ERROR: 'Đã có lỗi xảy ra, vui lòng thử lại sau.',
+    AI_UNAVAILABLE: 'Trợ lý AI hiện chưa khả dụng. Vui lòng thử lại sau.',
 };
 
 /**

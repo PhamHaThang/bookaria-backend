@@ -29,7 +29,7 @@ export function createApiRouter(options: ApiRouterOptions) {
     router.use('/books/:bookId', publishRouter());
     router.use('/books/:bookId', statsRouter());
     router.use('/books', bookRouter());
-    router.use('/pages', pagesRouter());
+    router.use('/pages', pagesRouter({ rateLimit: options.rateLimit }));
     router.use('/jobs', jobsRouter());
     router.use('/assets', assetsRouter({ rateLimit: options.rateLimit }));
     router.use('/asset-categories', assetCategoriesRouter());

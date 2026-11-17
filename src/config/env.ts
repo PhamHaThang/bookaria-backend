@@ -37,6 +37,24 @@ const envSchema = z
         VIEWER_URL: HttpUrlSchema.default('https://viewer.localhost:5174'),
         PUBLIC_API_URL: HttpUrlSchema.default('http://api.localhost:4000'),
         GOOGLE_CLIENT_ID: z.string().default(''),
+        AI_BASE_URL: z
+            .url()
+            .default('https://api.openai.com/v1')
+            .refine((value) => {
+                const url = new URL(value);
+                return (
+                    !url.username &&
+                    !url.password &&
+                    !url.search &&
+                    !url.hash &&
+                    (url.protocol === 'https:' ||
+                        (url.protocol === 'http:' &&
+                            ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)))
+                );
+            }, 'AI_BASE_URL cần HTTPS hoặc HTTP localhost.'),
+        AI_API_KEY: z.string().default(''),
+        AI_MODEL: z.string().trim().max(200).default(''),
+        AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(40000),
         CLOUDINARY_URL: z
             .string()
             .trim()
