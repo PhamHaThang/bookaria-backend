@@ -55,6 +55,23 @@ const envSchema = z
         AI_API_KEY: z.string().default(''),
         AI_MODEL: z.string().trim().max(200).default(''),
         AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(40000),
+        ZEROTTS_URL: z
+            .union([
+                z.literal(''),
+                z.url().refine((value) => {
+                    const url = new URL(value);
+                    return (
+                        !url.username &&
+                        !url.password &&
+                        !url.search &&
+                        !url.hash &&
+                        (url.protocol === 'https:' || url.protocol === 'http:')
+                    );
+                }),
+            ])
+            .default(''),
+        ZEROTTS_API_KEY: z.string().default(''),
+        ZEROTTS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(300000).default(180000),
         CLOUDINARY_URL: z
             .string()
             .trim()

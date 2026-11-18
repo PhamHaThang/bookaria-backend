@@ -73,6 +73,7 @@ import {
     MeUpdateBodySchema,
     NotificationsQuerySchema,
 } from './api/me.schema';
+import { NarrationBodySchema, NarrationVoicesSchema } from './api/narration.schema';
 import {
     AddPageBodySchema,
     AddPageResultSchema,
@@ -540,6 +541,26 @@ export const routes: Route[] = [
         body: UpdatePageBodySchema,
         responses: { 200: dataResponse(PageSchema) },
         errors: ['NOT_FOUND'],
+    },
+    {
+        id: 'getNarrationVoices',
+        method: 'GET',
+        path: '/assets/narration/voices',
+        access: 'author',
+        summary: 'Danh sách giọng ZeroTTS để tạo lời thuyết minh',
+        responses: { 200: dataResponse(NarrationVoicesSchema) },
+        errors: ['AI_UNAVAILABLE', 'RATE_LIMITED'],
+    },
+    {
+        id: 'generateNarration',
+        method: 'POST',
+        path: '/assets/narration/generate',
+        access: 'author',
+        summary: 'Tạo MP3 để nghe thử trước khi lưu vào tài nguyên',
+        body: NarrationBodySchema,
+        responseContentType: 'audio/mpeg',
+        responses: { 200: z.string() },
+        errors: ['AI_UNAVAILABLE', 'RATE_LIMITED'],
     },
     {
         id: 'postPagesByPageIdImageLayout',

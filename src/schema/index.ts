@@ -6,6 +6,7 @@ export * from './api/book-draft.schema';
 export * from './api/books.schema';
 export * from './api/interaction-ai.schema';
 export * from './api/me.schema';
+export * from './api/narration.schema';
 export * from './api/pages.schema';
 export * from './api/public.schema';
 export * from './api/publish.schema';

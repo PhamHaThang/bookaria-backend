@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { UPLOAD_REQUEST_PER_MINUTE } from '../../lib';
-import { rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { narrationController } from '../narration/narration.controller';
 import { assetCategoriesController, assetController } from './assets.controller';
 
 const MINUTE = 60 * 1000;
@@ -10,6 +11,18 @@ export const assetsRouter = (options: { rateLimit: boolean }) => {
     router.use(requireAuth);
 
     const enabled = options.rateLimit;
+
+    router.get('/narration/voices', narrationController);
+    router.post(
+        '/narration/generate',
+        rateLimitMiddleware({
+            enabled,
+            windowMs: 60 * MINUTE,
+            limit: 30,
+            key: (_req, res) => getAuth(res).userId,
+        }),
+        narrationController,
+    );
 
     const uploadLimit = rateLimitMiddleware({
         windowMs: MINUTE,
