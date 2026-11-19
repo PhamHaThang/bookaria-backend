@@ -5,7 +5,8 @@ const SHOWN_BOOK_CONDITION = `b.deleted_at IS NULL AND b.taken_down_at IS NULL A
 
 const PUBLIC_BOOK_CONDITION = `${SHOWN_BOOK_CONDITION} AND b.visibility = 'PUBLIC'`;
 
-const CARD_BOOK_COLUMNS = `b.slug, b.title, b.language, b.age_min, b.age_max, b.owner_id, u.display_name AS author_name, v.ar_page_count, ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type`;
+const CARD_BOOK_COLUMNS = `b.slug, b.title, b.language, b.age_min, b.age_max, b.owner_id, u.display_name AS author_name, v.ar_page_count,
+    ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type, ca.thumbnail_url AS cover_thumbnail_url`;
 
 const CARD_BOOK_JOIN = `JOIN users u ON u.id = b.owner_id
 JOIN book_versions v ON v.id = b.current_version_id
@@ -88,7 +89,7 @@ export const publicRepository = {
 
     async getBookBySlug(db: Queryable, slug: string): Promise<PublicBookRow | undefined> {
         const { rows } = await db.query<PublicBookRow>(
-            `SELECT b.id, b.description, b.visibility, b.deleted_at, b.taken_down_at, (u.status = 'ACTIVE') AS owner_active, v.id AS version_id, v.version_no, v.published_at, v.manifest_public_id, v.page_count, v.total_size_bytes, v.print_pdf_public_id, b.slug, b.title, b.language, b.age_min, b.age_max, b.owner_id, u.display_name AS author_name, v.ar_page_count, ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type
+            `SELECT b.id, b.description, b.visibility, b.deleted_at, b.taken_down_at, (u.status = 'ACTIVE') AS owner_active, v.id AS version_id, v.version_no, v.published_at, v.manifest_public_id, v.page_count, v.total_size_bytes, v.print_pdf_public_id, ${CARD_BOOK_COLUMNS}
             FROM books b
             JOIN users u ON u.id = b.owner_id
             LEFT JOIN book_versions v ON v.id = b.current_version_id

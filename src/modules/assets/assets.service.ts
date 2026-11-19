@@ -185,7 +185,7 @@ export const assetsService = {
                               uploadIntent.public_id,
                               uploadIntent.purpose === 'AVATAR'
                                   ? TRANSFORM.avatar
-                                  : TRANSFORM.thumbnail,
+                                  : TRANSFORM.assetPreview,
                           )
                         : null;
                 const asset = await assetsRepository.insertAsset(db, {

@@ -9,6 +9,7 @@ export interface CardBookRow {
     ar_page_count: number | null;
     cover_public_id: string | null;
     cover_resource_type: 'image' | 'video' | 'raw' | null;
+    cover_thumbnail_url: string | null;
 }
 
 export interface AuthorRow {

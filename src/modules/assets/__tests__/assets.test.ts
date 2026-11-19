@@ -292,7 +292,7 @@ suite('assets (tích hợp)', () => {
                 name: 'tranh',
                 scope: 'mine',
             });
-            expect(res.body.data.asset.thumbnailUrl).toContain('thumbnail');
+            expect(res.body.data.asset.thumbnailUrl).toContain('/asset-preview/');
             expect(res.body.data.asset.meta).toMatchObject({ width: 640, height: 480 });
 
             const { rows } = await pool.query(

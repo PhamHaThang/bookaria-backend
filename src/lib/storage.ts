@@ -12,7 +12,12 @@ import { probeMedia } from './media-processing';
 export const UPLOAD_FOLDER = 'bookaria';
 export const SIGNATURE_TTL_SECONDS = 15 * 60;
 export const UPLOAD_REQUEST_PER_MINUTE = 60;
-export const TRANSFORM = { thumbnail: 'thumbnail', cover: 'cover', avatar: 'avatar' } as const;
+export const TRANSFORM = {
+    thumbnail: 'thumbnail',
+    assetPreview: 'asset-preview',
+    cover: 'cover',
+    avatar: 'avatar',
+} as const;
 const formats: Record<AssetType, readonly string[]> = {
     MODEL: ['glb', 'gltf'],
     IMAGE: ['jpg', 'png', 'webp'],
@@ -112,7 +117,7 @@ export function derivativePrefix(key: string) {
     return `derived/v${IMAGE_DERIVATIVE_VERSION}/${createHash('sha256').update(key).digest('hex')}/`;
 }
 export function derivativeKey(key: string, transform: string) {
-    if (!/^(?:thumbnail|avatar|cover|page-\d{1,4}-\d{1,4})$/.test(transform))
+    if (!/^(?:thumbnail|asset-preview|avatar|cover|page-\d{1,4}-\d{1,4})$/.test(transform))
         throw new Error('Biến thể ảnh không hợp lệ.');
     return `${derivativePrefix(key)}${transform}.jpg`;
 }

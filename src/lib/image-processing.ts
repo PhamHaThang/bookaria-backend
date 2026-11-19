@@ -3,8 +3,9 @@ import { AppError } from '../utils/api-error';
 
 export async function renderImage(input: Uint8Array, transform: string) {
     const page = /^page-(\d+)-(\d+)$/.exec(transform);
-    if (!['avatar', 'thumbnail', 'cover'].includes(transform) && !page)
+    if (!['avatar', 'thumbnail', 'asset-preview', 'cover'].includes(transform) && !page)
         throw new Error('Biến thể ảnh không hợp lệ.');
+    const preserveRatio = transform === 'cover' || transform === 'asset-preview';
     const width = page
         ? Number(page[1])
         : transform === 'avatar'
@@ -21,9 +22,9 @@ export async function renderImage(input: Uint8Array, transform: string) {
             .resize({
                 width,
                 ...(height !== undefined && { height }),
-                fit: page ? 'contain' : transform === 'cover' ? 'inside' : 'cover',
+                fit: page ? 'contain' : preserveRatio ? 'inside' : 'cover',
                 background: 'white',
-                withoutEnlargement: transform === 'cover',
+                withoutEnlargement: preserveRatio,
             })
             .flatten({ background: 'white' })
             .jpeg({ quality: page ? 94 : 85 })

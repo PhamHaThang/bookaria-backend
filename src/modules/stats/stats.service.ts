@@ -34,15 +34,18 @@ export const statsService = {
             opensByDay,
             opensLast7Days: opensByDay.slice(7).reduce((total, day) => total + day.opens, 0),
             opensPrevious7Days: opensByDay.slice(0, 7).reduce((total, day) => total + day.opens, 0),
-            topBooks: topBooks.map(({ id, title, opens, public_id, resource_type }) => ({
-                id,
-                title,
-                opens,
-                coverUrl:
-                    public_id && resource_type
-                        ? assetsService.coverUrl({ public_id, resource_type })
-                        : null,
-            })),
+            topBooks: topBooks.map(
+                ({ id, title, opens, public_id, resource_type, thumbnail_url }) => ({
+                    id,
+                    title,
+                    opens,
+                    coverUrl:
+                        thumbnail_url ??
+                        (public_id && resource_type
+                            ? assetsService.coverUrl({ public_id, resource_type })
+                            : null),
+                }),
+            ),
         });
     },
 

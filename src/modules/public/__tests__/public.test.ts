@@ -301,6 +301,7 @@ suite('GET /public/books', () => {
         const cover = await insertAsset(client, {
             owner_id: author.id,
             original_public_id: 'u/bia1',
+            thumbnail_url: 'https://media.test/derived/asset-preview.jpg',
         });
         const gone = await insertAsset(client, { owner_id: author.id });
         client.release();
@@ -313,7 +314,7 @@ suite('GET /public/books', () => {
         const cards = (await get('/books')).body.data;
         const bySlug = (slug: string) => cards.find((c: { slug: string }) => c.slug === slug);
         expect(bySlug(withCover.slug)).toMatchObject({
-            coverUrl: 'https://media.test/image/thumbnail/u/bia1',
+            coverUrl: 'https://media.test/derived/asset-preview.jpg',
             ageMin: 4,
             ageMax: 9,
             author: { id: author.id, displayName: 'Cô Lan' },

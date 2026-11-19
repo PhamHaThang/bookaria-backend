@@ -22,9 +22,10 @@ export const statsRepository = {
             title: string;
             public_id: string | null;
             resource_type: 'image' | 'video' | 'raw' | null;
+            thumbnail_url: string | null;
             opens: number;
         }>(
-            `SELECT b.id, b.title, a.original_public_id AS public_id, a.resource_type,
+            `SELECT b.id, b.title, a.original_public_id AS public_id, a.resource_type, a.thumbnail_url,
                     COUNT(*)::int AS opens
                FROM books b
                JOIN view_events e ON e.book_id = b.id

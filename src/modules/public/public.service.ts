@@ -89,12 +89,13 @@ export const publicService = {
             description: b.description,
             author: { id: b.owner_id, displayName: b.author_name },
             coverUrl:
-                b.cover_public_id && b.cover_resource_type
+                b.cover_thumbnail_url ??
+                (b.cover_public_id && b.cover_resource_type
                     ? assetsService.coverUrl({
                           resource_type: b.cover_resource_type,
                           public_id: b.cover_public_id,
                       })
-                    : null,
+                    : null),
             language: b.language,
             ageMin: b.age_min,
             ageMax: b.age_max,
@@ -197,12 +198,13 @@ function toPublicBookCard(r: CardBookRow): PublicBookCard {
         slug: r.slug,
         title: r.title,
         coverUrl:
-            r.cover_public_id && r.cover_resource_type
+            r.cover_thumbnail_url ??
+            (r.cover_public_id && r.cover_resource_type
                 ? assetsService.coverUrl({
                       resource_type: r.cover_resource_type,
                       public_id: r.cover_public_id,
                   })
-                : null,
+                : null),
         author: { id: r.owner_id, displayName: r.author_name },
         language: r.language,
         ageMin: r.age_min,

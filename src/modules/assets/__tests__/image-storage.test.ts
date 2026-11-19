@@ -68,13 +68,13 @@ suite('prepared R2 image uploads', () => {
                 .auth(token, { type: 'bearer' })
                 .send({});
             expect(completed.status).toBe(200);
-            const transform = purpose === 'AVATAR' ? 'avatar' : 'thumbnail';
+            const transform = purpose === 'AVATAR' ? 'avatar' : 'asset-preview';
             const url = `https://assets.bookaria.test/${derivativeKey(objectKey, transform)}`;
             expect(completed.body.data.asset.thumbnailUrl).toBe(url);
             const image = fake.files.get(derivativeKey(objectKey, transform));
             expect(await sharp(image?.bytes).metadata()).toMatchObject({
                 width: purpose === 'AVATAR' ? 256 : 320,
-                height: purpose === 'AVATAR' ? 256 : 320,
+                height: purpose === 'AVATAR' ? 256 : 160,
             });
             const before = fake.network.mock.calls.length;
             expect(

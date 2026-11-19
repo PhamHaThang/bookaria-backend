@@ -140,8 +140,8 @@ pnpm dev:worker
 
 Ảnh biến thể dùng key `derived/v1/<sha256-key-gốc>/<biến-thể>.jpg`.
 Tăng phiên bản khi thay đổi thuật toán nén/resize để cache cũ không che kết quả mới.
-Khi hoàn tất upload ảnh, backend chuẩn bị thumbnail (320 px) hoặc avatar (256 px)
-trước khi trả `READY`. URL được lưu trong database và trỏ trực tiếp R2;
+Khi hoàn tất upload ảnh, backend chuẩn bị thumbnail giữ tỉ lệ trong 320 × 320 px
+hoặc avatar vuông 256 × 256 px trước khi trả `READY`. URL được lưu trong database và trỏ trực tiếp R2;
 ảnh bìa trong danh sách sách dùng thumbnail này. Không cần thêm request qua API.
 Ảnh trang theo tỉ lệ được chuẩn bị khi cần trước khi API trả URL R2 trực tiếp;
 các lần sau tái sử dụng object và bộ nhớ đệm chuẩn bị có giới hạn.
