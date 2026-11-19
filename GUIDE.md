@@ -54,7 +54,7 @@ src/
 │  ├─ routes.schema.ts      registry: danh sách mọi route của API
 │  └─ openapi.ts            dựng tài liệu OpenAPI từ registry
 ├─ db/                      pool, withTransaction, kiểu Queryable
-├─ lib/                     nối ra thư viện hoặc dịch vụ ngoài: jwt, password, mailer, google, cloudinary
+├─ lib/                     nối ra thư viện hoặc dịch vụ ngoài: jwt, password, mailer, google, R2
 ├─ utils/                   hàm thuần dùng chung: AppError, asyncHandler, response, pagination
 ├─ middlewares/             auth, rate limit, origin, error, request id
 ├─ modules/                 nghiệp vụ, mỗi tính năng một thư mục
@@ -62,7 +62,7 @@ src/
 │  └─ index.ts              createApiRouter(): gắn các module vào /api/v1
 ├─ scripts/                 seed, build-openapi (chạy bằng pnpm)
 ├─ test/                    cài đặt dùng chung cho test (global-setup)
-└─ worker/                  điểm vào worker (hiện mới là khung)
+└─ worker/                  xử lý tác vụ nền
 migrations/                 file .sql theo thời gian
 docker/                     docker-compose (Postgres, Mailpit)
 postman/specs/              OpenAPI sinh tự động (đừng sửa tay)
@@ -579,49 +579,23 @@ Quy tắc:
 
 ### 6.8 Worker
 
-`src/worker` hiện là khung (chưa có hàng đợi). Khi cần việc nền, bàn trong nhóm chọn cách
-làm; chưa có quy ước.
+Chạy `pnpm dev:worker` để xử lý tài nguyên, chấm marker, tạo bản xem trước, xuất bản và in PDF.
 
 ### 6.9 Upload file (ảnh, âm thanh, mô hình 3D)
 
-File **không đi qua API**. Trình duyệt gửi thẳng lên Cloudinary bằng chữ ký do backend cấp;
-backend chỉ cấp phép, xác nhận và ghi vào DB.
+1. Studio gọi `POST /assets/upload-signature`. API kiểm tra quyền, loại tệp và hạn mức, sau đó ghi nhận phiên upload và trả URL có chữ ký.
+2. Studio gửi trực tiếp nội dung tệp bằng `PUT` tới `uploadUrl` cùng các header API đã ký.
+3. Studio gọi `POST /assets/:assetId/complete`. API xác minh tệp trên R2, ghi tài nguyên và tạo job xử lý nếu cần. Nếu mất phản hồi, Studio có thể gọi lại bước này với cùng `assetId`.
 
-```
-FE ──(1) POST /assets/upload-signature ──► API ─► DB: upload_intents (ghi "lời hứa")
-FE ◄── {assetId, uploadUrl, fields} ───────
-FE ──(2) POST file + fields ──────────────────────────► Cloudinary
-FE ──(3) POST /assets/:assetId/complete ──► API ─► Cloudinary: file có thật không, bao nhiêu byte?
-                                              └─► DB: assets (+ jobs), upload_intents.completed_at
-```
-
-**Bước 1, cấp chữ ký** (`assetsService.createUploadSignature`)
-- Kiểm tra loại file, dung lượng khai và hạn mức (`checkUploadRequest`, `storage_quota_bytes`).
-- Sinh `assetId`, `public_id = bookaria/<userId>/<assetId>`, ký (`overwrite=false`, hạn ~55 phút).
-- Ghi một hàng `upload_intents`. **Chưa có hàng nào trong `assets`.**
-
-**Bước 2, upload**: FE gửi form tới `uploadUrl` kèm đúng các `fields` nhận được và `file`
-(đặt `file` cuối cùng).
-
-**Bước 3, xác nhận** (`assetsService.completeUpload`)
-- Hỏi Cloudinary lấy dung lượng và định dạng **thật**, không tin số client khai. Sai định dạng hoặc
-  vượt hạn mức thì xóa file khỏi Cloudinary rồi báo lỗi.
-- Trong một transaction: khóa hàng intent, tạo hàng `assets` (đúng `assetId` đã cấp), đặt
-  `completed_at`. Trigger trong DB tự cộng `storage_used_bytes`.
-- Ảnh: `200`, `READY`. Model, audio, video: `202`, `PROCESSING` kèm `jobId` (chờ worker).
-- Gọi `complete` nhiều lần cho cùng một `assetId` cho kết quả như nhau (không tạo trùng).
+Xem cách cấu hình bucket, CORS và giới hạn từng loại tệp trong [hướng dẫn R2](docs/R2-STORAGE.md).
 
 **Nơi dùng tài nguyên**
 - Ảnh bìa sách: `PATCH /books/:bookId` với `coverAssetId` (phải là ảnh `READY` của mình hoặc thư viện).
 - Ảnh đại diện: `PATCH /me` với `avatarAssetId` (phải có mục đích `AVATAR`).
 - Xóa tài nguyên: `409 ASSET_IN_USE` nếu đang nằm trong trang; ngược lại gỡ khỏi bìa/avatar rồi xóa mềm.
 
-**Ghi nhớ khi viết test:** không gọi Cloudinary thật. Dùng `setMediaStorage(fakeStorage)` từ
-`lib/` (xem `modules/assets/__tests__/assets.test.ts`) và "upload" bằng cách đặt file vào kho giả.
-Nhớ trả về `setMediaStorage(undefined)` sau khi xong.
-
-**Chưa làm:** worker xử lý model/audio/video, job dọn `upload_intents` hết hạn và file mồ côi,
-giữ chỗ hạn mức cho nhiều upload song song.
+Test tích hợp upload dùng `setMediaStorage(fakeStorage)` và đặt lại bằng
+`setMediaStorage(undefined)` khi kết thúc bộ test. Xem `src/modules/assets/__tests__/assets.test.ts`.
 
 ---
 

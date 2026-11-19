@@ -31,6 +31,8 @@ pnpm dev                 # API:    http://localhost:4000/api/v1/health
 pnpm dev:worker          # Worker (hoặc đặt RUN_WORKER_IN_PROCESS=true để chạy chung API)
 ```
 
+Cấu hình bucket, CORS, xử lý media và giới hạn PDF: [R2 storage](docs/R2-STORAGE.md).
+
 ## Khởi tạo dữ liệu
 
 Chạy trong thư mục backend sau khi cấu hình `.env` và bật Postgres:
@@ -46,8 +48,8 @@ Bộ 20 marker đi kèm nằm ở `assets/bookaria-markers/`: `png/` chứa ản
 `mind/` chứa nhận diện đã biên dịch và `manifest.json` lưu checksum/điểm từng mẫu.
 Seed giữ nguyên cặp ảnh/nhận diện, không biên dịch lại trên backend.
 
-Seed marker dùng `DATABASE_URL` và `CLOUDINARY_URL` trong `.env`. Tệp đã có trên
-Cloudinary với cùng Public ID sẽ không được upload lại; marker đã có trong DB
+Seed marker dùng `DATABASE_URL` và các biến `R2_*` trong `.env`. Tệp đã có trên
+R2 với cùng object key sẽ không được upload lại; marker đã có trong DB
 được giữ nguyên, kể cả trạng thái bật/tắt. Marker mới mặc định **bật** và có thể được cấp cho trang mới.
 Có thể bật/tắt từng marker trong **Quản trị → Bộ marker Bookaria**.
 
