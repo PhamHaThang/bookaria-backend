@@ -15,6 +15,9 @@ const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 /** Kho giả: chỉ cần dựng URL và "thấy" các file .mind do test đặt vào. */
 const rawFiles = new Map<string, number>();
 const fakeStorage: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     signUpload: () => {
         throw new Error('không dùng trong test này');
     },

@@ -11472,7 +11472,7 @@
             "post": {
                 "operationId": "postAssetsUploadSignature",
                 "tags": ["assets"],
-                "summary": "Xin chữ ký upload; cấp `assetId` dùng làm `public_id` trên Cloudinary",
+                "summary": "Xin chữ ký upload; cấp `assetId` dùng làm `public_id` trên R2",
                 "security": [
                     {
                         "bearerAuth": []
@@ -11529,31 +11529,20 @@
                                                     "type": "string",
                                                     "format": "uri"
                                                 },
-                                                "fields": {
+                                                "method": {
+                                                    "type": "string",
+                                                    "enum": ["PUT"]
+                                                },
+                                                "objectKey": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 1024
+                                                },
+                                                "headers": {
                                                     "type": "object",
-                                                    "properties": {
-                                                        "api_key": {
-                                                            "type": "string"
-                                                        },
-                                                        "public_id": {
-                                                            "type": "string"
-                                                        },
-                                                        "timestamp": {
-                                                            "type": "integer",
-                                                            "minimum": -9007199254740991,
-                                                            "maximum": 9007199254740991
-                                                        },
-                                                        "signature": {
-                                                            "type": "string"
-                                                        }
-                                                    },
-                                                    "required": [
-                                                        "api_key",
-                                                        "public_id",
-                                                        "timestamp",
-                                                        "signature"
-                                                    ],
-                                                    "additionalProperties": {}
+                                                    "additionalProperties": {
+                                                        "type": "string"
+                                                    }
                                                 },
                                                 "expiresAt": {
                                                     "type": "string",
@@ -11564,7 +11553,9 @@
                                             "required": [
                                                 "assetId",
                                                 "uploadUrl",
-                                                "fields",
+                                                "method",
+                                                "objectKey",
+                                                "headers",
                                                 "expiresAt"
                                             ],
                                             "additionalProperties": false
@@ -21377,31 +21368,20 @@
                                                             "type": "string",
                                                             "format": "uri"
                                                         },
-                                                        "fields": {
+                                                        "method": {
+                                                            "type": "string",
+                                                            "enum": ["PUT"]
+                                                        },
+                                                        "objectKey": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 1024
+                                                        },
+                                                        "headers": {
                                                             "type": "object",
-                                                            "properties": {
-                                                                "api_key": {
-                                                                    "type": "string"
-                                                                },
-                                                                "public_id": {
-                                                                    "type": "string"
-                                                                },
-                                                                "timestamp": {
-                                                                    "type": "integer",
-                                                                    "minimum": -9007199254740991,
-                                                                    "maximum": 9007199254740991
-                                                                },
-                                                                "signature": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "api_key",
-                                                                "public_id",
-                                                                "timestamp",
-                                                                "signature"
-                                                            ],
-                                                            "additionalProperties": {}
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
                                                         },
                                                         "expiresAt": {
                                                             "type": "string",
@@ -21411,7 +21391,9 @@
                                                     },
                                                     "required": [
                                                         "uploadUrl",
-                                                        "fields",
+                                                        "method",
+                                                        "objectKey",
+                                                        "headers",
                                                         "expiresAt"
                                                     ],
                                                     "additionalProperties": false
@@ -21423,31 +21405,20 @@
                                                             "type": "string",
                                                             "format": "uri"
                                                         },
-                                                        "fields": {
+                                                        "method": {
+                                                            "type": "string",
+                                                            "enum": ["PUT"]
+                                                        },
+                                                        "objectKey": {
+                                                            "type": "string",
+                                                            "minLength": 1,
+                                                            "maxLength": 1024
+                                                        },
+                                                        "headers": {
                                                             "type": "object",
-                                                            "properties": {
-                                                                "api_key": {
-                                                                    "type": "string"
-                                                                },
-                                                                "public_id": {
-                                                                    "type": "string"
-                                                                },
-                                                                "timestamp": {
-                                                                    "type": "integer",
-                                                                    "minimum": -9007199254740991,
-                                                                    "maximum": 9007199254740991
-                                                                },
-                                                                "signature": {
-                                                                    "type": "string"
-                                                                }
-                                                            },
-                                                            "required": [
-                                                                "api_key",
-                                                                "public_id",
-                                                                "timestamp",
-                                                                "signature"
-                                                            ],
-                                                            "additionalProperties": {}
+                                                            "additionalProperties": {
+                                                                "type": "string"
+                                                            }
                                                         },
                                                         "expiresAt": {
                                                             "type": "string",
@@ -21457,7 +21428,9 @@
                                                     },
                                                     "required": [
                                                         "uploadUrl",
-                                                        "fields",
+                                                        "method",
+                                                        "objectKey",
+                                                        "headers",
                                                         "expiresAt"
                                                     ],
                                                     "additionalProperties": false

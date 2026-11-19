@@ -5,10 +5,10 @@ import draco3d from 'draco3dgltf';
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer';
 import sharp from 'sharp';
 import { JobError } from '../../modules/jobs/jobs.types';
-import { ASSET_MAX_BYTES } from '../../schema';
+import { ASSET_MAX_BYTES, MB, MODEL_MAX_DOWNLOAD_BYTES } from '../../schema';
 
 // Số bytes tối đã của model sau khi tối ưu.
-export const MAX_OUTPUT_MODEL_BYTES = 5 * 1024 * 1024;
+export const MAX_OUTPUT_MODEL_BYTES = MODEL_MAX_DOWNLOAD_BYTES;
 
 // Số lượng tam giác mục tiêu sau khi tối ưu.
 const TARGET_TRIANGLES = 50_000;
@@ -65,7 +65,10 @@ export function triangleCount(doc: Document): number {
 export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
     signal.throwIfAborted();
     if (input.byteLength > ASSET_MAX_BYTES.MODEL) {
-        throw new JobError('MODEL_TOO_LARGE', 'Mô hình đầu vào vượt quá 10 MiB.');
+        throw new JobError(
+            'MODEL_TOO_LARGE',
+            `Mô hình đầu vào vượt quá ${ASSET_MAX_BYTES.MODEL / MB} MiB.`,
+        );
     }
     const io = await modelIO();
     let doc: Document;
@@ -194,7 +197,7 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
     if (output.byteLength > MAX_OUTPUT_MODEL_BYTES) {
         throw new JobError(
             'MODEL_TOO_LARGE',
-            'Mô hình sau tối ưu vẫn vượt quá 5 MiB. Hãy giảm texture hoặc chi tiết.',
+            `Mô hình sau tối ưu vẫn vượt quá ${MAX_OUTPUT_MODEL_BYTES / MB} MiB. Hãy giảm texture hoặc chi tiết.`,
         );
     }
     const warnings: string[] = [];

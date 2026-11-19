@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { type MediaStorage, type StoredFile, setMediaStorage } from '../../../lib';
@@ -14,20 +14,19 @@ const app = createApp();
 const unique = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
 
-// --- Kho lưu trữ giả: không gọi Cloudinary thật -------------------------------------------------
+// --- Kho lưu trữ giả: không gọi R2 thật -------------------------------------------------
 const files = new Map<string, StoredFile>();
 const destroyed: string[] = [];
 
 const fakeStorage: MediaStorage = {
-    signUpload: ({ publicId, resourceType, assetFolder }) => ({
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
+    signUpload: ({ publicId, resourceType }) => ({
         uploadUrl: `https://fake.test/${resourceType}/upload`,
-        fields: {
-            public_id: publicId,
-            ...(assetFolder ? { asset_folder: assetFolder } : {}),
-            timestamp: 1,
-            signature: 'sig',
-            api_key: 'key',
-        },
+        method: 'PUT',
+        objectKey: publicId,
+        headers: { 'Content-Type': 'image/png', 'If-None-Match': '*' },
         expiresAt: new Date(Date.now() + 50 * 60_000),
     }),
     inspect: async (_type, publicId) => files.get(publicId) ?? null,
@@ -73,7 +72,7 @@ async function upload(
     const sig = await signature(token, opts.sign);
     expect(sig.status).toBe(200);
     const assetId = sig.body.data.assetId as string;
-    const publicId = sig.body.data.fields.public_id as string;
+    const publicId = sig.body.data.objectKey as string;
     if (!opts.skipUpload) {
         files.set(publicId, {
             publicId,
@@ -111,9 +110,10 @@ suite('assets (tích hợp)', () => {
             const res = await signature(token);
             expect(res.status).toBe(200);
 
-            const { assetId, fields, uploadUrl, expiresAt } = res.body.data;
-            expect(fields.public_id).toBe(`bookaria/${userId}/${assetId}`);
-            expect(fields.asset_folder).toBe(`bookaria/${userId}`);
+            const { assetId, objectKey, headers, method, uploadUrl, expiresAt } = res.body.data;
+            expect(objectKey).toBe(`bookaria/${userId}/${assetId}`);
+            expect(method).toBe('PUT');
+            expect(headers['If-None-Match']).toBe('*');
             expect(uploadUrl).toBe('https://fake.test/image/upload');
             expect(new Date(expiresAt).getTime()).toBeGreaterThan(Date.now());
 
@@ -124,6 +124,19 @@ suite('assets (tích hợp)', () => {
             expect(rows[0]).toMatchObject({ user_id: userId, purpose: 'ASSET' });
             expect(rows[0].expires_at).toBeInstanceOf(Date);
             expect(rows[0].completed_at).toBeNull();
+        });
+
+        it('accepts a 50 MiB model source and rejects one byte over the source limit', async () => {
+            const { token } = await signUp();
+            const model = {
+                fileName: 'large.glb',
+                mimeType: 'model/gltf-binary',
+                sizeBytes: 50 * 1024 * 1024,
+            };
+            expect((await signature(token, model)).status).toBe(200);
+            const rejected = await signature(token, { ...model, sizeBytes: model.sizeBytes + 1 });
+            expect(rejected.status).toBe(413);
+            expect(rejected.body.error.details.maxBytes).toBe(model.sizeBytes);
         });
 
         it('loại file không hỗ trợ -> 422 FILE_TYPE_NOT_ALLOWED', async () => {
@@ -161,7 +174,57 @@ suite('assets (tích hợp)', () => {
     });
 
     describe('POST /assets/:assetId/complete', () => {
-        it('audio Cloudinary width/height=0: stores no dimensions and detail/list remain readable', async () => {
+        it('serializes concurrent completions so they cannot exceed the account quota', async () => {
+            const { token, userId } = await signUp();
+            await pool.query('UPDATE users SET storage_quota_bytes=1500 WHERE id=$1', [userId]);
+            const targets = [];
+            for (let index = 0; index < 2; index++) {
+                const signed = await signature(token);
+                expect(signed.status).toBe(200);
+                targets.push(signed.body.data);
+                files.set(signed.body.data.objectKey, {
+                    publicId: signed.body.data.objectKey,
+                    bytes: 1000,
+                    format: 'png',
+                    width: 100,
+                    height: 100,
+                    durationSec: null,
+                });
+            }
+            const prepare = vi
+                .spyOn(fakeStorage, 'prepareImage')
+                .mockImplementation(async (publicId, transform) => {
+                    await new Promise((resolve) => setTimeout(resolve, 100));
+                    return fakeStorage.deliveryUrl({ resourceType: 'image', publicId, transform });
+                });
+            try {
+                const results = await Promise.all(
+                    targets.map(({ assetId }) =>
+                        request(app)
+                            .post(`/api/v1/assets/${assetId}/complete`)
+                            .set(auth(token))
+                            .send({}),
+                    ),
+                );
+                expect(results.map((result) => result.status).sort()).toEqual([200, 422]);
+                expect(results.find((result) => result.status === 422)?.body.error.code).toBe(
+                    'QUOTA_EXCEEDED',
+                );
+                expect(prepare).toHaveBeenCalledTimes(1);
+                const stored = (
+                    await pool.query(
+                        'SELECT storage_used_bytes::int AS used, storage_quota_bytes::int AS quota FROM users WHERE id=$1',
+                        [userId],
+                    )
+                ).rows[0];
+                expect(stored).toEqual({ used: 1000, quota: 1500 });
+                expect(destroyed).toHaveLength(1);
+            } finally {
+                prepare.mockRestore();
+            }
+        });
+
+        it('audio R2 width/height=0: stores no dimensions and detail/list remain readable', async () => {
             const { token } = await signUp();
             const { res, assetId } = await upload(token, {
                 sign: { fileName: 'tone.wav', mimeType: 'audio/wav', sizeBytes: 8044 },
@@ -229,7 +292,7 @@ suite('assets (tích hợp)', () => {
                 name: 'tranh',
                 scope: 'mine',
             });
-            expect(res.body.data.asset.thumbnailUrl).toContain('c_fill');
+            expect(res.body.data.asset.thumbnailUrl).toContain('thumbnail');
             expect(res.body.data.asset.meta).toMatchObject({ width: 640, height: 480 });
 
             const { rows } = await pool.query(
@@ -591,7 +654,7 @@ suite('assets (tích hợp)', () => {
                 .set(auth(token))
                 .send({ avatarAssetId: assetId });
             expect(set.status).toBe(200);
-            expect(set.body.data.avatarUrl).toContain('c_fill,g_face');
+            expect(set.body.data.avatarUrl).toContain('avatar');
 
             await request(app).delete(`/api/v1/assets/${assetId}`).set(auth(token));
             const me = await request(app).get('/api/v1/me').set(auth(token));

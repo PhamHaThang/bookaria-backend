@@ -19,7 +19,6 @@ import {
     AssetSchema,
     type AssetType,
     type AssetUsage,
-    type CloudinaryResourceType,
     type CompleteAssetBody,
     CompleteAssetProcessingSchema,
     CompleteAssetReadySchema,
@@ -27,6 +26,7 @@ import {
     ERROR_MESSAGES,
     type ListAssetsQuery,
     type PaginationMeta,
+    type StorageResourceType,
     type UpdateAssetBody,
     type UploadSignature,
     type UploadSignatureBody,
@@ -91,11 +91,13 @@ export const assetsService = {
         const assetId = randomUUID();
         const extension = check.resourceType === 'raw' ? '.mind' : '';
         const publicId = `${UPLOAD_FOLDER}/${userId}/${assetId}${extension}`;
-        const signed = storage.signUpload({
+        const signed = await storage.signUpload({
             publicId,
             resourceType: check.resourceType,
             allowedFormats: allowedFormats(body.purpose, check.assetType),
-            assetFolder: `${UPLOAD_FOLDER}/${userId}`,
+            contentType: body.mimeType || 'application/octet-stream',
+            format: normalizeFormat(body.fileName.split('.').at(-1) ?? ''),
+            sizeBytes: body.sizeBytes,
         });
 
         await assetsRepository.insertUploadIntent(pool, {
@@ -113,7 +115,9 @@ export const assetsService = {
         return UploadSignatureSchema.parse({
             assetId,
             uploadUrl: signed.uploadUrl,
-            fields: signed.fields,
+            method: signed.method,
+            objectKey: signed.objectKey,
+            headers: signed.headers,
             expiresAt: signed.expiresAt.toISOString(),
         });
     },
@@ -139,22 +143,19 @@ export const assetsService = {
             return toCompleteUploadResult(storage, done, jobId);
         }
 
-        const stored = await storage.inspect(uploadIntent.resource_type, uploadIntent.public_id);
-        if (!stored)
-            throw new AppError(
-                'NOT_FOUND',
-                'Chưa thấy file đã đã tải lại. Hãy tải lên rồi thử lại.',
-            );
-
-        const verdict = recheckUploadRequest(uploadIntent, stored);
-        if (verdict instanceof AppError) {
-            await discard(storage, uploadIntent);
-            throw verdict;
-        }
-        const assetType = verdict;
-        const needsProcessing = assetType !== 'IMAGE';
-
         try {
+            const stored = await storage.inspect(
+                uploadIntent.resource_type,
+                uploadIntent.public_id,
+            );
+            if (!stored)
+                throw new AppError('NOT_FOUND', 'Chưa tìm thấy tệp đã tải. Hãy tải tệp lên lại.');
+
+            const verdict = recheckUploadRequest(uploadIntent, stored);
+            if (verdict instanceof AppError) throw verdict;
+            const assetType = verdict;
+            const needsProcessing = assetType !== 'IMAGE';
+
             return await withTransaction(async (db) => {
                 const locked = await assetsRepository.getUploadIntentByAssetId(
                     db,
@@ -170,7 +171,7 @@ export const assetsService = {
                     return toCompleteUploadResult(storage, existing, jobId);
                 }
 
-                const quota = await assetsRepository.getQuota(db, userId);
+                const quota = await assetsRepository.getQuota(db, userId, { lockForUpdate: true });
                 if (!quota) throw new AppError('UNAUTHENTICATED');
                 if (quota.used + stored.bytes > quota.quota) {
                     throw new AppError('QUOTA_EXCEEDED', ERROR_MESSAGES.QUOTA_EXCEEDED, {
@@ -178,7 +179,15 @@ export const assetsService = {
                         quota: quota.quota,
                     });
                 }
-                const isAvatar = uploadIntent.purpose === 'AVATAR';
+                const thumbnailUrl =
+                    assetType === 'IMAGE'
+                        ? await storage.prepareImage(
+                              uploadIntent.public_id,
+                              uploadIntent.purpose === 'AVATAR'
+                                  ? TRANSFORM.avatar
+                                  : TRANSFORM.thumbnail,
+                          )
+                        : null;
                 const asset = await assetsRepository.insertAsset(db, {
                     id: assetId,
                     ownerId: userId,
@@ -186,14 +195,7 @@ export const assetsService = {
                     name: body.name ?? nameFromFile(uploadIntent.file_name),
                     publicId: uploadIntent.public_id,
                     resourceType: uploadIntent.resource_type,
-                    thumbnailUrl:
-                        assetType === 'IMAGE'
-                            ? storage.deliveryUrl({
-                                  resourceType: 'image',
-                                  publicId: uploadIntent.public_id,
-                                  transform: isAvatar ? TRANSFORM.avatar : TRANSFORM.thumbnail,
-                              })
-                            : null,
+                    thumbnailUrl,
                     format: normalizeFormat(stored.format),
                     sizeBytes: stored.bytes,
                     status: needsProcessing ? 'PROCESSING' : 'READY',
@@ -212,7 +214,10 @@ export const assetsService = {
                 return toCompleteUploadResult(storage, asset, jobId);
             });
         } catch (err) {
-            if (err instanceof AppError && err.code === 'QUOTA_EXCEEDED')
+            if (
+                err instanceof AppError &&
+                ['QUOTA_EXCEEDED', 'FILE_TYPE_NOT_ALLOWED', 'FILE_TOO_LARGE'].includes(err.code)
+            )
                 await discard(storage, uploadIntent);
             throw err;
         }
@@ -301,7 +306,7 @@ export const assetsService = {
     },
 
     // Lấy URL ảnh bìa (thumbnail) của một asset, hoặc null nếu không có.
-    coverUrl(a: { resource_type: CloudinaryResourceType; public_id: string }): string | null {
+    coverUrl(a: { resource_type: StorageResourceType; public_id: string }): string | null {
         const storage = getMediaStorage();
         if (!storage) return null;
         return storage.deliveryUrl({
@@ -338,7 +343,7 @@ function requireStorage(): MediaStorage {
     const storage = getMediaStorage();
     if (!storage) {
         logger.error(
-            'Upload Route chưa được cấu hình. Vui lòng kiểm tra biến môi trường CLOUDINARY_URL',
+            'Upload Route chưa được cấu hình. Vui lòng kiểm tra biến môi trường R2_ENDPOINT',
         );
         throw new AppError('INTERNAL_ERROR');
     }
@@ -469,10 +474,6 @@ export function toAssetRef(a: AssetFile & Pick<AssetRow, 'type' | 'thumbnail_url
     });
 }
 
-export function pageImageUrls(a: AssetFile & Pick<AssetRow, 'thumbnail_url'>, aspect: number) {
-    const storage = requireStorage();
-    return {
-        ...pageImageDelivery(storage, a.original_public_id, aspect),
-        thumbnailUrl: pageImageDelivery(storage, a.original_public_id, aspect, true).url,
-    };
+export function pageImageUrl(publicId: string, aspect: number, thumbnail = false) {
+    return pageImageDelivery(requireStorage(), publicId, aspect, thumbnail);
 }

@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { JobError } from '../../../modules/jobs/jobs.types';
+import { silentWav } from '../../../test/media';
+import { account, fakeR2 } from '../../../test/r2';
 import { failAbandonedJob, runJob } from '../../runner';
 import { createOptimizeHandler } from '..';
 import { optimizeRepository } from '../repo';
@@ -74,7 +76,7 @@ async function state(assetId: string, jobId: string) {
 }
 
 suite('OPTIMIZE_ASSET transaction', () => {
-    it('processes Cloudinary WAV and removes legacy zero dimensions from asset and job result', async () => {
+    it('processes R2 WAV and removes legacy zero dimensions from asset and job result', async () => {
         const { assetId, jobId } = await makeJob();
         await pool.query(
             `UPDATE assets SET type = 'AUDIO', resource_type = 'video', format = 'wav',
@@ -84,20 +86,16 @@ suite('OPTIMIZE_ASSET transaction', () => {
                 JSON.stringify({ width: 0, height: 0, purpose: 'ASSET', custom: 'retained' }),
             ],
         );
-        const storage = createProcessingStorage(
-            { cloudName: 'test', apiKey: 'key', apiSecret: 'secret' },
-            vi.fn(async (input) =>
-                Response.json({
-                    bytes: 8044,
-                    format: 'wav',
-                    width: 0,
-                    height: 0,
-                    ...(new URL(String(input)).searchParams.get('media_metadata') === 'true' && {
-                        duration: 0.5,
-                    }),
-                }),
-            ),
-        );
+        const fake = fakeR2();
+        const source = await pool.query('SELECT original_public_id FROM assets WHERE id=$1', [
+            assetId,
+        ]);
+        fake.files.set(source.rows[0].original_public_id, {
+            bytes: silentWav(),
+            type: 'audio/wav',
+            format: 'wav',
+        });
+        const storage = createProcessingStorage(account, fake.network);
         expect(await runJob(jobId, createOptimizeHandler(storage))).toBe('done');
         const result = await state(assetId, jobId);
         const meta = {

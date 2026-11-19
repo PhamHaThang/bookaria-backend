@@ -81,6 +81,8 @@ async function setup(publish = true) {
         ).jobId;
         const storage: PublishStorage = {
             url,
+            prepareImage: async (publicId, transform) =>
+                url({ resourceType: 'image', publicId, transform }),
             downloadMind: async () => real,
             upload: async (id) => url({ resourceType: 'raw', publicId: id }),
         };
@@ -178,6 +180,9 @@ suite('EXPORT_PDF publication consistency', () => {
     it('serves frozen visual layouts only to the author and rejects a stale layout export', async () => {
         const s = await setup();
         setMediaStorage({
+            async prepareImage(publicId, transform) {
+                return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+            },
             deliveryUrl: url,
             inspect: async () => null,
             destroy: async () => {},
@@ -250,6 +255,9 @@ suite('EXPORT_PDF publication consistency', () => {
         ).toBe(1);
         await pool.query('UPDATE books SET cover_asset_id=$2 WHERE id=$1', [s.bookId, replacement]);
         setMediaStorage({
+            async prepareImage(publicId, transform) {
+                return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+            },
             deliveryUrl: url,
             inspect: async () => null,
             destroy: async () => {},

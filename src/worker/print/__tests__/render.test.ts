@@ -125,11 +125,11 @@ describe('physical print layout and PDF', () => {
     it('still rejects a genuinely oversized serialized PDF and reports its exact byte count', async () => {
         const save = vi
             .spyOn(PDFDocument.prototype, 'save')
-            .mockResolvedValue(new Uint8Array(9_000_001));
+            .mockResolvedValue(new Uint8Array(100_000_001));
         try {
             await expect(renderPrintPdf(await input())).rejects.toMatchObject({
                 code: 'PRINT_OUTPUT_SIZE',
-                message: expect.stringContaining('9.000.001 byte'),
+                message: expect.stringContaining('100.000.001 byte'),
             });
         } finally {
             save.mockRestore();

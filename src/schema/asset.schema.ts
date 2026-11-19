@@ -1,6 +1,9 @@
 import { z } from 'zod';
-import { BytesSchema, HttpUrlSchema, IdSchema } from './common.schema';
+import { BytesSchema, HttpUrlSchema, IdSchema, MB } from './common.schema';
 import { AssetTypeSchema } from './enums.schema';
+
+// Compressed model bytes loaded by the scene runtime, separate from the upload budget.
+export const MODEL_MAX_DOWNLOAD_BYTES = 10 * MB;
 
 export const AssetMetaSchema = z.looseObject({
     /** 3D models: triangle count after optimisation. */

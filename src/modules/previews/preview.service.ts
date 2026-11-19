@@ -1,6 +1,6 @@
 import { env } from '../../config';
 import { pool, withTransaction } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { r2Account } from '../../lib/storage';
 import { ManifestSchema } from '../../schema';
 import { AppError } from '../../utils';
 import { JobError } from '../jobs/jobs.types';
@@ -58,6 +58,6 @@ export function createPreviewReader(readFile: PreviewFileReader) {
     };
 }
 export const previewReader = createPreviewReader(async (group, signal) => {
-    if (!env.CLOUDINARY_URL) throw new AppError('INTERNAL_ERROR');
-    return createPreviewFileReader(parseCloudinaryUrl(env.CLOUDINARY_URL))(group, signal);
+    if (!env.R2_ENDPOINT) throw new AppError('INTERNAL_ERROR');
+    return createPreviewFileReader(r2Account())(group, signal);
 });

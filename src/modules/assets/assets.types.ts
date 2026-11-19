@@ -1,11 +1,11 @@
-import type { AssetType, CloudinaryResourceType, UploadPurpose } from '../../schema';
+import type { AssetType, StorageResourceType, UploadPurpose } from '../../schema';
 
 export interface UploadIntentRow {
     asset_id: string;
     user_id: string;
     purpose: UploadPurpose;
     public_id: string;
-    resource_type: CloudinaryResourceType;
+    resource_type: StorageResourceType;
     file_name: string;
     mime_type: string;
     size_bytes: string;

@@ -13,6 +13,9 @@ const row = async (sql: string, params: unknown[] = []) => (await pool.query(sql
 const rows = async (sql: string, params: unknown[] = []) => (await pool.query(sql, params)).rows;
 
 const fakeStorage: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     signUpload: () => {
         throw new Error('Unused in public tests');
     },
@@ -206,9 +209,7 @@ suite('GET /public/books/:slug', () => {
             'pdf/sach.pdf',
         ]);
         const res = await get(`/books/${s.slug}`);
-        expect(res.body.data.coverUrl).toBe(
-            'https://media.test/image/c_fill,w_320,h_320,q_auto,f_auto/u/cover1',
-        );
+        expect(res.body.data.coverUrl).toBe('https://media.test/image/thumbnail/u/cover1');
         expect(res.body.data.printPdfUrl).toBe('https://media.test/raw/pdf/sach.pdf');
     });
 
@@ -312,7 +313,7 @@ suite('GET /public/books', () => {
         const cards = (await get('/books')).body.data;
         const bySlug = (slug: string) => cards.find((c: { slug: string }) => c.slug === slug);
         expect(bySlug(withCover.slug)).toMatchObject({
-            coverUrl: 'https://media.test/image/c_fill,w_320,h_320,q_auto,f_auto/u/bia1',
+            coverUrl: 'https://media.test/image/thumbnail/u/bia1',
             ageMin: 4,
             ageMax: 9,
             author: { id: author.id, displayName: 'Cô Lan' },

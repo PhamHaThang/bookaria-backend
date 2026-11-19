@@ -4,7 +4,7 @@ import { isAbsolute, relative, resolve } from 'node:path';
 import type pg from 'pg';
 import sharp from 'sharp';
 import { z } from 'zod';
-import type { MediaStorage, StoredFile } from '../lib/cloudinary';
+import type { MediaStorage, StoredFile } from '../lib/storage';
 import { decodeSingleMind, MAX_MIND_BYTES } from '../worker/publish/mind';
 
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -25,7 +25,6 @@ const ManifestSchema = z.object({
                 mind: z.string().min(1),
                 sha256: checksum,
                 mindSha256: checksum,
-                markerScore: z.int().min(1).max(5).nullish(),
                 imagePublicId: publicId.optional(),
                 mindPublicId: publicId.optional(),
             }),
@@ -45,12 +44,11 @@ export type MarkerSeedFile = {
 };
 export type MarkerSeed = {
     name: string;
-    markerScore: number | null;
     image: MarkerSeedFile;
     mind: MarkerSeedFile;
 };
 
-/** Read and validate the entire set before any Cloudinary or database mutation. */
+/** Read and validate the entire set before any R2 or database mutation. */
 export async function loadMarkerSeedSet(directory: string): Promise<MarkerSeed[]> {
     const root = await realpath(resolve(directory));
     const manifest = ManifestSchema.parse(
@@ -104,7 +102,6 @@ export async function loadMarkerSeedSet(directory: string): Promise<MarkerSeed[]
         minds.add(mindId);
         output.push({
             name: marker.id,
-            markerScore: marker.markerScore ?? null,
             image: {
                 path: image.absolute,
                 publicId: imageId,
@@ -139,7 +136,7 @@ function checkStored(file: MarkerSeedFile, remote: StoredFile) {
                 remote.height !== file.height ||
                 remote.format !== file.format))
     )
-        throw new Error(`Tệp trên Cloudinary khác tệp seed: ${file.publicId}. Không ghi đè.`);
+        throw new Error(`Tệp trên R2 khác tệp seed: ${file.publicId}. Không ghi đè.`);
 }
 /** Never upload a file which already exists, including a partially completed previous seed. */
 export async function ensureMarkerSeedFile(
@@ -155,42 +152,30 @@ export async function ensureMarkerSeedFile(
     const bytes = await readFile(file.path);
     if (bytes.length !== file.bytes || hash(bytes) !== file.sha256)
         throw new Error(`Tệp đã đổi sau khi kiểm tra: ${file.path}`);
-    const signature = media.signUpload({
-        publicId: file.publicId,
-        resourceType: file.resourceType,
-        allowedFormats: file.resourceType === 'image' ? [file.format] : [],
-        assetFolder: 'bookaria/markers',
-    });
-    const form = new FormData();
-    for (const [key, value] of Object.entries(signature.fields)) form.set(key, String(value));
     const mime =
         file.resourceType === 'raw'
             ? 'application/octet-stream'
             : `image/${file.format === 'jpg' ? 'jpeg' : file.format}`;
-    form.set(
-        'file',
-        new Blob([Uint8Array.from(bytes)], { type: mime }),
-        file.publicId.split('/').at(-1),
-    );
+    const signature = await media.signUpload({
+        publicId: file.publicId,
+        resourceType: file.resourceType,
+        allowedFormats: file.resourceType === 'image' ? [file.format] : [],
+        format: file.format,
+        contentType: mime,
+        sizeBytes: bytes.length,
+    });
     try {
         const response = await fetchImpl(signature.uploadUrl, {
-            method: 'POST',
-            body: form,
+            method: 'PUT',
+            headers: signature.headers,
+            body: bytes,
             redirect: 'error',
             signal: AbortSignal.timeout(120_000),
         });
         if (!response.ok) {
             await response.body?.cancel();
-            throw new Error(`Cloudinary trả HTTP ${response.status}.`);
+            throw new Error(`R2 trả HTTP ${response.status}.`);
         }
-        const result = z
-            .object({
-                public_id: z.literal(file.publicId),
-                resource_type: z.literal(file.resourceType),
-                bytes: z.literal(file.bytes),
-            })
-            .safeParse(await response.json());
-        if (!result.success) throw new Error(`Kết quả tải lên không khớp: ${file.publicId}`);
     } catch (error) {
         // Upload can succeed on the server even when its response is lost.
         const recovered = await media.inspect(file.resourceType, file.publicId);
@@ -268,8 +253,8 @@ export async function seedBookariaMarkers(
                 await client.query(
                     `INSERT INTO bookaria_markers
                     (number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active)
-                    VALUES ($1,$2,$3,$4,$5,now(),true)`,
-                    [number, marker.image.publicId, marker.mind.publicId, seed, marker.markerScore],
+                    VALUES ($1,$2,$3,$4,NULL,now(),true)`,
+                    [number, marker.image.publicId, marker.mind.publicId, seed],
                 );
                 totals.created++;
                 report(`${marker.name}: đã đăng ký số ${number}, trạng thái bật.`);

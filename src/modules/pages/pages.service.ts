@@ -40,7 +40,7 @@ import {
 } from '../../schema';
 import { AppError, fieldError } from '../../utils';
 import { assetsRepository } from '../assets/assets.repository';
-import { assetsService, pageImageUrls, toAssetRef } from '../assets/assets.service';
+import { assetsService, pageImageUrl, toAssetRef } from '../assets/assets.service';
 import { booksRepository } from '../books/books.repository';
 import type { EditableBook } from '../books/books.types';
 import { pagesRepository } from './pages.repository';
@@ -78,7 +78,7 @@ export const pagesService = {
             if (!book) throw new AppError('NOT_FOUND');
             await ensureNotPublishing(db, bookId);
             const rows = await pagesRepository.getPages(db, bookId);
-            const snapshot = draftSnapshot(bookId, book, rows);
+            const snapshot = await draftSnapshot(bookId, book, rows);
             const byId = new Map(rows.map((row) => [row.id, row]));
             if (snapshot.revision !== body.revision) {
                 // A lost response can safely retry the same client-generated ids and content.
@@ -266,13 +266,17 @@ export const pagesService = {
                 book.workflow_variables = body.workflowVariables;
             }
             await pagesRepository.updateBookUpdatedAt(db, bookId);
-            const saved = draftSnapshot(bookId, book, await pagesRepository.getPages(db, bookId));
+            const saved = await draftSnapshot(
+                bookId,
+                book,
+                await pagesRepository.getPages(db, bookId),
+            );
             return draftSaveResult(db, saved, body.changes, jobs, book);
         });
     },
 
     async getPageSummaries(db: Queryable, bookId: string) {
-        return (await pagesRepository.getPages(db, bookId)).map(toPageSummary);
+        return pageSummaries(await pagesRepository.getPages(db, bookId));
     },
     async getPages(userId: string, bookId: string) {
         const res = await booksRepository.getBookSummary(pool, userId, bookId);
@@ -474,7 +478,7 @@ export const pagesService = {
 
             const updatedPageRow = await pagesRepository.getPageById(db, userId, pageId);
             if (!updatedPageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
-            return { page: toPageSummary(updatedPageRow), ...(jobId ? { jobId } : {}) };
+            return { page: await toPageSummary(updatedPageRow), ...(jobId ? { jobId } : {}) };
         });
     },
     async duplicatePage(userId: string, pageId: string) {
@@ -513,7 +517,7 @@ export const pagesService = {
             const copyPageRow = await pagesRepository.getPageById(db, userId, idNewPage);
             if (!copyPageRow) throw new AppError('NOT_FOUND', 'Không tìm thấy trang này.');
             return {
-                page: toPageSummary(copyPageRow),
+                page: await toPageSummary(copyPageRow),
             };
         });
     },
@@ -710,30 +714,28 @@ export const pagesService = {
     },
 };
 // --- Helpers ----------------------------------------------------------------------------------------------
-function toPageImageUrls(r: PageRow) {
-    return pageImageUrls(
-        {
-            resource_type: r.img_resource_type,
-            original_public_id: r.img_original_public_id,
-            optimized_public_id: r.img_optimized_public_id,
-            format: r.img_format,
-            thumbnail_url: r.img_thumbnail_url,
-        },
-        r.page_aspect,
-    );
+function toPageImage(r: PageRow, thumbnail = false) {
+    return pageImageUrl(r.img_original_public_id, r.page_aspect, thumbnail);
 }
-function toPageSummary(r: PageRow) {
+async function toPageSummary(r: PageRow) {
     return PageSummarySchema.parse({
         id: r.id,
         orderIndex: r.order_index,
         title: r.title,
-        thumbnailUrl: toPageImageUrls(r).thumbnailUrl,
+        thumbnailUrl: (await toPageImage(r, true)).url,
         markerMode: r.marker_mode,
         markerNumber: r.marker_number,
         markerScore: r.marker_score,
         markerWarnings: warningsOf(r),
         objectCount: r.object_count,
     });
+}
+async function pageSummaries(rows: PageRow[]) {
+    const summaries = [];
+    // Bound cold thumbnail work without making long books wait for each R2 HEAD in sequence.
+    for (let start = 0; start < rows.length; start += 4)
+        summaries.push(...(await Promise.all(rows.slice(start, start + 4).map(toPageSummary))));
+    return summaries;
 }
 function warningsOf(r: PageRow): MarkerWarning[] {
     if (r.marker_mode !== 'CUSTOM_MARKER') return [];
@@ -758,9 +760,9 @@ function warningsOf(r: PageRow): MarkerWarning[] {
 async function toPage(db: Queryable, r: PageRow): Promise<Page> {
     const stored = await pagesRepository.loadScene(db, r.id);
     const assets = await pagesRepository.getPageAssets(db, r.id);
-    const image = toPageImageUrls(r);
+    const image = await toPageImage(r);
     return PageSchema.parse({
-        ...toPageSummary(r),
+        ...(await toPageSummary(r)),
         bookId: r.book_id,
         image: {
             assetId: r.image_asset_id,
@@ -886,16 +888,7 @@ function getAssetUsesInScene(scene: Scene) {
 async function imageLayoutOf(userId: string, assetId: string, aspect: number) {
     const asset = await assetsRepository.getVisibleAsset(pool, userId, assetId);
     if (asset?.type !== 'IMAGE' || asset.status !== 'READY') throw new AppError('NOT_FOUND');
-    const layout = pageImageUrls(
-        {
-            resource_type: asset.resource_type,
-            original_public_id: asset.original_public_id,
-            optimized_public_id: null,
-            format: asset.format,
-            thumbnail_url: null,
-        },
-        aspect,
-    );
+    const layout = await pageImageUrl(asset.original_public_id, aspect);
     return {
         assetId,
         url: layout.url,
@@ -913,7 +906,7 @@ function canonical(value: unknown): string {
             .join(',')}}`;
     return JSON.stringify(value) ?? 'null';
 }
-function draftSnapshot(bookId: string, book: EditableBook, rows: PageRow[]) {
+async function draftSnapshot(bookId: string, book: EditableBook, rows: PageRow[]) {
     const geometry = {
         pageFormat: book.page_format,
         pageAspect: Number(book.page_aspect),
@@ -939,7 +932,7 @@ function draftSnapshot(bookId: string, book: EditableBook, rows: PageRow[]) {
                 canonical({ geometry, authored, workflowVariables: book.workflow_variables || [] }),
             )
             .digest('hex'),
-        pages: rows.map(toPageSummary),
+        pages: await pageSummaries(rows),
         pageRevisions: Object.fromEntries(rows.map((row) => [row.id, row.revision])),
     });
 }

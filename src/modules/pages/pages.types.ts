@@ -1,4 +1,4 @@
-import type { AssetType, CloudinaryResourceType, SceneObjectType } from '../../schema';
+import type { AssetType, SceneObjectType, StorageResourceType } from '../../schema';
 
 export interface PageRow {
     id: string;
@@ -42,7 +42,7 @@ export interface NewPage {
 export interface PageAssetRow {
     id: string;
     type: AssetType;
-    resource_type: CloudinaryResourceType;
+    resource_type: StorageResourceType;
     original_public_id: string;
     optimized_public_id: string | null;
     format: string;

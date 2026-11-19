@@ -30,7 +30,7 @@ export const adminController = {
     prepareMarkerUpload: asyncHandler(async (req: Request, res: Response) => {
         res.setHeader('Cache-Control', 'no-store');
         res.json({
-            data: prepareMarkerUpload(getAuth(res), MarkerUploadBodySchema.parse(req.body)),
+            data: await prepareMarkerUpload(getAuth(res), MarkerUploadBodySchema.parse(req.body)),
         });
     }),
     importMarker: asyncHandler(async (req: Request, res: Response) => {

@@ -34,23 +34,15 @@ async function upload(file, purpose, mimeType) {
         mimeType,
         sizeBytes,
     });
-    const form = new FormData();
-    for (const [key, value] of Object.entries(signed.fields)) form.set(key, String(value));
-    form.set(
-        'file',
-        new Blob([new Uint8Array(await readFile(file))], { type: mimeType }),
-        basename(file),
-    );
     const response = await fetch(signed.uploadUrl, {
-        method: 'POST',
-        body: form,
+        method: signed.method,
+        headers: signed.headers,
+        body: new Uint8Array(await readFile(file)),
+        redirect: 'error',
         signal: AbortSignal.timeout(120_000),
     });
-    if (!response.ok) throw new Error(`Cloudinary: HTTP ${response.status}`);
-    const uploaded = await response.json();
-    if (uploaded.public_id !== signed.fields.public_id || uploaded.bytes !== sizeBytes) {
-        throw new Error(`Cloudinary trả về tệp khác tệp đã ký: ${basename(file)}`);
-    }
+    if (!response.ok && response.status !== 412) throw new Error(`R2: HTTP ${response.status}`);
+    await response.body?.cancel();
     return signed;
 }
 
@@ -95,7 +87,7 @@ async function main() {
 
     const marker = await call(`/pages/${pageId}/marker`, 'PUT', {
         mode: 'CUSTOM_MARKER',
-        markerMindPublicId: mind.fields.public_id,
+        markerMindPublicId: mind.objectKey,
     });
     console.log('jobId:', marker.jobId);
 

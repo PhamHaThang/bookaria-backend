@@ -692,7 +692,7 @@ suite('thư viện tài nguyên chung của admin', () => {
         });
     });
 
-    it('dựng URL giao tài nguyên từ Cloudinary public id', async () => {
+    it('dựng URL giao tài nguyên từ R2 object key', async () => {
         const admin = await createAdmin();
         const author = await register('LibraryUrlAuthor');
         const assetId = await createReadyAsset(author.userId);
@@ -701,24 +701,24 @@ suite('thư viện tài nguyên chung của admin', () => {
              WHERE id = $1`,
             [assetId],
         );
-        const previousCloudinaryUrl = env.CLOUDINARY_URL;
-        env.CLOUDINARY_URL = 'cloudinary://key:secret@test-cloud';
+        const previousR2Url = env.R2_PUBLIC_URL;
+        env.R2_PUBLIC_URL = 'https://assets.bookaria.test';
         try {
             const response = await request(app)
                 .post('/api/v1/admin/library/assets')
                 .set(bearer(admin.token))
                 .send({
                     assetId,
-                    name: 'Asset Cloudinary',
+                    name: 'Asset R2',
                     license: 'CC0',
                     authorName: 'Tác giả',
                 });
             expect(response.status).toBe(201);
             expect(response.body.data.url).toBe(
-                'https://res.cloudinary.com/test-cloud/image/upload/bookaria/library/example.jpg',
+                'https://assets.bookaria.test/bookaria/library/example',
             );
         } finally {
-            env.CLOUDINARY_URL = previousCloudinaryUrl;
+            env.R2_PUBLIC_URL = previousR2Url;
         }
     });
 
@@ -930,8 +930,8 @@ suite('bộ marker Bookaria của admin', () => {
         const admin = await createAdmin();
         const markerNumber = 1_000_000 + (Date.now() % 1_000_000);
         const seed = Date.now() * 1_000 + Math.floor(Math.random() * 1_000);
-        const previousCloudinaryUrl = env.CLOUDINARY_URL;
-        env.CLOUDINARY_URL = 'cloudinary://key:secret@test-cloud';
+        const previousR2Url = env.R2_PUBLIC_URL;
+        env.R2_PUBLIC_URL = 'https://assets.bookaria.test';
         let markerId: string;
         try {
             const created = await request(app)
@@ -947,8 +947,8 @@ suite('bộ marker Bookaria của admin', () => {
             expect(created.status).toBe(201);
             expect(created.body.data).toMatchObject({
                 number: markerNumber,
-                imageUrl: `https://res.cloudinary.com/test-cloud/image/upload/bookaria/markers/${markerNumber}`,
-                markerScore: 5,
+                imageUrl: `https://assets.bookaria.test/bookaria/markers/${markerNumber}`,
+                markerScore: null,
                 isActive: true,
             });
             expect(created.body.data.validatedAt).toBeTruthy();
@@ -1000,7 +1000,7 @@ suite('bộ marker Bookaria của admin', () => {
             expect(enabled.status).toBe(200);
             expect(enabled.body.data.isActive).toBe(true);
         } finally {
-            env.CLOUDINARY_URL = previousCloudinaryUrl;
+            env.R2_PUBLIC_URL = previousR2Url;
         }
 
         const audits = await pool.query<{ operation: string }>(

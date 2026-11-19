@@ -687,7 +687,7 @@ export const routes: Route[] = [
         method: 'POST',
         path: '/assets/upload-signature',
         access: 'author',
-        summary: 'Xin chữ ký upload; cấp `assetId` dùng làm `public_id` trên Cloudinary',
+        summary: 'Xin chữ ký upload; cấp `assetId` dùng làm `public_id` trên R2',
         detailed: true,
         body: UploadSignatureBodySchema,
         responses: { 200: dataResponse(UploadSignatureSchema) },

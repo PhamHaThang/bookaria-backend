@@ -24,6 +24,9 @@ const real = readFileSync(new URL('./fixtures/card.mind', import.meta.url));
 const fixtureTargets = new Map<string, Buffer>();
 const url: PublishStorage['url'] = ({ publicId }) => `https://example.com/${publicId}`;
 const media: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     deliveryUrl: url,
     inspect: async () => null,
     destroy: async () => {},
@@ -115,6 +118,8 @@ function pipeline(hook?: (id: string) => Promise<void>) {
     const uploads = new Map<string, Buffer>();
     const storage: PublishStorage = {
         url,
+        prepareImage: async (publicId, transform) =>
+            url({ resourceType: 'image', publicId, transform }),
         downloadMind: vi.fn(async (publicId) => fixtureTargets.get(publicId) || real),
         upload: vi.fn(async (id, bytes) => {
             uploads.set(id, bytes);

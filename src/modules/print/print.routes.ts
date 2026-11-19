@@ -22,6 +22,51 @@ export function printRouter(enabled: boolean) {
                 const storage = getMediaStorage();
                 if (!storage) throw new AppError('INTERNAL_ERROR');
                 const source = version.source;
+                const pages = [];
+                for (const p of source.pages) {
+                    const box = markerRect(source, p);
+                    let qr = null;
+                    if (p.marker.mode === 'BOOKARIA_MARKER') {
+                        try {
+                            const rect = qrRect(source, p);
+                            qr = {
+                                pageId: p.pageId,
+                                xMm: rect.x,
+                                yMm: rect.y,
+                                sizeMm: rect.width,
+                            };
+                        } catch {
+                            /* No default QR slot; the editor explains the limitation. */
+                        }
+                    }
+                    pages.push({
+                        pageId: p.pageId,
+                        title: p.title,
+                        imageUrl: (
+                            await pageImageDelivery(
+                                storage,
+                                p.image.publicId,
+                                source.heightMm / source.widthMm,
+                            )
+                        ).url,
+                        markerMode: p.marker.mode,
+                        defaultQr: qr,
+                        marker:
+                            p.marker.mode === 'BOOKARIA_MARKER' && box
+                                ? {
+                                      number: p.marker.number,
+                                      imageUrl: storage.deliveryUrl({
+                                          resourceType: 'image',
+                                          publicId: p.marker.image.publicId,
+                                          format: p.marker.image.format,
+                                      }),
+                                      xMm: box.x,
+                                      yMm: box.y,
+                                      sizeMm: box.width,
+                                  }
+                                : null,
+                    });
+                }
                 res.setHeader('Cache-Control', 'no-store');
                 const q = coverQrRect({ kind: 'PRINT', qrMode: 'COVER_ONLY', bleedMm: 3 });
                 res.json({
@@ -39,48 +84,7 @@ export function printRouter(enabled: boolean) {
                         widthMm: source.widthMm,
                         heightMm: source.heightMm,
                         coverQr: { pageId: null, xMm: q.x, yMm: q.y, sizeMm: q.width },
-                        pages: source.pages.map((p) => {
-                            const box = markerRect(source, p);
-                            let qr = null;
-                            if (p.marker.mode === 'BOOKARIA_MARKER') {
-                                try {
-                                    const rect = qrRect(source, p);
-                                    qr = {
-                                        pageId: p.pageId,
-                                        xMm: rect.x,
-                                        yMm: rect.y,
-                                        sizeMm: rect.width,
-                                    };
-                                } catch {
-                                    /* No default QR slot; the editor explains the limitation. */
-                                }
-                            }
-                            return {
-                                pageId: p.pageId,
-                                title: p.title,
-                                imageUrl: pageImageDelivery(
-                                    storage,
-                                    p.image.publicId,
-                                    source.heightMm / source.widthMm,
-                                ).url,
-                                markerMode: p.marker.mode,
-                                defaultQr: qr,
-                                marker:
-                                    p.marker.mode === 'BOOKARIA_MARKER' && box
-                                        ? {
-                                              number: p.marker.number,
-                                              imageUrl: storage.deliveryUrl({
-                                                  resourceType: 'image',
-                                                  publicId: p.marker.image.publicId,
-                                                  format: p.marker.image.format,
-                                              }),
-                                              xMm: box.x,
-                                              yMm: box.y,
-                                              sizeMm: box.width,
-                                          }
-                                        : null,
-                            };
-                        }),
+                        pages,
                     }),
                 });
             } catch (error) {

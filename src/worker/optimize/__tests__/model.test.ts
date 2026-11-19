@@ -2,7 +2,8 @@ import { Document, Format, NodeIO } from '@gltf-transform/core';
 import { EXTTextureWebP } from '@gltf-transform/extensions';
 import sharp from 'sharp';
 import { describe, expect, it } from 'vitest';
-import { modelIO, optimizeModel, triangleCount } from '../model';
+import { ASSET_MAX_BYTES, MODEL_MAX_DOWNLOAD_BYTES } from '../../../schema';
+import { MAX_OUTPUT_MODEL_BYTES, modelIO, optimizeModel, triangleCount } from '../model';
 
 function texturedModel(image: Uint8Array, mimeType = 'image/webp') {
     const doc = new Document();
@@ -30,6 +31,64 @@ function texturedModel(image: Uint8Array, mimeType = 'image/webp') {
 }
 
 describe('optimizeModel', () => {
+    it('accepts a valid source above 10 MiB and removes padding during optimization', async () => {
+        const image = await sharp({
+            create: { width: 2, height: 2, channels: 3, background: 'red' },
+        })
+            .png()
+            .toBuffer();
+        const original = Buffer.from(
+            await new NodeIO().writeBinary(texturedModel(image, 'image/png')),
+        );
+        const oldLength = original.readUInt32LE(12);
+        const padding = 11 * 1024 * 1024;
+        const input = Buffer.alloc(original.length + padding, 0x20);
+        original.copy(input, 0, 0, 20 + oldLength);
+        original.copy(input, 20 + oldLength + padding, 20 + oldLength);
+        input.writeUInt32LE(input.length, 8);
+        input.writeUInt32LE(oldLength + padding, 12);
+        const output = await optimizeModel(input, new AbortController().signal);
+        expect(output.bytes.length).toBeLessThan(1024 * 1024);
+        expect(triangleCount(await (await modelIO()).readBinary(output.bytes))).toBe(1);
+    });
+
+    it('rejects source files above 50 MiB before parsing', async () => {
+        await expect(
+            optimizeModel(new Uint8Array(ASSET_MAX_BYTES.MODEL + 1), new AbortController().signal),
+        ).rejects.toMatchObject({
+            code: 'MODEL_TOO_LARGE',
+            message: 'Mô hình đầu vào vượt quá 50 MiB.',
+        });
+    });
+
+    it('allows a usable model between 5 and 10 MiB, but rejects output above 10 MiB', async () => {
+        expect(MAX_OUTPUT_MODEL_BYTES).toBe(MODEL_MAX_DOWNLOAD_BYTES);
+        const image = await sharp({
+            create: { width: 2, height: 2, channels: 3, background: 'red' },
+        })
+            .png()
+            .toBuffer();
+        const io = new NodeIO();
+        for (const size of [6, 11]) {
+            const doc = texturedModel(image, 'image/png');
+            doc.getRoot().setExtras({ note: 'x'.repeat(size * 1024 * 1024) });
+            const input = await io.writeBinary(doc);
+            if (size === 6) {
+                const output = await optimizeModel(input, new AbortController().signal);
+                expect(output.bytes.length).toBeGreaterThan(5 * 1024 * 1024);
+                expect(output.bytes.length).toBeLessThanOrEqual(MODEL_MAX_DOWNLOAD_BYTES);
+                expect(triangleCount(await (await modelIO()).readBinary(output.bytes))).toBe(1);
+            } else {
+                await expect(
+                    optimizeModel(input, new AbortController().signal),
+                ).rejects.toMatchObject({
+                    code: 'MODEL_TOO_LARGE',
+                    message: expect.stringContaining('10 MiB'),
+                });
+            }
+        }
+    });
+
     it('keeps a small model intact and writes readable Draco geometry', async () => {
         const doc = new Document();
         const buffer = doc.createBuffer();

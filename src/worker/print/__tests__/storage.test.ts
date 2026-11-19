@@ -1,54 +1,59 @@
-import { describe, expect, it, vi } from 'vitest';
+import sharp from 'sharp';
+import { describe, expect, it } from 'vitest';
+import { account, fakeR2 } from '../../../test/r2';
 import { createPrintStorage, MAX_IMAGE_BYTES } from '../storage';
 
-const account = { cloudName: 'demo', apiKey: 'key', apiSecret: 'secret' },
-    file = { publicId: 'bookaria/u/page', format: 'png' };
-const fake = (r: Response) => vi.fn(async () => r) as unknown as typeof fetch;
-describe('PDF image storage', () => {
-    it('downloads from controlled Cloudinary image paths without redirects', async () => {
-        const network = fake(new Response('abc'));
+describe('R2 PDF image storage', () => {
+    it('reads exact original bytes and uses the frozen paper geometry for derived JPEGs', async () => {
+        const fake = fakeR2();
+        const bytes = await sharp({
+            create: { width: 200, height: 200, channels: 3, background: 'red' },
+        })
+            .png()
+            .toBuffer();
+        fake.files.set('bookaria/page', { bytes, type: 'image/png', format: 'png' });
+        const storage = createPrintStorage(account, fake.network),
+            signal = new AbortController().signal;
         expect(
-            (
-                await createPrintStorage(account, network).download(
-                    file,
-                    new AbortController().signal,
-                )
-            ).toString(),
-        ).toBe('abc');
-        expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/v1/bookaria/u/page.png',
-            expect.objectContaining({ redirect: 'error' }),
+            await storage.download({ publicId: 'bookaria/page', format: 'png' }, signal),
+        ).toEqual(bytes);
+        const derived = await storage.download(
+            { publicId: 'bookaria/page', format: 'png', pageAspect: 0.5 },
+            signal,
         );
-    });
-    it.each([404, 429, 500])('classifies HTTP %i', async (status) => {
-        await expect(
-            createPrintStorage(account, fake(new Response('', { status }))).download(
-                file,
-                new AbortController().signal,
+        expect(await sharp(derived).metadata()).toMatchObject({
+            format: 'jpeg',
+            width: 1600,
+            height: 800,
+        });
+        const before = fake.network.mock.calls.length;
+        expect(
+            await storage.download(
+                { publicId: 'bookaria/page', format: 'png', pageAspect: 0.5 },
+                signal,
             ),
-        ).rejects.toMatchObject({ code: 'PRINT_STORAGE_ERROR', retry: status !== 404 });
+        ).toEqual(derived);
+        expect(
+            fake.network.mock.calls
+                .slice(before)
+                .some((call) => (call[0] as Request).method === 'PUT'),
+        ).toBe(false);
     });
-    it('enforces declared and actual download length limits', async () => {
-        for (const response of [
-            new Response('x', { headers: { 'content-length': String(MAX_IMAGE_BYTES + 1) } }),
-            new Response(new Uint8Array(MAX_IMAGE_BYTES + 1)),
-        ])
-            await expect(
-                createPrintStorage(account, fake(response)).download(
-                    file,
-                    new AbortController().signal,
-                ),
-            ).rejects.toMatchObject({ code: 'PRINT_IMAGE_SIZE' });
-    });
-    it('downloads a derived page with the geometry captured at publication, while keeping the original identity', async () => {
-        const network = fake(new Response('derived'));
-        await createPrintStorage(account, network).download(
-            { ...file, pageAspect: 0.5 },
-            new AbortController().signal,
+    it('rejects missing, oversized and cancelled reads', async () => {
+        const fake = fakeR2(),
+            storage = createPrintStorage(account, fake.network),
+            file = { publicId: 'missing', format: 'png' };
+        await expect(storage.download(file, new AbortController().signal)).rejects.toThrow();
+        fake.files.set('missing', {
+            bytes: new Uint8Array(MAX_IMAGE_BYTES + 1),
+            type: 'image/png',
+            format: 'png',
+        });
+        await expect(storage.download(file, new AbortController().signal)).rejects.toThrow(
+            'giới hạn',
         );
-        expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page.jpg',
-            expect.objectContaining({ redirect: 'error' }),
-        );
+        const before = fake.network.mock.calls.length;
+        await expect(storage.download(file, AbortSignal.abort())).rejects.toThrow();
+        expect(fake.network.mock.calls).toHaveLength(before);
     });
 });

@@ -128,11 +128,12 @@ export function assertPublishable(snapshot: PublishSnapshot, acceptWarnings: boo
  * @param storage - Đối tượng giúp tạo URL cho Asset
  * @param generatedAt - Thời gian tạo manifest
  */
-export function makeManifest(
+export async function makeManifest(
     snapshot: PublishSnapshot,
     groups: ManifestGroup[],
-    storage: Pick<PublishStorage, 'url'>,
+    storage: Pick<PublishStorage, 'url' | 'prepareImage'>,
     generatedAt: string,
+    signal?: AbortSignal,
 ) {
     const { book, pages, assets } = snapshot;
     const used = new Set<string>();
@@ -145,7 +146,9 @@ export function makeManifest(
         });
 
     // Duyệt từng trang để tạo manifestPages
-    const manifestPages = pages.map((p) => {
+    const manifestPages = [];
+    for (const p of pages) {
+        signal?.throwIfAborted();
         const image = assets.find((a) => a.id === p.image_asset_id);
         if (!image) throw new JobError('MISSING_PAGE_IMAGE', 'Thiếu ảnh trang.');
         const scene = PublishedSceneSchema.parse(p.scene),
@@ -157,20 +160,27 @@ export function makeManifest(
         // Lấy Marker Bookaria nếu có
         const marker = snapshot.markers.find((m) => m.id === p.bookaria_marker_id);
 
-        return {
+        manifestPages.push({
             pageId: p.id,
             title: p.title,
             aspect: Number(book.page_aspect),
-            imageUrl: pageImageDelivery(
-                { deliveryUrl: storage.url },
-                image.original_public_id,
-                Number(book.page_aspect),
+            imageUrl: (
+                await pageImageDelivery(
+                    storage,
+                    image.original_public_id,
+                    Number(book.page_aspect),
+                    false,
+                    signal,
+                )
             ).url,
-            thumbnailUrl: pageImageDelivery(
-                { deliveryUrl: storage.url },
-                image.original_public_id,
-                Number(book.page_aspect),
-                true,
+            thumbnailUrl: (
+                await pageImageDelivery(
+                    storage,
+                    image.original_public_id,
+                    Number(book.page_aspect),
+                    true,
+                    signal,
+                )
             ).url,
             ...(group ? { group: group.group, targetIndex: group.pageIds.indexOf(p.id) } : {}),
             marker: {
@@ -181,8 +191,8 @@ export function makeManifest(
             },
             settings,
             scene,
-        };
-    });
+        });
+    }
     // Tạo danh sách Asset cho Manifest
     const manifestAssets = Object.fromEntries(
         assets

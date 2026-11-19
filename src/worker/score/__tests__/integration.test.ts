@@ -20,6 +20,9 @@ import { compiledFixture, illustration } from './fixtures';
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
 const fakeMedia: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     signUpload() {
         throw new Error('not used');
     },

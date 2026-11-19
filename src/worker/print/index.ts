@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { env } from '../../config';
 import { pool } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { r2Account } from '../../lib/storage';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import {
     PrintPayloadSchema,
@@ -51,12 +51,7 @@ export function createExportPdfHandler(
     };
 }
 export const exportPdfHandler: JobHandler = async (ctx) => {
-    if (!env.CLOUDINARY_URL)
-        throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình Cloudinary.', true);
+    if (!env.R2_ENDPOINT) throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình R2.', true);
     const font = await readFile(resolve('assets/fonts/NotoSans-Regular.ttf'));
-    return createExportPdfHandler(
-        createPrintStorage(parseCloudinaryUrl(env.CLOUDINARY_URL)),
-        env.VIEWER_URL,
-        font,
-    )(ctx);
+    return createExportPdfHandler(createPrintStorage(r2Account()), env.VIEWER_URL, font)(ctx);
 };

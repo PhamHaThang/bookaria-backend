@@ -13,7 +13,6 @@
             "image": "png/BKA-001.png",
             "mind": "mind/BKA-001.mind",
             "sha256": "33aa86100acf3577b09a8d87d2470c9e0f8def050846bcef8d0598f89e44b8a3",
-            "markerScore": 5,
             "quality": {
                 "features": 867,
                 "coverage": 1,
@@ -43,7 +42,6 @@
             "image": "png/BKA-002.png",
             "mind": "mind/BKA-002.mind",
             "sha256": "524eea2bc28c67b7d10054295123ee3696410dd4bc22c5843a6d63078f82a53a",
-            "markerScore": 5,
             "quality": {
                 "features": 893,
                 "coverage": 1,
@@ -73,7 +71,6 @@
             "image": "png/BKA-003.png",
             "mind": "mind/BKA-003.mind",
             "sha256": "8621c81e44c6d72a3cf08eb24984c6fad3d7a5cfdb8163f66c988dec6e79f942",
-            "markerScore": 5,
             "quality": {
                 "features": 869,
                 "coverage": 1,
@@ -103,7 +100,6 @@
             "image": "png/BKA-004.png",
             "mind": "mind/BKA-004.mind",
             "sha256": "addb44142fb611dfc482a19971cd98d9f37dada923fb44f7abd6f8806bfe6d94",
-            "markerScore": 5,
             "quality": {
                 "features": 914,
                 "coverage": 1,
@@ -133,7 +129,6 @@
             "image": "png/BKA-005.png",
             "mind": "mind/BKA-005.mind",
             "sha256": "d20db15db105390da76ae6481f73c3da1d36c53dcddc54a135cb3a57b440327e",
-            "markerScore": 5,
             "quality": {
                 "features": 859,
                 "coverage": 1,
@@ -163,7 +158,6 @@
             "image": "png/BKA-006.png",
             "mind": "mind/BKA-006.mind",
             "sha256": "6595b322202c53c489e5362bd5c913a8981187407cad9635be584fcd8930ead8",
-            "markerScore": 5,
             "quality": {
                 "features": 881,
                 "coverage": 1,
@@ -193,7 +187,6 @@
             "image": "png/BKA-007.png",
             "mind": "mind/BKA-007.mind",
             "sha256": "5ae68e39f10a2c6700a9b7fa41e5438cdad1251824242e3aba3a499e37eae75b",
-            "markerScore": 5,
             "quality": {
                 "features": 748,
                 "coverage": 0.9375,
@@ -223,7 +216,6 @@
             "image": "png/BKA-008.png",
             "mind": "mind/BKA-008.mind",
             "sha256": "2d9834ced275b90179f38b9241ce49663fe9d59f196b9e05e13640f97c586081",
-            "markerScore": 5,
             "quality": {
                 "features": 858,
                 "coverage": 1,
@@ -253,7 +245,6 @@
             "image": "png/BKA-009.png",
             "mind": "mind/BKA-009.mind",
             "sha256": "ff25592e7c348622a21b225de454df90d87d3273d72ca9a9a8f91ed424797fd7",
-            "markerScore": 5,
             "quality": {
                 "features": 899,
                 "coverage": 1,
@@ -283,7 +274,6 @@
             "image": "png/BKA-010.png",
             "mind": "mind/BKA-010.mind",
             "sha256": "61a3e3aa13742cab844646f1b64d24a2d0161e45961f9da7bd60fbd74746b5a3",
-            "markerScore": 5,
             "quality": {
                 "features": 903,
                 "coverage": 1,
@@ -313,7 +303,6 @@
             "image": "png/BKA-011.png",
             "mind": "mind/BKA-011.mind",
             "sha256": "c59980d39e34ff69287fa85430664e284d6b0ac30eb50bd37e8007713931a302",
-            "markerScore": 5,
             "quality": {
                 "features": 826,
                 "coverage": 1,
@@ -343,7 +332,6 @@
             "image": "png/BKA-012.png",
             "mind": "mind/BKA-012.mind",
             "sha256": "750e8b8f432dad64ea208e91c61d5a055c15faa104677c99bbdb113ebef952de",
-            "markerScore": 5,
             "quality": {
                 "features": 833,
                 "coverage": 1,
@@ -373,7 +361,6 @@
             "image": "png/BKA-013.png",
             "mind": "mind/BKA-013.mind",
             "sha256": "e1dde540f6d6edc9ab7967ffce5c2e104ffb52170377b1dcfc56baecef7291d5",
-            "markerScore": 5,
             "quality": {
                 "features": 807,
                 "coverage": 1,
@@ -403,7 +390,6 @@
             "image": "png/BKA-014.png",
             "mind": "mind/BKA-014.mind",
             "sha256": "bbee8c8ea877ddca1ba3f9258b1a0b7a1d2f1698967a2bfcfb9986b2e541e41a",
-            "markerScore": 5,
             "quality": {
                 "features": 805,
                 "coverage": 1,
@@ -433,7 +419,6 @@
             "image": "png/BKA-015.png",
             "mind": "mind/BKA-015.mind",
             "sha256": "eab51d5fe2dadd03a700a4bf2a3c05540d42b3ddfd6ffaacb3ca166fa870d47a",
-            "markerScore": 5,
             "quality": {
                 "features": 826,
                 "coverage": 1,
@@ -463,7 +448,6 @@
             "image": "png/BKA-016.png",
             "mind": "mind/BKA-016.mind",
             "sha256": "70d838713d042bfc5398c77a0f1302ca50a3f513f0d460fcc317a5c2f803b775",
-            "markerScore": 5,
             "quality": {
                 "features": 845,
                 "coverage": 1,
@@ -493,7 +477,6 @@
             "image": "png/BKA-017.png",
             "mind": "mind/BKA-017.mind",
             "sha256": "46e48dd98ffbc377f924e95bdbd4dd97fa6a20efcd91f72908f2311cc4414f61",
-            "markerScore": 5,
             "quality": {
                 "features": 826,
                 "coverage": 1,
@@ -523,7 +506,6 @@
             "image": "png/BKA-018.png",
             "mind": "mind/BKA-018.mind",
             "sha256": "284be5eeb6cc72ec900406cbf2fc61dafded8183645c296b02206714400bf769",
-            "markerScore": 5,
             "quality": {
                 "features": 828,
                 "coverage": 1,
@@ -553,7 +535,6 @@
             "image": "png/BKA-019.png",
             "mind": "mind/BKA-019.mind",
             "sha256": "1a6cdd9cbd38b61c42aacd366de50ee574593247bd9f63ab77049ba758012ee0",
-            "markerScore": 5,
             "quality": {
                 "features": 837,
                 "coverage": 1,
@@ -583,7 +564,6 @@
             "image": "png/BKA-020.png",
             "mind": "mind/BKA-020.mind",
             "sha256": "202b854f37fd161aaed0e4436a5c461fa475185c08637fb58639b34861484d56",
-            "markerScore": 5,
             "quality": {
                 "features": 882,
                 "coverage": 1,

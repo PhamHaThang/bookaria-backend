@@ -5,9 +5,9 @@ import sharp from 'sharp';
 import { JobError } from '../../modules/jobs/jobs.types';
 import type { PrintFile, PrintSource } from '../../modules/print/print.source';
 import { layoutMarkerStickerSheets, MARKER_STICKER_SHEET, type PrintPdfBody } from '../../schema';
-import { MAX_OUTPUT_BYTES } from '../publish/mind';
+
 import { coverQrRect, markerRect, mm, qrRect, type Rect, validatePrintLayout } from './layout';
-import { MAX_IMAGE_BYTES } from './storage';
+import { MAX_IMAGE_BYTES, MAX_PDF_BYTES } from './storage';
 
 export interface RenderInput {
     source: PrintSource;
@@ -396,10 +396,10 @@ export async function renderPrintPdf(input: RenderInput): Promise<Buffer> {
 
     signal.throwIfAborted();
     const bytes = Buffer.from(await doc.save());
-    if (bytes.length > MAX_OUTPUT_BYTES)
+    if (bytes.length > MAX_PDF_BYTES)
         throw new JobError(
             'PRINT_OUTPUT_SIZE',
-            `PDF đầu ra có dung lượng ${(bytes.length / 1_000_000).toFixed(2)} MB (${bytes.length.toLocaleString('vi-VN')} byte), vượt giới hạn ${(MAX_OUTPUT_BYTES / 1_000_000).toFixed(0)} MB (${MAX_OUTPUT_BYTES.toLocaleString('vi-VN')} byte) cho mỗi file xuất ra.`,
+            `PDF đầu ra có dung lượng ${(bytes.length / 1_000_000).toFixed(2)} MB (${bytes.length.toLocaleString('vi-VN')} byte), vượt giới hạn ${(MAX_PDF_BYTES / 1_000_000).toFixed(0)} MB (${MAX_PDF_BYTES.toLocaleString('vi-VN')} byte) cho mỗi file xuất ra.`,
         );
     return bytes;
 }

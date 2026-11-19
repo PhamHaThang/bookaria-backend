@@ -9,6 +9,9 @@ const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp();
 const files = new Set<string>();
 const storage: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     signUpload: () => {
         throw new Error('unused');
     },
@@ -64,7 +67,7 @@ suite('single page source and atomic layouts', () => {
         const f = await fixture();
         const initial = (await f.read()).body.data;
         expect(initial.image).toMatchObject({ assetId: f.source, width: 1600, height: 2263 });
-        expect(initial.image.url).toContain('c_pad,w_1600,h_2263');
+        expect(initial.image.url).toContain('page-1600-2263');
         const copy = await request(app)
             .post(`/api/v1/pages/${f.pageId}/duplicate`)
             .set(auth(f.user.token));
@@ -112,7 +115,7 @@ suite('single page source and atomic layouts', () => {
         expect(
             plan.body.data.pages.every(
                 (p: { layout: { assetId: string; url: string } }) =>
-                    p.layout.assetId === f.source && p.layout.url.includes('c_pad,w_1600,h_800'),
+                    p.layout.assetId === f.source && p.layout.url.includes('page-1600-800'),
             ),
         ).toBe(true);
         const entries = plan.body.data.pages.map(

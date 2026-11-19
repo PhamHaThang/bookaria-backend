@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { env } from '../../config';
 import { pool } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { r2Account } from '../../lib/storage';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { previewRepository } from '../../modules/previews/preview.repository';
 import { PreviewPayloadSchema, readPreviewSnapshot } from '../../modules/previews/preview.snapshot';
@@ -96,7 +96,13 @@ export function createBuildPreviewHandler(
             await ctx.setProgress(5 + Math.round((80 * (index + 1)) / ar.length));
         }
         await flush();
-        const manifest = makeManifest(snapshot, groups, storage, new Date().toISOString());
+        const manifest = await makeManifest(
+            snapshot,
+            groups,
+            storage,
+            new Date().toISOString(),
+            ctx.signal,
+        );
         if (Buffer.byteLength(JSON.stringify(manifest)) > MAX_OUTPUT_BYTES)
             throw new JobError('PREVIEW_MANIFEST_SIZE', 'Manifest preview quá lớn.');
         ctx.signal.throwIfAborted();
@@ -116,10 +122,9 @@ export function createBuildPreviewHandler(
     };
 }
 export const buildPreviewHandler: JobHandler = async (ctx) => {
-    if (!env.CLOUDINARY_URL)
-        throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình Cloudinary.', true);
+    if (!env.R2_ENDPOINT) throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình R2.', true);
     return createBuildPreviewHandler(
-        createPublishStorage(parseCloudinaryUrl(env.CLOUDINARY_URL)),
+        createPublishStorage(r2Account()),
         env.VIEWER_URL,
         env.PUBLIC_API_URL,
     )(ctx);

@@ -271,12 +271,13 @@ export const toSummary = (b: BookRow) =>
         title: b.title,
         // The cover address is built from the uploaded image.
         coverUrl:
-            b.cover_public_id && b.cover_resource_type
+            b.cover_thumbnail_url ??
+            (b.cover_public_id && b.cover_resource_type
                 ? assetsService.coverUrl({
                       resource_type: b.cover_resource_type,
                       public_id: b.cover_public_id,
                   })
-                : null,
+                : null),
         status: b.status,
         visibility: b.visibility,
         takenDown: b.taken_down,

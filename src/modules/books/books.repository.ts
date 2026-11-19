@@ -1,7 +1,7 @@
 import { buildOrderBy, escapeLike, type Queryable } from '../../db';
 import type { BookDetailRow, BookRow, EditableBook } from './books.types';
 
-const SUMMARY_COLUMNS = `b.id, b.title, b.cover_asset_id, b.status, b.visibility, ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type, (b.taken_down_at IS NOT NULL) AS taken_down, (SELECT count(*)::int FROM pages p WHERE p.book_id = b.id) AS page_count, b.updated_at, b.deleted_at`;
+const SUMMARY_COLUMNS = `b.id, b.title, b.cover_asset_id, b.status, b.visibility, ca.original_public_id AS cover_public_id, ca.resource_type AS cover_resource_type, ca.thumbnail_url AS cover_thumbnail_url, (b.taken_down_at IS NOT NULL) AS taken_down, (SELECT count(*)::int FROM pages p WHERE p.book_id = b.id) AS page_count, b.updated_at, b.deleted_at`;
 
 const COVER_JOIN = `LEFT JOIN assets ca ON ca.id = b.cover_asset_id AND ca.deleted_at IS NULL`;
 

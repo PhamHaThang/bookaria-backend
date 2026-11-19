@@ -35,7 +35,7 @@ const envSchema = z
         REFRESH_TOKEN_TTL_SECONDS: z.coerce.number().int().min(60).default(604800),
         STUDIO_URL: z.url().default('http://localhost:5173'),
         VIEWER_URL: HttpUrlSchema.default('https://viewer.localhost:5174'),
-        PUBLIC_API_URL: HttpUrlSchema.default('http://api.localhost:4000'),
+        PUBLIC_API_URL: HttpUrlSchema.default('https://viewer.localhost:5174'),
         GOOGLE_CLIENT_ID: z.string().default(''),
         AI_BASE_URL: z
             .url()
@@ -72,13 +72,13 @@ const envSchema = z
             .default(''),
         ZEROTTS_API_KEY: z.string().default(''),
         ZEROTTS_TIMEOUT_MS: z.coerce.number().int().min(1000).max(300000).default(180000),
-        CLOUDINARY_URL: z
-            .string()
-            .trim()
-            .regex(/^(cloudinary:\/\/[^:@\s]+:[^@\s]+@[^\s/]+)?$/, {
-                error: 'CLOUDINARY_URL phải có dạng cloudinary://<api_key>:<api_secret>@<cloud_name>',
-            })
-            .default(''),
+        R2_ENDPOINT: z.union([z.literal(''), z.url({ protocol: /^https$/ })]).default(''),
+        R2_ACCESS_KEY_ID: z.string().default(''),
+        R2_SECRET_ACCESS_KEY: z.string().default(''),
+        R2_BUCKET: z.string().default(''),
+        R2_PUBLIC_URL: z.union([z.literal(''), z.url({ protocol: /^https$/ })]).default(''),
+        FFMPEG_PATH: z.string().default(''),
+        FFPROBE_PATH: z.string().default(''),
     })
     .transform((env) => ({
         ...env,

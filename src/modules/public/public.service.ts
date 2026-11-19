@@ -77,7 +77,7 @@ export const publicService = {
         const b = await this.getAvailableBook(slug);
         const storage = getMediaStorage();
         if (!storage) {
-            logger.error('CLOUDINARY_URL chưa được cấu hình, không thể lấy thông tin sách');
+            logger.error('R2_ENDPOINT chưa được cấu hình, không thể lấy thông tin sách');
             throw new AppError('INTERNAL_ERROR');
         }
 

@@ -1,10 +1,10 @@
-import { z } from 'zod';
-import { type CloudinaryAccount, createCloudinaryStorage } from '../../lib/cloudinary';
+import { createR2Storage, type R2Account } from '../../lib/storage';
 import { JobError } from '../../modules/jobs/jobs.types';
+import { MAX_PDF_BYTES } from '../print/limits';
 import { MAX_MIND_BYTES, MAX_OUTPUT_BYTES } from './mind';
 
-export function createPublishStorage(account: CloudinaryAccount, fetchImpl: typeof fetch = fetch) {
-    const media = createCloudinaryStorage(account, fetchImpl);
+export function createPublishStorage(account: R2Account, fetchImpl: typeof fetch = fetch) {
+    const media = createR2Storage(account, fetchImpl);
     async function request(url: string, signal: AbortSignal, init: RequestInit = {}) {
         signal.throwIfAborted();
         let response: Response;
@@ -34,6 +34,7 @@ export function createPublishStorage(account: CloudinaryAccount, fetchImpl: type
     }
     return {
         url: media.deliveryUrl,
+        prepareImage: media.prepareImage,
         async downloadMind(publicId: string, signal: AbortSignal): Promise<Buffer> {
             const response = await request(
                 media.deliveryUrl({ resourceType: 'raw', publicId }),
@@ -69,31 +70,17 @@ export function createPublishStorage(account: CloudinaryAccount, fetchImpl: type
             mime: string,
             signal: AbortSignal,
         ): Promise<string> {
-            if (!bytes.length || bytes.length > MAX_OUTPUT_BYTES)
+            if (
+                !bytes.length ||
+                bytes.length > (mime === 'application/pdf' ? MAX_PDF_BYTES : MAX_OUTPUT_BYTES)
+            )
                 throw new JobError(
                     'PUBLISH_FILE_SIZE',
-                    'File xuất bản vượt giới hạn 9 MB hoặc rỗng.',
+                    'File xuất bản vượt giới hạn dung lượng hoặc rỗng.',
                 );
-            const signed = media.signUpload({ resourceType: 'raw', publicId, allowedFormats: [] });
-            const form = new FormData();
-            for (const [key, value] of Object.entries(signed.fields)) form.set(key, String(value));
-            form.set(
-                'file',
-                new Blob([Uint8Array.from(bytes)], { type: mime }),
-                publicId.split('/').at(-1),
-            );
-            const response = await request(signed.uploadUrl, signal, {
-                method: 'POST',
-                body: form,
-            });
-            const data = z
-                .object({
-                    public_id: z.literal(publicId),
-                    resource_type: z.literal('raw'),
-                    bytes: z.literal(bytes.length),
-                })
-                .safeParse(await response.json());
-            if (!data.success)
+            await media.put(publicId, bytes, mime, publicId.split('.').at(-1) ?? '', signal);
+            const stored = await media.head(publicId, signal);
+            if (!stored || Number(stored.get('content-length')) !== bytes.length)
                 throw new JobError(
                     'PUBLISH_UPLOAD_MISMATCH',
                     'Kết quả upload không khớp file xuất bản.',

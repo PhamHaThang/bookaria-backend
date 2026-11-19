@@ -3,7 +3,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { MAX_OUTPUT_BYTES } from '../../../worker/publish/mind';
 import { createPreviewFileReader } from '../preview.files';
 
-const account = { cloudName: 'demo', apiKey: 'key', apiSecret: 'secret' };
+const account = {
+    endpoint: 'https://account.r2.cloudflarestorage.com',
+    accessKeyId: 'test',
+    secretAccessKey: 'secret',
+    bucket: 'bookaria-test',
+    publicUrl: 'https://assets.bookaria.test',
+};
 const signal = () => new AbortController().signal;
 const group = {
     group: 0,
@@ -19,7 +25,7 @@ describe('preview file proxy boundary', () => {
             'abc',
         );
         expect(fetcher).toHaveBeenCalledWith(
-            `https://res.cloudinary.com/demo/raw/upload/v1/${group.publicId}`,
+            `https://assets.bookaria.test/${group.publicId}`,
             expect.objectContaining({ redirect: 'error' }),
         );
     });

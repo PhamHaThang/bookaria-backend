@@ -59,13 +59,15 @@ function fixture(type: AssetRow['type'] = 'MODEL') {
         saveReady: vi.fn(async () => {}),
     };
     const storage = {
-        inspect: vi.fn(async () => ({
-            bytes: 3,
-            format: asset.format,
-            duration: 1,
-            width: 2,
-            height: 2,
-        })),
+        inspect: vi.fn(
+            async (): ReturnType<ProcessingStorage['inspect']> => ({
+                bytes: 3,
+                format: asset.format,
+                duration: 1,
+                width: 2,
+                height: 2,
+            }),
+        ),
         download: vi.fn(async () => Buffer.from([1, 2, 3])),
         uploadModel: vi.fn(async () => {}),
         thumbnail: vi.fn(async () => 'https://example.com/thumb.jpg'),
@@ -129,6 +131,13 @@ describe('createOptimizeHandler', () => {
         const result = await handler(f.context);
         expect(result).toMatchObject({ assetId: f.asset.id, meta: { downloadBytes: 2 } });
         expect(f.storage.uploadModel).toHaveBeenCalledOnce();
+        expect(f.storage.thumbnail).toHaveBeenCalledWith(
+            expect.objectContaining({
+                original_public_id: f.asset.original_public_id,
+                optimized_public_id: expect.stringContaining('bookaria/processed/'),
+            }),
+            f.context.signal,
+        );
         expect(f.repository.saveReady).not.toHaveBeenCalled();
         const finalize = f.getFinalize();
         expect(finalize).toBeDefined();
@@ -139,6 +148,21 @@ describe('createOptimizeHandler', () => {
             f.asset,
             expect.objectContaining({ optimizedPublicId: expect.any(String) }),
         );
+    });
+
+    it('reuses the inspected video bytes for its thumbnail', async () => {
+        const f = fixture('VIDEO');
+        const source = Buffer.from([1, 2, 3]);
+        f.storage.inspect.mockResolvedValue({
+            bytes: source.length,
+            format: 'mp4',
+            duration: 1,
+            width: 2,
+            height: 2,
+            source,
+        });
+        await createOptimizeHandler(f.storage, undefined, f.repository)(f.context);
+        expect(f.storage.thumbnail).toHaveBeenCalledWith(f.asset, f.context.signal, source);
     });
 
     it('rejects audio without a positive duration', async () => {

@@ -1,9 +1,11 @@
-import { logger } from '../config';
+import { env, logger } from '../config';
 import { handlers } from './handlers';
 import { startQueueWorker } from './queue';
+import { startStorageMaintenance } from './storage-maintenance';
 import type { Worker } from './types';
 
 let instance: Worker | undefined;
+let stopMaintenance: (() => Promise<void>) | undefined;
 let starting: Promise<Worker> | undefined;
 let stopping: Promise<void> | undefined;
 
@@ -12,10 +14,16 @@ export async function startWorker(): Promise<void> {
     if (stopping) await stopping;
     if (instance) return;
     starting ??= startQueueWorker({ handlers })
-        .then((worker) => {
-            instance = worker;
-            logger.info('Worker đã sẵn sàng');
-            return worker;
+        .then(async (worker) => {
+            try {
+                if (env.R2_ENDPOINT) stopMaintenance = startStorageMaintenance();
+                instance = worker;
+                logger.info('Worker đã sẵn sàng');
+                return worker;
+            } catch (error) {
+                await worker.stop();
+                throw error;
+            }
         })
         .finally(() => {
             starting = undefined;
@@ -31,6 +39,8 @@ export async function stopWorker(): Promise<void> {
         const worker = instance ?? (await starting);
         if (!worker) return;
         instance = undefined;
+        await stopMaintenance?.();
+        stopMaintenance = undefined;
         await worker.stop();
         logger.info('Worker đã dừng');
     })().finally(() => {

@@ -532,7 +532,8 @@ export const adminService = {
             const marker = await withTransaction(async (db) => {
                 const created = await adminRepository.insertBookariaMarker(db, {
                     ...body,
-                    markerScore: body.markerScore ?? null,
+                    // Legacy stars are accepted for compatibility, not stored as a current analysis.
+                    markerScore: null,
                 });
                 await adminRepository.insertAuditLog(
                     db,
@@ -862,15 +863,11 @@ const toLibraryAsset = (asset: LibraryAssetRow): Asset =>
 function libraryAssetUrl(asset: LibraryAssetRow): string {
     const publicId = asset.optimized_public_id ?? asset.original_public_id;
     if (/^https?:\/\//i.test(publicId)) return publicId;
-    if (!env.CLOUDINARY_URL) {
-        throw new AppError(
-            'INTERNAL_ERROR',
-            'Chưa cấu hình CLOUDINARY_URL để dựng URL tài nguyên.',
-        );
+    if (!env.R2_PUBLIC_URL) {
+        throw new AppError('INTERNAL_ERROR', 'Chưa cấu hình R2_PUBLIC_URL để dựng URL tài nguyên.');
     }
-    const cloudName = new URL(env.CLOUDINARY_URL).hostname;
     const path = publicId.split('/').map(encodeURIComponent).join('/');
-    return `https://res.cloudinary.com/${cloudName}/${asset.resource_type}/upload/${path}.${asset.format}`;
+    return `${env.R2_PUBLIC_URL.replace(/\/$/, '')}/${path}`;
 }
 
 const toCategory = (category: AssetCategoryRow) =>
@@ -921,12 +918,11 @@ const toAuditLog = (log: AuditLogRow): AuditLog =>
 
 function markerImageUrl(publicId: string): string {
     if (/^https?:\/\//i.test(publicId)) return publicId;
-    if (!env.CLOUDINARY_URL) {
-        throw new AppError('INTERNAL_ERROR', 'Chưa cấu hình CLOUDINARY_URL để dựng URL marker.');
+    if (!env.R2_PUBLIC_URL) {
+        throw new AppError('INTERNAL_ERROR', 'Chưa cấu hình R2_PUBLIC_URL để dựng URL marker.');
     }
-    const cloudName = new URL(env.CLOUDINARY_URL).hostname;
     const path = publicId.split('/').map(encodeURIComponent).join('/');
-    return `https://res.cloudinary.com/${cloudName}/image/upload/${path}`;
+    return `${env.R2_PUBLIC_URL.replace(/\/$/, '')}/${path}`;
 }
 
 function moderationMarkerWarnings(mode: string, input: unknown): MarkerWarning[] {

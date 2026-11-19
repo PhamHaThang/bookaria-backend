@@ -1,5 +1,5 @@
 import { escapeLike, type Queryable } from '../../db';
-import type { AssetScope, AssetType, CloudinaryResourceType, UploadPurpose } from '../../schema';
+import type { AssetScope, AssetType, StorageResourceType, UploadPurpose } from '../../schema';
 import type { AssetRow, CategoryRow, Quota, UploadIntentRow, UsageRow } from './assets.types';
 
 const INTENT_COLUMNS = `asset_id, user_id, purpose, public_id, resource_type, file_name, mime_type, size_bytes, completed_at`;
@@ -14,7 +14,7 @@ export const assetsRepository = {
             userId: string;
             purpose: UploadPurpose;
             publicId: string;
-            resourceType: CloudinaryResourceType;
+            resourceType: StorageResourceType;
             fileName: string;
             mimeType: string;
             sizeBytes: number;

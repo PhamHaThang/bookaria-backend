@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { type CloudinaryAccount, createCloudinaryStorage } from '../../lib/cloudinary';
+import { createR2Storage, type R2Account } from '../../lib/storage';
 import { AppError } from '../../utils';
 import { MAX_OUTPUT_BYTES } from '../../worker/publish/mind';
 import type { PreviewGroup } from './preview.types';
 
-export function createPreviewFileReader(account: CloudinaryAccount, network: typeof fetch = fetch) {
-    const media = createCloudinaryStorage(account, network);
+export function createPreviewFileReader(account: R2Account, network: typeof fetch = fetch) {
+    const media = createR2Storage(account, network);
     return async (group: PreviewGroup, signal: AbortSignal): Promise<Buffer> => {
         signal.throwIfAborted();
         const response = await network(

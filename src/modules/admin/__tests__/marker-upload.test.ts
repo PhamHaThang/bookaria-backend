@@ -8,7 +8,7 @@ import {
     type MediaStorage,
     type StoredFile,
     setMediaStorage,
-} from '../../../lib/cloudinary';
+} from '../../../lib/storage';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp(),
@@ -22,16 +22,16 @@ const mindBytes = encode({
 const files = new Map<string, StoredFile>();
 const signed: object[] = [];
 const storage: MediaStorage = {
+    async prepareImage(publicId, transform) {
+        return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+    },
     signUpload(input) {
         signed.push(input);
         return {
-            uploadUrl: `https://api.cloudinary.com/v1_1/test/${input.resourceType}/upload`,
-            fields: {
-                api_key: 'test',
-                public_id: input.publicId,
-                timestamp: 1,
-                signature: 'signature',
-            },
+            uploadUrl: `https://account.r2.cloudflarestorage.com/bookaria-test/${input.publicId}`,
+            method: 'PUT',
+            objectKey: input.publicId,
+            headers: { 'Content-Type': 'image/png', 'If-None-Match': '*' },
             expiresAt: new Date(Date.now() + 3600000),
         };
     },

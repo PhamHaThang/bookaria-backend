@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { pool, withTransaction } from '../../db';
-import { getMediaStorage, type MediaStorage } from '../../lib/cloudinary';
+import { getMediaStorage, type MediaStorage } from '../../lib/storage';
 import type { Auth } from '../../middlewares';
 import {
     BookariaMarkerSchema,
@@ -18,22 +18,26 @@ function storage() {
     if (!value) throw new AppError('INTERNAL_ERROR', 'Kho tải tệp chưa được cấu hình.');
     return value;
 }
-export function prepareMarkerUpload(actor: Auth, body: MarkerUploadBody) {
+export async function prepareMarkerUpload(actor: Auth, body: MarkerUploadBody) {
     const media = storage(),
         prefix = `bookaria/markers/uploads/${actor.userId}/${randomUUID()}`;
     const imagePublicId = `${prefix}/image`,
         mindPublicId = `${prefix}/target.mind`;
-    const image = media.signUpload({
+    const image = await media.signUpload({
         publicId: imagePublicId,
         resourceType: 'image',
         allowedFormats: [body.imageFormat],
-        assetFolder: 'bookaria/markers',
+        format: body.imageFormat,
+        contentType: `image/${body.imageFormat === 'jpg' ? 'jpeg' : body.imageFormat}`,
+        sizeBytes: body.imageBytes,
     });
-    const mind = media.signUpload({
+    const mind = await media.signUpload({
         publicId: mindPublicId,
         resourceType: 'raw',
         allowedFormats: [],
-        assetFolder: 'bookaria/markers',
+        format: '',
+        contentType: 'application/octet-stream',
+        sizeBytes: body.mindBytes,
     });
     return MarkerUploadResultSchema.parse({
         imagePublicId,

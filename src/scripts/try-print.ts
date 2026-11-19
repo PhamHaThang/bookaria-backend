@@ -70,7 +70,7 @@ async function main() {
             const next = await reader.read();
             if (next.done) break;
             size += next.value.byteLength;
-            if (size > 9_000_000) throw new Error('PDF vượt 9 MB');
+            if (size > 100_000_000) throw new Error('PDF vượt 100 MB');
             chunks.push(next.value);
         }
     } finally {

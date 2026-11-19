@@ -1,6 +1,6 @@
 import { env } from '../../config';
 import { pool } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { r2Account } from '../../lib/storage';
 import { parseAssetMeta } from '../../modules/assets/assets.meta';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { JobResultsSchema } from '../../schema';
@@ -54,7 +54,10 @@ export function createOptimizeHandler(
             output = {
                 optimizedPublicId: publicId,
                 format: 'glb',
-                thumbnailUrl: await storage.thumbnail(asset, ctx.signal),
+                thumbnailUrl: await storage.thumbnail(
+                    { ...asset, optimized_public_id: publicId },
+                    ctx.signal,
+                ),
                 meta: model.meta,
             };
         } else if (asset.type === 'AUDIO' || asset.type === 'VIDEO') {
@@ -75,7 +78,9 @@ export function createOptimizeHandler(
                 optimizedPublicId: null,
                 format: asset.format,
                 thumbnailUrl:
-                    asset.type === 'VIDEO' ? await storage.thumbnail(asset, ctx.signal) : null,
+                    asset.type === 'VIDEO'
+                        ? await storage.thumbnail(asset, ctx.signal, stored.source)
+                        : null,
                 meta: {
                     durationSec: stored.duration,
                     downloadBytes: stored.bytes,
@@ -94,14 +99,12 @@ export function createOptimizeHandler(
     };
 }
 export const optimizeAssetHandler: JobHandler = async (ctx) => {
-    if (!env.CLOUDINARY_URL) {
+    if (!env.R2_ENDPOINT) {
         throw new JobError(
             'STORAGE_NOT_CONFIGURED',
             'Chưa cấu hình kho tài nguyên cho worker.',
             true,
         );
     }
-    return createOptimizeHandler(createProcessingStorage(parseCloudinaryUrl(env.CLOUDINARY_URL)))(
-        ctx,
-    );
+    return createOptimizeHandler(createProcessingStorage(r2Account()))(ctx);
 };

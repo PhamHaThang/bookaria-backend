@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { encode } from '@msgpack/msgpack';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import type { MediaStorage, StoredFile } from '../../lib/cloudinary';
+import type { MediaStorage, StoredFile } from '../../lib/storage';
 import { pool } from '..';
 import {
     ensureMarkerSeedFile,
@@ -94,10 +94,15 @@ function storage() {
         });
     };
     const media: MediaStorage = {
+        async prepareImage(publicId, transform) {
+            return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+        },
         inspect: vi.fn(async (type, id) => files.get(key(type, id)) ?? null),
         signUpload: vi.fn(({ publicId, resourceType }) => ({
-            uploadUrl: `https://api.cloudinary.com/v1_1/test/${resourceType}/upload`,
-            fields: { public_id: publicId, overwrite: 'false' },
+            uploadUrl: `https://account.r2.cloudflarestorage.com/bookaria-test/${resourceType}/upload/${publicId}`,
+            method: 'PUT' as const,
+            objectKey: publicId,
+            headers: { 'If-None-Match': '*' },
             expiresAt: new Date(Date.now() + 60000),
         })),
         async destroy() {
@@ -107,24 +112,21 @@ function storage() {
     };
     const upload = vi.fn<typeof fetch>(async (url, init) => {
         const type = String(url).includes('/image/') ? 'image' : 'raw';
-        const form = init?.body as FormData,
-            id = String(form.get('public_id'));
-        expect(form.get('overwrite')).toBe('false');
-        expect((form.get('file') as Blob).size).toBe(
+        const id = new URL(String(url)).pathname.split('/upload/')[1] ?? '';
+        expect(init?.method).toBe('PUT');
+        expect(((init?.headers ?? {}) as Record<string, string>)['If-None-Match']).toBe('*');
+        expect((init?.body as Uint8Array | undefined)?.length).toBe(
             descriptors.find((f) => f.publicId === id)?.bytes,
         );
         put(type, id);
-        return Response.json({
-            public_id: id,
-            resource_type: type,
-            bytes: files.get(key(type, id))?.bytes,
-        });
+        return new Response(null, { status: 200 });
     });
     return { media, upload, files, put };
 }
 describe('marker seed files', () => {
     it('validates checksums and generates stable public IDs independently of directory name', async () => {
         expect(await loadMarkerSeedSet(directory)).toEqual(markers);
+        expect(markers.every((marker) => !('markerScore' in marker))).toBe(true);
         expect(markers[0]?.image.publicId).toContain(manifest.markers[0]?.sha256);
         const bad = {
             ...manifest,
@@ -147,7 +149,7 @@ describe('marker seed files', () => {
             await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest));
         }
     });
-    it('does not sign or upload existing Cloudinary files', async () => {
+    it('does not sign or upload existing R2 files', async () => {
         const s = storage(),
             file = firstMarker().image;
         s.put('image', file.publicId);
@@ -174,7 +176,7 @@ describe('marker seed files', () => {
         if (!remote) throw new Error('Missing remote test image');
         remote.bytes++;
         await expect(ensureMarkerSeedFile(file, s.media, s.upload)).rejects.toThrow('Không ghi đè');
-        vi.mocked(s.media.inspect).mockRejectedValueOnce(new Error('Cloudinary HTTP 429'));
+        vi.mocked(s.media.inspect).mockRejectedValueOnce(new Error('R2 HTTP 429'));
         await expect(ensureMarkerSeedFile(file, s.media, s.upload)).rejects.toThrow('429');
         expect(s.upload).not.toHaveBeenCalled();
     });
@@ -229,7 +231,7 @@ dbSuite('marker seed database integration', () => {
         ).rows;
         expect(rows).toHaveLength(2);
         expect(
-            rows.every((r) => r.is_active === true && r.validated_at && r.marker_score === 5),
+            rows.every((r) => r.is_active === true && r.validated_at && r.marker_score === null),
         ).toBe(true);
         await pool.query('UPDATE bookaria_markers SET is_active=false WHERE id=$1', [rows[0].id]);
         const count = upload.mock.calls.length;

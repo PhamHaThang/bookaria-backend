@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { env } from '../../config';
 import { pool } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
 import { pageImageTransform } from '../../lib/page-image';
+import { r2Account } from '../../lib/storage';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { JobResultsSchema, MarkerReportSchema } from '../../schema';
 import { analyzeCompiledMarker } from './pictarize';
@@ -109,9 +109,7 @@ export function createScoreMarkerHandler(
 }
 
 export const scoreMarkerHandler: JobHandler = async (ctx) => {
-    if (!env.CLOUDINARY_URL)
+    if (!env.R2_ENDPOINT)
         throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình kho ảnh marker.', true);
-    return createScoreMarkerHandler(createMarkerStorage(parseCloudinaryUrl(env.CLOUDINARY_URL)))(
-        ctx,
-    );
+    return createScoreMarkerHandler(createMarkerStorage(r2Account()))(ctx);
 };

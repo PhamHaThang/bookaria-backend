@@ -66,6 +66,9 @@ suite('whole-book draft commits', () => {
     }
     beforeAll(async () => {
         setMediaStorage({
+            async prepareImage(publicId, transform) {
+                return this.deliveryUrl({ resourceType: 'image', publicId, transform });
+            },
             signUpload: () => {
                 throw new Error('unused');
             },

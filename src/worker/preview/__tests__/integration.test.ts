@@ -74,6 +74,8 @@ function pipeline(hook?: () => Promise<void>) {
     const uploads = new Map<string, Buffer>();
     const storage: PublishStorage = {
         url,
+        prepareImage: async (publicId, transform) =>
+            url({ resourceType: 'image', publicId, transform }),
         downloadMind: vi.fn(async () => real),
         upload: vi.fn(async (id, bytes) => {
             uploads.set(id, bytes);

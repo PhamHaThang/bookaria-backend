@@ -1,129 +1,55 @@
-import { describe, expect, it, vi } from 'vitest';
+import sharp from 'sharp';
+import { describe, expect, it } from 'vitest';
+import { account, fakeR2 } from '../../../test/r2';
 import { createMarkerStorage } from '../storage';
 import type { MarkerSource } from '../types';
 
-const account = { cloudName: 'demo', apiKey: 'test-key', apiSecret: 'test-secret' };
-const page = {
-    original_public_id: 'bookaria/u/page one',
-    format: 'png',
-    size_bytes: '3',
-    page_aspect: 0.5,
-} as MarkerSource;
-const signal = () => new AbortController().signal;
-const fetcher = (fn: () => Promise<Response>) => vi.fn(fn) as unknown as typeof fetch;
-
-describe('marker storage', () => {
-    it('uses the deterministic page layout for recognition', async () => {
-        const network = fetcher(async () => new Response('png'));
+describe('R2 marker storage', () => {
+    it('uses a cached JPEG with exactly the same geometry as the compiler and print worker', async () => {
+        const fake = fakeR2();
+        const bytes = await sharp({
+            create: { width: 200, height: 200, channels: 3, background: 'red' },
+        })
+            .png()
+            .toBuffer();
+        fake.files.set('bookaria/page', { bytes, type: 'image/png', format: 'png' });
+        const page = { original_public_id: 'bookaria/page', page_aspect: 0.5 } as MarkerSource;
+        const storage = createMarkerStorage(account, fake.network),
+            signal = new AbortController().signal;
+        const derived = await storage.download(page, signal);
+        expect(await sharp(derived).metadata()).toMatchObject({
+            format: 'jpeg',
+            width: 1600,
+            height: 800,
+        });
+        const before = fake.network.mock.calls.length;
+        expect(await storage.download(page, signal)).toEqual(derived);
         expect(
-            (await createMarkerStorage(account, network).download(page, signal())).toString(),
-        ).toBe('png');
-        expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page%20one.jpg',
-            expect.objectContaining({ redirect: 'error', signal: expect.any(AbortSignal) }),
+            fake.network.mock.calls
+                .slice(before)
+                .some((call) => (call[0] as Request).method === 'PUT'),
+        ).toBe(false);
+    });
+    it('stores PNG heatmaps immutably and derives the public URL locally', async () => {
+        const fake = fakeR2(),
+            storage = createMarkerStorage(account, fake.network),
+            signal = new AbortController().signal;
+        expect(await storage.uploadHeatmap('bookaria/heat.png', Buffer.from('png'), signal)).toBe(
+            'https://assets.bookaria.test/bookaria/heat.png',
         );
-    });
-    it('checks both declared and streamed size limits', async () => {
-        const header = fetcher(
-            async () => new Response('x', { headers: { 'content-length': '20000000' } }),
-        );
+        expect(fake.files.get('bookaria/heat.png')?.type).toBe('image/png');
         await expect(
-            createMarkerStorage(account, header).download(page, signal()),
-        ).rejects.toMatchObject({ code: 'IMAGE_TOO_LARGE' });
-        const stream = new ReadableStream({
-            start(controller) {
-                controller.enqueue(new Uint8Array(10 * 1024 * 1024 + 1));
-                controller.close();
-            },
-        });
-        const network = fetcher(async () => new Response(stream));
-        const outcome = await createMarkerStorage(account, network)
-            .download(page, signal())
-            .then(
-                () => 'unexpected',
-                (error: { code: string }) => error.code,
-            );
-        expect(outcome).toBe('IMAGE_TOO_LARGE');
+            storage.uploadHeatmap('bookaria/heat.png', Buffer.from('changed'), signal),
+        ).rejects.toThrow('ghi đè');
     });
-    it('accepts derived bytes whose size differs from the original', async () => {
-        const network = fetcher(async () => new Response('changed'));
+    it('does not fetch after cancellation', async () => {
+        const fake = fakeR2();
         await expect(
-            createMarkerStorage(account, network).download(page, signal()),
-        ).resolves.toEqual(Buffer.from('changed'));
-    });
-    it.each([408, 420, 429, 500])('retries HTTP %i', async (status) => {
-        const network = fetcher(async () => new Response('', { status }));
-        await expect(
-            createMarkerStorage(account, network).download(page, signal()),
-        ).rejects.toMatchObject({ retry: true });
-    });
-    it('does not retry a missing original', async () => {
-        const network = fetcher(async () => new Response('', { status: 404 }));
-        await expect(
-            createMarkerStorage(account, network).download(page, signal()),
-        ).rejects.toMatchObject({ retry: false });
-    });
-    it('retries a connection failure', async () => {
-        const network = fetcher(async () => {
-            throw new TypeError('offline');
-        });
-        await expect(
-            createMarkerStorage(account, network).download(page, signal()),
-        ).rejects.toMatchObject({ code: 'STORAGE_UNAVAILABLE', retry: true });
-    });
-    it('uploads a signed PNG without sending the secret and generates the delivery URL locally', async () => {
-        let form: FormData | undefined;
-        const network: typeof fetch = async (_url, init) => {
-            form = init?.body as FormData;
-            return Response.json({
-                public_id: 'reports/attempt-1',
-                resource_type: 'image',
-                format: 'png',
-                bytes: 3,
-                secure_url: 'https://untrusted.invalid',
-            });
-        };
-        const url = await createMarkerStorage(account, network).uploadHeatmap(
-            'reports/attempt-1',
-            Buffer.from('png'),
-            signal(),
-        );
-        expect(url).toBe('https://res.cloudinary.com/demo/image/upload/v1/reports/attempt-1.png');
-        expect(form?.get('signature')).toEqual(expect.any(String));
-        expect(form?.get('overwrite')).toBe('false');
-        expect(form?.get('api_secret')).toBeNull();
-        const file = form?.get('file');
-        expect(file).toBeInstanceOf(Blob);
-        expect((file as Blob).type).toBe('image/png');
-    });
-    it('rejects an upload response for another id', async () => {
-        const network = fetcher(async () =>
-            Response.json({ public_id: 'wrong', resource_type: 'image', format: 'png', bytes: 3 }),
-        );
-        await expect(
-            createMarkerStorage(account, network).uploadHeatmap(
-                'right',
-                Buffer.from('png'),
-                signal(),
+            createMarkerStorage(account, fake.network).download(
+                { original_public_id: 'bookaria/page', page_aspect: 1 } as MarkerSource,
+                AbortSignal.abort(),
             ),
-        ).rejects.toMatchObject({ code: 'HEATMAP_UPLOAD_MISMATCH' });
-    });
-    it('does not issue a request after cancellation', async () => {
-        const controller = new AbortController();
-        controller.abort();
-        const network = fetcher(async () => new Response('png'));
-        await expect(
-            createMarkerStorage(account, network).download(page, controller.signal),
         ).rejects.toThrow();
-        expect(network).not.toHaveBeenCalled();
-    });
-    it('scores the same derived JPEG as the compiler, without comparing its bytes to the original size', async () => {
-        const network = fetcher(async () => new Response('derived-image'));
-        const result = await createMarkerStorage(account, network).download(page, signal());
-        expect(result.toString()).toBe('derived-image');
-        expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/image/upload/c_pad,w_1600,h_800,g_center,b_white,f_jpg,q_94/v1/bookaria/u/page%20one.jpg',
-            expect.objectContaining({ redirect: 'error' }),
-        );
+        expect(fake.network).not.toHaveBeenCalled();
     });
 });

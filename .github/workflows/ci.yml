@@ -34,6 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run typecheck
+      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test
       - run: pnpm run build
       - run: pnpm db:migrate

@@ -2,7 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { pool } from '../db';
 import { loadMarkerSeedSet, seedBookariaMarkers } from '../db/seed-markers';
-import { getMediaStorage } from '../lib/cloudinary';
+import { getMediaStorage } from '../lib/storage';
 
 try {
     const { values, positionals } = parseArgs({
@@ -29,10 +29,10 @@ try {
         const markers = await loadMarkerSeedSet(directory);
         console.info(`Đã kiểm tra ${markers.length} cặp ảnh/nhận diện và SHA-256.`);
         if (values['dry-run']) {
-            console.info('Chạy thử hoàn tất. Không kết nối Cloudinary, không ghi database.');
+            console.info('Chạy thử hoàn tất. Không kết nối R2, không ghi database.');
         } else {
             const media = getMediaStorage();
-            if (!media) throw new Error('Cần cấu hình CLOUDINARY_URL trong .env.');
+            if (!media) throw new Error('Cần cấu hình R2_ENDPOINT trong .env.');
             const result = await seedBookariaMarkers(pool, media, markers, (message) =>
                 console.info(message),
             );

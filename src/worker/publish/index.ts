@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import { z } from 'zod';
 import { env } from '../../config';
 import { pool } from '../../db';
-import { parseCloudinaryUrl } from '../../lib/cloudinary';
+import { r2Account } from '../../lib/storage';
 import { JobError, type JobHandler } from '../../modules/jobs/jobs.types';
 import { capturePrintSource } from '../../modules/print/print.source';
 import { viewerLink } from '../../modules/publish/publish.link';
@@ -129,7 +129,13 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
             await ctx.setProgress(5 + Math.round((65 * (index + 1)) / arPages.length));
         }
         await flush();
-        const manifest = makeManifest(snapshot, groups, storage, new Date().toISOString());
+        const manifest = await makeManifest(
+            snapshot,
+            groups,
+            storage,
+            new Date().toISOString(),
+            ctx.signal,
+        );
         const manifestBytes = Buffer.from(JSON.stringify(manifest));
         await upload('manifest.json', manifestBytes, 'application/json');
         await ctx.setProgress(80);
@@ -167,10 +173,6 @@ export function createPublishHandler(storage: PublishStorage, viewerOrigin: stri
     };
 }
 export const publishBookHandler: JobHandler = async (ctx) => {
-    if (!env.CLOUDINARY_URL)
-        throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình Cloudinary.', true);
-    return createPublishHandler(
-        createPublishStorage(parseCloudinaryUrl(env.CLOUDINARY_URL)),
-        env.VIEWER_URL,
-    )(ctx);
+    if (!env.R2_ENDPOINT) throw new JobError('STORAGE_NOT_CONFIGURED', 'Chưa cấu hình R2.', true);
+    return createPublishHandler(createPublishStorage(r2Account()), env.VIEWER_URL)(ctx);
 };

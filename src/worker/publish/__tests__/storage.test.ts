@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
+import { account, fakeR2 } from '../../../test/r2';
 import { MAX_MIND_BYTES, MAX_OUTPUT_BYTES } from '../mind';
 import { createPublishStorage } from '../storage';
 
-const account = { cloudName: 'demo', apiKey: 'key', apiSecret: 'secret' };
 const signal = () => new AbortController().signal;
 const fake = (fn: (url: string, init: RequestInit) => Promise<Response>) =>
     vi.fn(fn) as unknown as typeof fetch;
@@ -18,7 +18,7 @@ describe('publish storage', () => {
             ).toString(),
         ).toBe('abc');
         expect(network).toHaveBeenCalledWith(
-            'https://res.cloudinary.com/demo/raw/upload/v1/bookaria/u/a%20file.mind',
+            'https://assets.bookaria.test/bookaria/u/a%20file.mind',
             expect.objectContaining({ redirect: 'error' }),
         );
     });
@@ -41,44 +41,57 @@ describe('publish storage', () => {
             ).rejects.toMatchObject({ code: 'MIND_SIZE' });
         }
     });
-    it('signs immutable raw uploads and checks returned byte count', async () => {
-        const network = fake(async (_url, init) => {
-            const form = init.body as FormData;
-            expect(form.get('overwrite')).toBe('false');
-            expect(form.get('signature')).toMatch(/^[a-f0-9]{40}$/);
-            expect(form.has('api_secret')).toBe(false);
-            expect(form.get('public_id')).toBe('p/manifest.json');
-            return Response.json({ public_id: 'p/manifest.json', resource_type: 'raw', bytes: 2 });
-        });
+    it('uploads immutable JSON and PDFs larger than the old 9 MB limit', async () => {
+        const fake = fakeR2(),
+            storage = createPublishStorage(account, fake.network);
         expect(
-            await createPublishStorage(account, network).upload(
+            await storage.upload(
                 'p/manifest.json',
                 Buffer.from('{}'),
                 'application/json',
                 signal(),
             ),
-        ).toContain('/raw/upload/v1/p/manifest.json');
-        await expect(
-            createPublishStorage(account, network).upload(
-                'p/manifest.json',
-                Buffer.from('bad'),
-                'application/json',
-                signal(),
-            ),
-        ).rejects.toMatchObject({ code: 'PUBLISH_UPLOAD_MISMATCH' });
-    });
-    it('rejects a mismatched resource without trusting secure_url', async () => {
-        const network = fake(async () =>
-            Response.json({
-                public_id: 'other',
-                resource_type: 'raw',
-                bytes: 2,
-                secure_url: 'https://evil.test/file',
-            }),
+        ).toBe('https://assets.bookaria.test/p/manifest.json');
+        expect(Array.from(fake.files.get('p/manifest.json')?.bytes ?? [])).toEqual([123, 125]);
+        const pdf = Buffer.alloc(9_000_001);
+        expect(await storage.upload('p/print.pdf', pdf, 'application/pdf', signal())).toBe(
+            'https://assets.bookaria.test/p/print.pdf',
         );
+        expect(fake.files.get('p/print.pdf')?.bytes.length).toBe(pdf.length);
+        await expect(
+            storage.upload('p/manifest.json', Buffer.from('bad'), 'application/json', signal()),
+        ).rejects.toThrow('ghi đè');
+    });
+    it('verifies JSON and SVG sizes without HTTP compression removing Content-Length', async () => {
+        const fake = fakeR2();
+        const network = vi.fn<typeof fetch>(async (input, init) => {
+            const request = input instanceof Request ? input : new Request(input, init);
+            if (request.method === 'HEAD' && request.headers.get('accept-encoding') !== 'identity')
+                return new Response(null, { headers: { 'content-encoding': 'gzip' } });
+            return fake.network(request);
+        });
+        const storage = createPublishStorage(account, network);
+        for (const [key, text, mime] of [
+            ['p/manifest.json', '{"title":"Sách tương tác"}', 'application/json'],
+            ['p/qr.svg', '<svg xmlns="http://www.w3.org/2000/svg"/>', 'image/svg+xml'],
+        ] as const) {
+            const bytes = Buffer.from(text);
+            expect(await storage.upload(key, bytes, mime, signal())).toBe(
+                `https://assets.bookaria.test/${key}`,
+            );
+            expect(Buffer.from(fake.files.get(key)?.bytes ?? [])).toEqual(bytes);
+        }
+    });
+    it('rejects a mismatch in the stored object size', async () => {
+        const network = vi.fn<typeof fetch>(async (input) => {
+            const request = input as Request;
+            return request.method === 'PUT'
+                ? new Response(null)
+                : new Response(null, { headers: { 'content-length': '123' } });
+        });
         await expect(
             createPublishStorage(account, network).upload(
-                'x',
+                'p/a',
                 Buffer.from('{}'),
                 'application/json',
                 signal(),

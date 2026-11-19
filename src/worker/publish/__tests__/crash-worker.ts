@@ -11,6 +11,7 @@ await runJob(
     createPublishHandler(
         {
             url: ({ publicId }) => `https://example.com/${publicId}`,
+            prepareImage: async (publicId) => `https://example.com/${publicId}`,
             downloadMind: async () =>
                 readFileSync(new URL('./fixtures/card.mind', import.meta.url)),
             upload: async () => {
