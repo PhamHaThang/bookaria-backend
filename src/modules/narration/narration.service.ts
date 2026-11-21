@@ -60,8 +60,8 @@ function unavailable(cause: unknown, signal: AbortSignal): never {
     throw new AppError(
         'AI_UNAVAILABLE',
         signal.aborted
-            ? 'Tạo lời đọc đã hết thời gian chờ hoặc bị hủy. Hãy thử đoạn ngắn hơn.'
-            : 'Không tạo được lời đọc. Kiểm tra dịch vụ ZeroTTS rồi thử lại.',
+            ? 'Tạo lời đọc đã hết thời gian chờ/bị hủy. Hãy thử đoạn ngắn hơn.'
+            : 'Dịch vụ tạo âm thanh không khả dụng. Hãy thử lại sau.',
     );
 }
 
