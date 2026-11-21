@@ -7,7 +7,7 @@ import { env } from '../../../config';
 import { pool } from '../../../db';
 import { type MediaStorage, type StoredFile, setMediaStorage } from '../../../lib';
 import { createGenerateModelHandler } from '../../../worker/handlers/generate-model';
-import { runJob } from '../../../worker/runner';
+import { failJob, runJob } from '../../../worker/runner';
 import { purgeExpiredModelInput } from '../../../worker/storage-maintenance';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -187,6 +187,10 @@ suite('image-to-3D API and worker', () => {
         );
         expect(generate).toHaveBeenCalledTimes(1);
         expect(
+            (await pool.query('SELECT id FROM notifications WHERE user_id=$1', [owner.id]))
+                .rowCount,
+        ).toBe(0);
+        expect(
             (
                 await pool.query('SELECT status,format,name FROM assets WHERE id=$1', [
                     source.assetId,
@@ -232,6 +236,20 @@ suite('image-to-3D API and worker', () => {
             'failed',
         );
         expect(generate).not.toHaveBeenCalled();
+        expect(await runJob(response.body.data.id, handler)).toBe('skipped');
+        await failJob(response.body.data.id, { code: 'ABANDONED', message: 'Quá hạn.' });
+        const notices = await pool.query(
+            'SELECT type,title,body,link FROM notifications WHERE user_id=$1',
+            [owner.id],
+        );
+        expect(notices.rows).toEqual([
+            {
+                type: 'JOB_FAILED',
+                title: 'Tạo mô hình 3D không thành công',
+                body: 'Chưa hoàn tất mô hình “Rùa”. Mở để xem chi tiết lỗi.',
+                link: `/assets?type=MODEL&job=${response.body.data.id}`,
+            },
+        ]);
     });
     it('retains active inputs and cleans expired failed inputs and orphan outputs', async () => {
         const owner = await author();

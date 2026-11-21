@@ -1,6 +1,8 @@
 import type { JobType, NotificationType } from '../../schema';
 
 export type NotificationEvent =
+    | { type: 'MODEL_GENERATION_SUCCEEDED'; assetId: string; name: string }
+    | { type: 'MODEL_GENERATION_FAILED'; jobId: string; assetId?: string; name: string }
     | { type: 'JOB_SUCCEEDED'; job: JobType; bookId: string; bookTitle: string }
     | { type: 'JOB_FAILED'; job: JobType; bookId: string; bookTitle: string }
     | { type: 'BOOK_TAKEN_DOWN'; bookId: string; bookTitle: string; reason: string }

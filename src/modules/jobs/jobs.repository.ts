@@ -150,6 +150,20 @@ export const jobsRepository = {
         return rows[0];
     },
 
+    async getModelGenerationForAsset(
+        db: Queryable,
+        assetId: string,
+        userId: string,
+    ): Promise<JobRow | undefined> {
+        const { rows } = await db.query<JobRow>(
+            `SELECT ${COLUMNS} FROM jobs
+             WHERE type='GENERATE_MODEL' AND ref_type='ASSET' AND ref_id=$1 AND created_by=$2
+             ORDER BY created_at LIMIT 1`,
+            [assetId, userId],
+        );
+        return rows[0];
+    },
+
     async getBookOfJob(
         db: Queryable,
         refType: JobRefType,

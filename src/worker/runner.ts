@@ -13,7 +13,11 @@ import { onJobFailed } from './handlers/failure';
 
 export const MAX_ATTEMPTS = 3;
 
-const NOTIFY_ON_SUCCESS: ReadonlySet<JobType> = new Set(['PUBLISH_BOOK', 'EXPORT_PDF']);
+const NOTIFY_ON_SUCCESS: ReadonlySet<JobType> = new Set([
+    'PUBLISH_BOOK',
+    'EXPORT_PDF',
+    'OPTIMIZE_ASSET',
+]);
 const GENERIC_ERROR = { code: 'INTERNAL_ERROR', message: 'Đã xảy ra lỗi, vui lòng thử lại.' };
 type PublicError = { code: string; message: string };
 
@@ -137,6 +141,7 @@ async function settleFailedJob(db: Queryable, job: JobRow, error: PublicError): 
 
 async function notifyFailure(db: Queryable, job: JobRow): Promise<void> {
     if (!job.created_by) return;
+    if (await notifyModelGeneration(db, job, false)) return;
     const book = await jobsRepository.getBookOfJob(db, job.ref_type, job.ref_id);
     if (!book) return;
     await notificationsService.notify(db, job.created_by, {
@@ -149,6 +154,7 @@ async function notifyFailure(db: Queryable, job: JobRow): Promise<void> {
 
 async function notifySuccess(db: Queryable, job: JobRow): Promise<void> {
     if (!job.created_by) return;
+    if (await notifyModelGeneration(db, job, true)) return;
     const book = await jobsRepository.getBookOfJob(db, job.ref_type, job.ref_id);
     if (!book) return;
     await notificationsService.notify(db, job.created_by, {
@@ -157,4 +163,36 @@ async function notifySuccess(db: Queryable, job: JobRow): Promise<void> {
         bookId: book.book_id,
         bookTitle: book.title,
     });
+}
+
+async function notifyModelGeneration(
+    db: Queryable,
+    job: JobRow,
+    succeeded: boolean,
+): Promise<boolean> {
+    if (!job.created_by || job.ref_type !== 'ASSET') return false;
+    const generation =
+        job.type === 'GENERATE_MODEL'
+            ? job
+            : job.type === 'OPTIMIZE_ASSET'
+              ? await jobsRepository.getModelGenerationForAsset(db, job.ref_id, job.created_by)
+              : undefined;
+    if (!generation) return false;
+    const name =
+        typeof generation.payload.modelInputName === 'string'
+            ? generation.payload.modelInputName.trim() || 'Mô hình từ ảnh'
+            : 'Mô hình từ ảnh';
+    await notificationsService.notify(
+        db,
+        job.created_by,
+        succeeded
+            ? { type: 'MODEL_GENERATION_SUCCEEDED', assetId: job.ref_id, name }
+            : {
+                  type: 'MODEL_GENERATION_FAILED',
+                  jobId: generation.id,
+                  ...(job.type === 'OPTIMIZE_ASSET' ? { assetId: job.ref_id } : {}),
+                  name,
+              },
+    );
+    return true;
 }

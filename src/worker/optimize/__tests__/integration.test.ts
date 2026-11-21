@@ -37,7 +37,7 @@ async function makeJob() {
          VALUES ('OPTIMIZE_ASSET', 'ASSET', $1, $2) RETURNING id`,
         [assetId, ownerId],
     );
-    return { assetId, jobId: (job.rows[0] as { id: string }).id };
+    return { assetId, ownerId, jobId: (job.rows[0] as { id: string }).id };
 }
 
 function fakeProcessing() {
@@ -110,7 +110,7 @@ suite('OPTIMIZE_ASSET transaction', () => {
     });
 
     it('commits READY and SUCCEEDED together', async () => {
-        const { assetId, jobId } = await makeJob();
+        const { assetId, jobId, ownerId } = await makeJob();
         const { storage, modelProcessor } = fakeProcessing();
 
         expect(await runJob(jobId, createOptimizeHandler(storage, modelProcessor))).toBe('done');
@@ -122,7 +122,48 @@ suite('OPTIMIZE_ASSET transaction', () => {
             },
             job: { status: 'SUCCEEDED', result: { assetId, meta: { downloadBytes: 2 } } },
         });
+        expect(
+            (await pool.query('SELECT id FROM notifications WHERE user_id=$1', [ownerId])).rowCount,
+        ).toBe(0);
     });
+
+    it.each(['success', 'failure'] as const)(
+        'notifies the model author once after optimization %s',
+        async (outcome) => {
+            const { assetId, jobId, ownerId } = await makeJob();
+            await pool.query(
+                `INSERT INTO jobs (type,ref_type,ref_id,created_by,status,payload)
+                 VALUES ('GENERATE_MODEL','ASSET',$1,$2,'SUCCEEDED','{"modelInputName":"Rùa"}'::jsonb)`,
+                [assetId, ownerId],
+            );
+            const { storage, modelProcessor } = fakeProcessing();
+            if (outcome === 'failure')
+                modelProcessor.mockRejectedValue(
+                    new JobError('INVALID_MODEL', 'GLB không hợp lệ.'),
+                );
+            const handler = createOptimizeHandler(storage, modelProcessor);
+            expect(await runJob(jobId, handler)).toBe(outcome === 'success' ? 'done' : 'failed');
+            expect(await runJob(jobId, handler)).toBe('skipped');
+            const notices = await pool.query(
+                'SELECT type,title,body,link FROM notifications WHERE user_id=$1',
+                [ownerId],
+            );
+            expect(notices.rows).toEqual([
+                {
+                    type: outcome === 'success' ? 'JOB_SUCCEEDED' : 'JOB_FAILED',
+                    title:
+                        outcome === 'success'
+                            ? 'Mô hình 3D đã sẵn sàng'
+                            : 'Tạo mô hình 3D không thành công',
+                    body:
+                        outcome === 'success'
+                            ? '“Rùa” đã được tạo và tối ưu. Bạn có thể thêm vào trang.'
+                            : 'Chưa hoàn tất mô hình “Rùa”. Mở để xem chi tiết lỗi.',
+                    link: `/assets?type=MODEL&asset=${assetId}`,
+                },
+            ]);
+        },
+    );
 
     it('rolls back the asset update when the success callback fails', async () => {
         const { assetId, jobId } = await makeJob();

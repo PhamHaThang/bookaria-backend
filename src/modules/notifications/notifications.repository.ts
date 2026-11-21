@@ -35,6 +35,22 @@ const cut = (text: string, max: number) =>
 
 export function buildNotification(e: NotificationEvent): NotificationContent {
     switch (e.type) {
+        case 'MODEL_GENERATION_SUCCEEDED':
+            return {
+                type: 'JOB_SUCCEEDED',
+                title: 'Mô hình 3D đã sẵn sàng',
+                body: `“${cut(e.name, TITLE_MAX)}” đã được tạo và tối ưu. Bạn có thể thêm vào trang.`,
+                link: `/assets?type=MODEL&asset=${e.assetId}`,
+            };
+        case 'MODEL_GENERATION_FAILED':
+            return {
+                type: 'JOB_FAILED',
+                title: 'Tạo mô hình 3D không thành công',
+                body: `Chưa hoàn tất mô hình “${cut(e.name, TITLE_MAX)}”. Mở để xem chi tiết lỗi.`,
+                link: e.assetId
+                    ? `/assets?type=MODEL&asset=${e.assetId}`
+                    : `/assets?type=MODEL&job=${e.jobId}`,
+            };
         case 'JOB_SUCCEEDED':
             return {
                 type: e.type,
