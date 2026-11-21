@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { logger } from '../../config';
+import { env, logger } from '../../config';
 import { pool, type Queryable, withTransaction } from '../../db';
 import {
     allowedFormats,
@@ -67,6 +67,13 @@ export const assetsService = {
     ): Promise<UploadSignature> {
         const storage = requireStorage();
 
+        if (
+            body.purpose === 'MODEL_INPUT' &&
+            (!env.RUNPOD_MODEL_API_KEY || !env.RUNPOD_MODEL_ENDPOINT_ID)
+        ) {
+            throw new AppError('AI_UNAVAILABLE', 'Chưa cấu hình dịch vụ tạo mô hình 3D.');
+        }
+
         const check = checkUploadRequest(body);
         if (!check.ok) {
             throw new AppError(
@@ -90,7 +97,10 @@ export const assetsService = {
 
         const assetId = randomUUID();
         const extension = check.resourceType === 'raw' ? '.mind' : '';
-        const publicId = `${UPLOAD_FOLDER}/${userId}/${assetId}${extension}`;
+        const publicId =
+            body.purpose === 'MODEL_INPUT'
+                ? `${UPLOAD_FOLDER}/model-inputs/${userId}/${assetId}`
+                : `${UPLOAD_FOLDER}/${userId}/${assetId}${extension}`;
         const signed = await storage.signUpload({
             publicId,
             resourceType: check.resourceType,
@@ -131,7 +141,7 @@ export const assetsService = {
         const uploadIntent = await assetsRepository.getUploadIntentByAssetId(pool, userId, assetId);
         if (!uploadIntent) throw new AppError('NOT_FOUND');
 
-        if (uploadIntent.purpose === 'MARKER_MIND')
+        if (uploadIntent.purpose === 'MARKER_MIND' || uploadIntent.purpose === 'MODEL_INPUT')
             throw new AppError(
                 'FILE_TYPE_NOT_ALLOWED',
                 'Tệp marker không phải tài nguyên: dùng mã của nó khi lưu trang.',

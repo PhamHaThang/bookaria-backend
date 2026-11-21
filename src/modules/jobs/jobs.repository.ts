@@ -124,7 +124,7 @@ export const jobsRepository = {
             `SELECT id FROM jobs
             WHERE status = 'RUNNING'
                 AND attempts >= $1
-                AND started_at < NOW() - MAKE_INTERVAL(secs => $2::double precision)
+                AND started_at < NOW() - MAKE_INTERVAL(secs => CASE WHEN type='GENERATE_MODEL' THEN GREATEST($2::double precision, 3660) ELSE $2::double precision END)
             ORDER BY started_at, id
             LIMIT $3`,
             [maxAttempts, seconds, limit],
@@ -143,7 +143,7 @@ export const jobsRepository = {
             WHERE id = $1
                 AND status = 'RUNNING'
                 AND attempts >= $2
-                AND started_at < NOW() - MAKE_INTERVAL(secs => $3::double precision)
+                AND started_at < NOW() - MAKE_INTERVAL(secs => CASE WHEN type='GENERATE_MODEL' THEN GREATEST($3::double precision, 3660) ELSE $3::double precision END)
             FOR UPDATE`,
             [jobId, maxAttempts, seconds],
         );

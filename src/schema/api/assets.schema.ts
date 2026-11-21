@@ -7,7 +7,7 @@ import {
     PaginationQuerySchema,
     shortText,
 } from '../common.schema';
-import { AssetCategorySchema, AssetSchema, AssetScopeSchema } from '../dto.schema';
+import { AssetCategorySchema, AssetSchema, AssetScopeSchema, JobSchema } from '../dto.schema';
 import {
     type AssetType,
     AssetTypeSchema,
@@ -87,6 +87,8 @@ export function checkUploadRequest(req: {
         }
         case 'PAGE_IMAGE':
             return sized(['image/jpeg', 'image/png'].includes(mime), 10 * MB, 'image', 'IMAGE');
+        case 'MODEL_INPUT':
+            return sized(['image/jpeg', 'image/png'].includes(mime), 6 * MB, 'image', 'IMAGE');
         case 'AVATAR':
             return sized(
                 ['image/jpeg', 'image/png', 'image/webp'].includes(mime),
@@ -126,6 +128,11 @@ export const CompleteAssetBodySchema = z.object({
     tags: z.array(shortText(30)).max(20).default([]),
 });
 export type CompleteAssetBody = z.infer<typeof CompleteAssetBodySchema>;
+
+/** Creates a background task from an owned, temporary input upload. */
+export const GenerateModelBodySchema = z.object({ inputId: IdSchema });
+export const ModelGenerationSchema = JobSchema.extend({ name: shortText(150) });
+export type ModelGeneration = z.infer<typeof ModelGenerationSchema>;
 
 /** 202: a model, audio or video file still needs processing. */
 export const CompleteAssetProcessingSchema = z.object({

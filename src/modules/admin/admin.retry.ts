@@ -81,6 +81,11 @@ async function lockRetryTarget(db: Queryable, job: JobRow): Promise<void> {
             [job.ref_id],
         );
         owner = result.rows[0]?.owner_id;
+    } else {
+        throw new AppError(
+            'VALIDATION_ERROR',
+            'Không hỗ trợ chạy lại loại tác vụ với đối tượng này.',
+        );
     }
     if (!owner || owner !== job.created_by)
         throw new AppError('VALIDATION_ERROR', 'Đối tượng đã bị xóa, gỡ hoặc đổi chủ sở hữu.');

@@ -6543,6 +6543,553 @@
                 }
             }
         },
+        "/assets/model-generations": {
+            "get": {
+                "operationId": "getModelGenerations",
+                "tags": ["assets"],
+                "summary": "Các tác vụ tạo mô hình 3D gần đây của tác giả",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "SCORE_MARKER",
+                                                            "OPTIMIZE_ASSET",
+                                                            "GENERATE_MODEL",
+                                                            "BUILD_PREVIEW",
+                                                            "EXPORT_PDF",
+                                                            "PUBLISH_BOOK"
+                                                        ]
+                                                    },
+                                                    "status": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "QUEUED",
+                                                            "RUNNING",
+                                                            "SUCCEEDED",
+                                                            "FAILED"
+                                                        ]
+                                                    },
+                                                    "progress": {
+                                                        "type": "integer",
+                                                        "minimum": 0,
+                                                        "maximum": 100
+                                                    },
+                                                    "ref": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "type": {
+                                                                "type": "string",
+                                                                "enum": ["BOOK", "PAGE", "ASSET"]
+                                                            },
+                                                            "id": {
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            }
+                                                        },
+                                                        "required": ["type", "id"],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "result": {
+                                                        "nullable": true,
+                                                        "type": "object",
+                                                        "additionalProperties": {}
+                                                    },
+                                                    "error": {
+                                                        "nullable": true,
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "code": {
+                                                                "type": "string"
+                                                            },
+                                                            "message": {
+                                                                "type": "string"
+                                                            }
+                                                        },
+                                                        "required": ["code", "message"],
+                                                        "additionalProperties": false
+                                                    },
+                                                    "createdAt": {
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                    },
+                                                    "finishedAt": {
+                                                        "nullable": true,
+                                                        "type": "string",
+                                                        "format": "date-time",
+                                                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                    },
+                                                    "name": {
+                                                        "type": "string",
+                                                        "minLength": 1,
+                                                        "maxLength": 150
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id",
+                                                    "type",
+                                                    "status",
+                                                    "progress",
+                                                    "ref",
+                                                    "result",
+                                                    "error",
+                                                    "createdAt",
+                                                    "finishedAt",
+                                                    "name"
+                                                ],
+                                                "additionalProperties": false
+                                            }
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "postModelGenerations",
+                "tags": ["assets"],
+                "summary": "Tạo mô hình 3D có texture từ ảnh MODEL_INPUT đã tải lên",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "inputId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    }
+                                },
+                                "required": ["inputId"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "202": {
+                        "description": "Đã nhận (công việc nền đã bắt đầu)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "type": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "SCORE_MARKER",
+                                                        "OPTIMIZE_ASSET",
+                                                        "GENERATE_MODEL",
+                                                        "BUILD_PREVIEW",
+                                                        "EXPORT_PDF",
+                                                        "PUBLISH_BOOK"
+                                                    ]
+                                                },
+                                                "status": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "QUEUED",
+                                                        "RUNNING",
+                                                        "SUCCEEDED",
+                                                        "FAILED"
+                                                    ]
+                                                },
+                                                "progress": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 100
+                                                },
+                                                "ref": {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "type": {
+                                                            "type": "string",
+                                                            "enum": ["BOOK", "PAGE", "ASSET"]
+                                                        },
+                                                        "id": {
+                                                            "type": "string",
+                                                            "format": "uuid"
+                                                        }
+                                                    },
+                                                    "required": ["type", "id"],
+                                                    "additionalProperties": false
+                                                },
+                                                "result": {
+                                                    "nullable": true,
+                                                    "type": "object",
+                                                    "additionalProperties": {}
+                                                },
+                                                "error": {
+                                                    "nullable": true,
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "code": {
+                                                            "type": "string"
+                                                        },
+                                                        "message": {
+                                                            "type": "string"
+                                                        }
+                                                    },
+                                                    "required": ["code", "message"],
+                                                    "additionalProperties": false
+                                                },
+                                                "createdAt": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                },
+                                                "finishedAt": {
+                                                    "nullable": true,
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                                                },
+                                                "name": {
+                                                    "type": "string",
+                                                    "minLength": 1,
+                                                    "maxLength": 150
+                                                }
+                                            },
+                                            "required": [
+                                                "id",
+                                                "type",
+                                                "status",
+                                                "progress",
+                                                "ref",
+                                                "result",
+                                                "error",
+                                                "createdAt",
+                                                "finishedAt",
+                                                "name"
+                                            ],
+                                            "additionalProperties": false
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "`JOB_IN_PROGRESS`: Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "JOB_IN_PROGRESS": {
+                                        "value": {
+                                            "error": {
+                                                "code": "JOB_IN_PROGRESS",
+                                                "message": "Đang có một tác vụ chạy cho sách này, vui lòng đợi.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "`FILE_TYPE_NOT_ALLOWED`: Loại file này không được hỗ trợ.\n`QUOTA_EXCEEDED`: Bạn đã dùng hết dung lượng lưu trữ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FILE_TYPE_NOT_ALLOWED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FILE_TYPE_NOT_ALLOWED",
+                                                "message": "Loại file này không được hỗ trợ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "QUOTA_EXCEEDED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "QUOTA_EXCEEDED",
+                                                "message": "Bạn đã dùng hết dung lượng lưu trữ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "`RATE_LIMITED`: Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "RATE_LIMITED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "RATE_LIMITED",
+                                                "message": "Bạn thao tác quá nhanh, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "`AI_UNAVAILABLE`: Trợ lý AI hiện chưa khả dụng. Vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "AI_UNAVAILABLE": {
+                                        "value": {
+                                            "error": {
+                                                "code": "AI_UNAVAILABLE",
+                                                "message": "Trợ lý AI hiện chưa khả dụng. Vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/assets/narration/voices": {
             "get": {
                 "operationId": "getNarrationVoices",
@@ -11487,7 +12034,13 @@
                                 "properties": {
                                     "purpose": {
                                         "type": "string",
-                                        "enum": ["ASSET", "PAGE_IMAGE", "AVATAR", "MARKER_MIND"]
+                                        "enum": [
+                                            "ASSET",
+                                            "PAGE_IMAGE",
+                                            "AVATAR",
+                                            "MARKER_MIND",
+                                            "MODEL_INPUT"
+                                        ]
                                     },
                                     "fileName": {
                                         "type": "string",
@@ -21984,6 +22537,7 @@
                             "enum": [
                                 "SCORE_MARKER",
                                 "OPTIMIZE_ASSET",
+                                "GENERATE_MODEL",
                                 "BUILD_PREVIEW",
                                 "EXPORT_PDF",
                                 "PUBLISH_BOOK"
@@ -22013,6 +22567,7 @@
                                                         "enum": [
                                                             "SCORE_MARKER",
                                                             "OPTIMIZE_ASSET",
+                                                            "GENERATE_MODEL",
                                                             "BUILD_PREVIEW",
                                                             "EXPORT_PDF",
                                                             "PUBLISH_BOOK"

@@ -53,6 +53,12 @@ const envSchema = z
                 );
             }, 'AI_BASE_URL cần HTTPS hoặc HTTP localhost.'),
         AI_API_KEY: z.string().default(''),
+        RUNPOD_MODEL_API_KEY: z.string().trim().default(''),
+        RUNPOD_MODEL_ENDPOINT_ID: z
+            .string()
+            .trim()
+            .regex(/^[A-Za-z0-9_-]*$/)
+            .default(''),
         AI_MODEL: z.string().trim().max(200).default(''),
         AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(40000),
         ZEROTTS_URL: z

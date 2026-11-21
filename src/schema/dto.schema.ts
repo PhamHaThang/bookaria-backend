@@ -193,6 +193,7 @@ export const JobResultsSchema = {
         kind: z.enum(['PRINT', 'MARKER_SHEET']),
     }),
     OPTIMIZE_ASSET: z.object({ assetId: IdSchema, meta: AssetMetaSchema }),
+    GENERATE_MODEL: z.object({ assetId: IdSchema }),
     SCORE_MARKER: z.object({ pageId: IdSchema, score: MarkerScoreSchema.nullable() }),
     BUILD_PREVIEW: z.object({ token: z.string(), url: HttpUrlSchema }),
 } as const;

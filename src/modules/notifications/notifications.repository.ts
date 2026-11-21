@@ -21,6 +21,7 @@ export const notificationsRepository = {
 const WHAT: Record<JobType, string> = {
     SCORE_MARKER: 'Chấm điểm marker',
     OPTIMIZE_ASSET: 'Tối ưu tài nguyên',
+    GENERATE_MODEL: 'Tạo 3D từ ảnh',
     BUILD_PREVIEW: 'Dựng bản xem trước',
     EXPORT_PDF: 'Xuất PDF in',
     PUBLISH_BOOK: 'Xuất bản',

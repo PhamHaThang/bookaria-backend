@@ -151,7 +151,8 @@ export async function startQueueWorker(options: WorkerOptions): Promise<Worker> 
                 retryLimit: MAX_ATTEMPTS - 1,
                 retryBackoff: true,
                 retryDelay: retryDelaySeconds,
-                expireInSeconds: expireSeconds,
+                expireInSeconds:
+                    type === 'GENERATE_MODEL' ? Math.max(expireSeconds, 3600) : expireSeconds,
             } satisfies NonNullable<Parameters<PgBoss['createQueue']>[1]>;
             await boss.createQueue(type, queueConfig);
             await boss.updateQueue(type, queueConfig);

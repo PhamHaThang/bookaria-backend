@@ -33,6 +33,21 @@ pnpm dev:worker          # Worker (hoặc đặt RUN_WORKER_IN_PROCESS=true đ�
 
 Cấu hình bucket, CORS, xử lý media và giới hạn PDF: [R2 storage](docs/R2-STORAGE.md).
 
+## Tạo mô hình 3D từ ảnh
+
+Studio → **Tài nguyên của tôi → Tạo 3D từ ảnh** dùng worker Hunyuan3D từ dự án `3d_hunyuan_be_test`, qua [RunPod Serverless](https://docs.runpod.io/serverless/endpoints/operation-reference). Worker cần hỗ trợ `action: pipeline` và trả các sự kiện `result` (kiểm tra nội dung), `file_meta`, `file_chunk`, `done`. Không dùng endpoint OpenAI cho tính năng này.
+
+- Đặt `RUNPOD_MODEL_ENDPOINT_ID` và `RUNPOD_MODEL_API_KEY` trong `.env` của backend; không đưa token vào Studio. Chạy migration và khởi động lại API/worker.
+- Chạy `pnpm dev:worker`, hoặc đặt `RUN_WORKER_IN_PROCESS=true`. Một ảnh JPG/PNG tối đa 6 MiB, 16 megapixel; cần ít nhất 50 MiB dung lượng trống. Mỗi tác giả tạo một mô hình tại một thời điểm, tối đa 6 lượt/giờ.
+- `POST /assets/upload-signature` với `purpose: MODEL_INPUT`, PUT ảnh lên R2, rồi `POST /assets/model-generations` với `{ "inputId": "assetId từ chữ ký" }`. Gửi lại cùng `inputId` trả cùng tác vụ. `GET /assets/model-generations` hoặc `GET /jobs/:jobId` theo dõi tác vụ thuộc tác giả.
+- Tác vụ chạy nền cả khi đóng Studio. Pipeline kiểm tra nội dung, tạo hình và texture 1024px với mục tiêu 40.000 mặt. Backend kiểm tra chunk, SHA-256 và GLB rồi đưa vào `OPTIMIZE_ASSET` để tối ưu, tạo thumbnail và dùng trong sách.
+- Thumbnail dùng GLB tối ưu sẵn trong RAM, không tải lại từ R2. Texture hợp lệ không vượt 1024px được giữ nguyên; chỉ resize khi quá lớn hoặc thử nén khi GLB vượt giới hạn tải 10 MiB, và chỉ giữ bản nén nhỏ hơn. Bản gốc vẫn được lưu để có thể tối ưu lại mà không gọi GPU.
+- Worker Hunyuan chịu trách nhiệm xuất vật liệu PBR rõ ràng. Backend giữ nguyên metalness/roughness trong GLB, chỉ kiểm tra, tối ưu dung lượng và tạo thumbnail.
+- Mỗi yêu cầu RunPod có giới hạn chạy 20 phút và TTL 30 phút. Backend không tự gửi lại yêu cầu GPU khi mất phản hồi. Nếu worker Bookaria khởi động lại giữa lúc nhận stream, tác vụ báo gián đoạn; kiểm tra RunPod trước khi tạo lại. Có thể tiếp tục lưu kết quả nếu GLB đã được ghi lên R2 trước khi worker dừng.
+- Ảnh đầu vào nằm trong prefix riêng `bookaria/model-inputs/`, được dọn sau khi hết hạn và không còn tác vụ chạy. Mô hình thất bại không có asset cũng được dọn. Tính năng tạo GLB có texture, chưa tạo rig hoặc animation.
+
+Kiểm thử phần tích hợp: `pnpm exec vitest run src/modules/model-generation/__tests__`. Kiểm thử trình duyệt ở Studio: `pnpm exec playwright test --config=playwright.interactions.config.mjs assets-generate-3d.spec.mjs`.
+
 ## Khởi tạo dữ liệu
 
 Chạy trong thư mục backend sau khi cấu hình `.env` và bật Postgres:

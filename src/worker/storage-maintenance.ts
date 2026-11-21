@@ -1,6 +1,6 @@
 import { logger } from '../config';
 import { pool, withTransaction } from '../db';
-import { createR2Storage, derivativePrefix, r2Account } from '../lib/storage';
+import { createR2Storage, derivativePrefix, r2Account, UPLOAD_FOLDER } from '../lib/storage';
 import type { AssetRow } from '../modules/assets/assets.types';
 
 type Storage = Pick<ReturnType<typeof createR2Storage>, 'destroy' | 'listKeys'>;
@@ -95,7 +95,39 @@ export async function purgeDeletedAsset(id: string, storage: Storage, signal: Ab
     });
 }
 
-// shortcut: collects deleted assets only; add upload/job orphan collection when abandoned files accumulate.
+// Inputs are private to generation; neither expired inputs nor failed outputs belong in the library.
+export async function purgeExpiredModelInput(
+    id: string,
+    storage: Pick<Storage, 'destroy'>,
+    signal: AbortSignal,
+) {
+    return withTransaction(async (db) => {
+        const {
+            rows: [input],
+        } = await db.query<{ public_id: string; user_id: string }>(
+            `SELECT public_id, user_id FROM upload_intents WHERE asset_id = $1
+             AND purpose = 'MODEL_INPUT' AND expires_at < now() - interval '5 minutes'
+             FOR UPDATE SKIP LOCKED`,
+            [id],
+        );
+        if (!input) return false;
+        const { rowCount } = await db.query(
+            `SELECT 1 FROM jobs WHERE type = 'GENERATE_MODEL' AND ref_type = 'ASSET' AND ref_id = $1
+             AND status IN ('QUEUED', 'RUNNING') LIMIT 1`,
+            [id],
+        );
+        if (rowCount) return false;
+        if (input.public_id !== `${UPLOAD_FOLDER}/model-inputs/${input.user_id}/${id}`)
+            throw new Error('Ảnh tạm nằm ngoài prefix R2 được quản lý.');
+        await storage.destroy('image', input.public_id, signal);
+        const asset = await db.query('SELECT id FROM assets WHERE id=$1', [id]);
+        if (!asset.rowCount)
+            await storage.destroy('image', `${UPLOAD_FOLDER}/${input.user_id}/${id}`, signal);
+        await db.query('DELETE FROM upload_intents WHERE asset_id = $1', [id]);
+        return true;
+    });
+}
+
 export function startStorageMaintenance() {
     const controller = new AbortController();
     const storage = createR2Storage(r2Account());
@@ -123,6 +155,23 @@ export function startStorageMaintenance() {
             }
             cursor = result.rows.length === BATCH ? result.rows.at(-1)?.id : undefined;
             if (purged) logger.info({ purged }, 'Đã dọn tài nguyên R2 không còn sử dụng');
+            const inputs = await pool.query<{ id: string }>(
+                `SELECT i.asset_id AS id FROM upload_intents i
+                 WHERE i.purpose = 'MODEL_INPUT' AND i.expires_at < now() - interval '5 minutes'
+                   AND NOT EXISTS (SELECT 1 FROM jobs j WHERE j.type = 'GENERATE_MODEL' AND j.ref_type = 'ASSET'
+                       AND j.ref_id = i.asset_id AND j.status IN ('QUEUED', 'RUNNING'))
+                 ORDER BY i.expires_at LIMIT $1`,
+                [BATCH],
+            );
+            for (const { id } of inputs.rows) {
+                signal.throwIfAborted();
+                try {
+                    await purgeExpiredModelInput(id, storage, signal);
+                } catch (err) {
+                    signal.throwIfAborted();
+                    logger.warn({ err, inputId: id }, 'Chưa dọn được ảnh tạm tạo 3D');
+                }
+            }
         })()
             .catch((error) => {
                 if (!controller.signal.aborted)

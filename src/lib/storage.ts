@@ -25,7 +25,7 @@ const formats: Record<AssetType, readonly string[]> = {
     VIDEO: ['mp4'],
 };
 export function allowedFormats(purpose: UploadPurpose, type: AssetType | null): readonly string[] {
-    if (purpose === 'PAGE_IMAGE') return ['jpg', 'png'];
+    if (purpose === 'PAGE_IMAGE' || purpose === 'MODEL_INPUT') return ['jpg', 'png'];
     return type ? formats[type] : [];
 }
 export const normalizeFormat = (format: string) =>

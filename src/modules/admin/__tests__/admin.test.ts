@@ -1064,6 +1064,21 @@ suite('bộ marker Bookaria của admin', () => {
 });
 
 suite('jobs và audit của admin', () => {
+    it('từ chối chạy lại job tạo 3D cũ', async () => {
+        const admin = await createAdmin();
+        const author = await register('LegacyJobAuthor');
+        const { rows } = await pool.query<{ id: string }>(
+            `INSERT INTO jobs (type, status, ref_type, ref_id, created_by)
+             VALUES ('GENERATE_MODEL', 'FAILED', 'ASSET', gen_random_uuid(), $1) RETURNING id`,
+            [author.userId],
+        );
+        const response = await request(app)
+            .post(`/api/v1/admin/jobs/${rows[0]?.id}/retry`)
+            .set(bearer(admin.token));
+        expect(response.body.error.code).toBe('VALIDATION_ERROR');
+        expect(response.body.error.message).toContain('Không hỗ trợ chạy lại');
+    });
+
     it('lọc jobs, chỉ retry job FAILED, tránh job mở trùng và ghi audit để tra cứu', async () => {
         const admin = await createAdmin();
         const author = await register('JobAuthor');
