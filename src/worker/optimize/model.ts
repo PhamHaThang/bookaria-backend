@@ -1,9 +1,9 @@
-import { type Document, type JSONDocument, NodeIO } from '@gltf-transform/core';
+import { type Document, type JSONDocument, NodeIO, type Texture } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { draco, simplify, unpartition, weld } from '@gltf-transform/functions';
 import draco3d from 'draco3dgltf';
 import { MeshoptDecoder, MeshoptSimplifier } from 'meshoptimizer';
-import sharp from 'sharp';
+import sharp, { type Sharp } from 'sharp';
 import { JobError } from '../../modules/jobs/jobs.types';
 import { ASSET_MAX_BYTES, MB, MODEL_MAX_DOWNLOAD_BYTES } from '../../schema';
 
@@ -25,6 +25,14 @@ const TEXTURE_MAX_PIXELS = 16_777_216;
 
 // 1024px
 const TEXTURE_MAX_DIMENSION = 1024;
+
+function encodeTexture(processor: Sharp, mimeType: string) {
+    return mimeType === 'image/webp'
+        ? processor.webp({ lossless: true }).toBuffer()
+        : mimeType === 'image/png'
+          ? processor.png({ compressionLevel: 9 }).toBuffer()
+          : processor.jpeg({ quality: 80 }).toBuffer();
+}
 
 /**
  * Tạo một NodeIO đã được đăng ký các extension và dependencies cần thiết để đọc/ghi file glTF.
@@ -152,7 +160,7 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
     }
     signal.throwIfAborted();
 
-    // Tối ưu texture của model.
+    const retainedTextures: Texture[] = [];
     for (const texture of root.listTextures()) {
         const bytes = texture.getImage();
         if (!bytes) continue;
@@ -164,21 +172,31 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
             );
         }
         try {
-            // Giới hạn kích thước texture và nén lại texture.
             const processor = sharp(Buffer.from(bytes), {
                 limitInputPixels: TEXTURE_MAX_PIXELS,
-            }).resize(TEXTURE_MAX_DIMENSION, TEXTURE_MAX_DIMENSION, {
-                fit: 'inside',
-                withoutEnlargement: true,
             });
+            const metadata = await processor.metadata();
             const mimeType = texture.getMimeType();
-            const output =
-                mimeType === 'image/webp'
-                    ? await processor.webp({ lossless: true }).toBuffer()
-                    : mimeType === 'image/png'
-                      ? await processor.png({ compressionLevel: 9 }).toBuffer()
-                      : await processor.jpeg({ quality: 80 }).toBuffer();
-            texture.setImage(output).setMimeType(mimeType);
+            if (mimeType !== `image/${metadata.format}` || !metadata.width || !metadata.height) {
+                throw new Error('Texture format does not match its declared MIME type.');
+            }
+            if (
+                metadata.width <= TEXTURE_MAX_DIMENSION &&
+                metadata.height <= TEXTURE_MAX_DIMENSION
+            ) {
+                // Metadata alone does not detect a truncated image payload.
+                await processor.stats();
+                retainedTextures.push(texture);
+            } else {
+                const output = await encodeTexture(
+                    processor.resize(TEXTURE_MAX_DIMENSION, TEXTURE_MAX_DIMENSION, {
+                        fit: 'inside',
+                        withoutEnlargement: true,
+                    }),
+                    mimeType,
+                );
+                texture.setImage(output);
+            }
         } catch {
             throw new JobError('INVALID_TEXTURE', 'Texture hỏng hoặc vượt giới hạn 16 megapixel.');
         }
@@ -192,8 +210,29 @@ export async function optimizeModel(input: Uint8Array, signal: AbortSignal) {
 
     const after = triangleCount(doc);
     await doc.transform(unpartition(), draco());
-    const output = await io.writeBinary(doc);
+    let output = await io.writeBinary(doc);
     signal.throwIfAborted();
+    if (output.byteLength > MAX_OUTPUT_MODEL_BYTES) {
+        // Keep the existing size limit usable for uploads with large, poorly compressed textures.
+        let compressed = false;
+        for (const texture of retainedTextures) {
+            signal.throwIfAborted();
+            const bytes = texture.getImage();
+            if (!bytes) continue;
+            const encoded = await encodeTexture(
+                sharp(Buffer.from(bytes), {
+                    limitInputPixels: TEXTURE_MAX_PIXELS,
+                }),
+                texture.getMimeType(),
+            );
+            if (encoded.byteLength < bytes.byteLength) {
+                texture.setImage(encoded);
+                compressed = true;
+            }
+        }
+        if (compressed) output = await io.writeBinary(doc);
+        signal.throwIfAborted();
+    }
     if (output.byteLength > MAX_OUTPUT_MODEL_BYTES) {
         throw new JobError(
             'MODEL_TOO_LARGE',

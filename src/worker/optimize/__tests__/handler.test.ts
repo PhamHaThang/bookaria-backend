@@ -137,6 +137,7 @@ describe('createOptimizeHandler', () => {
                 optimized_public_id: expect.stringContaining('bookaria/processed/'),
             }),
             f.context.signal,
+            (await modelProcessor.mock.results[0]?.value)?.bytes,
         );
         expect(f.repository.saveReady).not.toHaveBeenCalled();
         const finalize = f.getFinalize();

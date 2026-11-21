@@ -31,6 +31,51 @@ function texturedModel(image: Uint8Array, mimeType = 'image/webp') {
 }
 
 describe('optimizeModel', () => {
+    it.each([
+        { mapped: false, metallic: 1 },
+        { mapped: false, metallic: 0 },
+        { mapped: true, metallic: 1 },
+    ])('preserves metalness $metallic with a PBR map: $mapped', async ({ mapped, metallic }) => {
+        const image = await sharp({
+            create: { width: 4, height: 4, channels: 3, background: 'brown' },
+        })
+            .png()
+            .toBuffer();
+        const doc = texturedModel(image, 'image/png');
+        const material = doc.getRoot().listMaterials()[0];
+        if (!material) throw new Error('Missing material');
+        material.setMetallicFactor(metallic).setRoughnessFactor(0.9);
+        if (mapped)
+            material.setMetallicRoughnessTexture(
+                doc.createTexture().setMimeType('image/png').setImage(image),
+            );
+        const io = await modelIO();
+        const result = await optimizeModel(await io.writeBinary(doc), new AbortController().signal);
+        const decoded = await io.readBinary(result.bytes);
+        expect(decoded.getRoot().listMaterials()[0]?.getMetallicFactor()).toBe(metallic);
+        expect(decoded.getRoot().listMaterials()[0]?.getRoughnessFactor()).toBe(0.9);
+        expect(
+            Buffer.from(decoded.getRoot().listTextures()[0]?.getImage() ?? []).equals(image),
+        ).toBe(true);
+        expect(result.meta.triangles).toBe(1);
+    });
+    it.each(['png', 'jpeg', 'webp'] as const)(
+        'preserves encoded %s bytes when texture dimensions already fit',
+        async (format) => {
+            const pixels = Buffer.alloc(64 * 32 * 3);
+            for (let i = 0; i < pixels.length; i++) pixels[i] = (i * 17 + Math.floor(i / 7)) % 256;
+            const image = await sharp(pixels, { raw: { width: 64, height: 32, channels: 3 } })
+                .toFormat(format, format === 'jpeg' ? { quality: 95 } : {})
+                .toBuffer();
+            const io = await modelIO();
+            const output = await optimizeModel(
+                await io.writeBinary(texturedModel(image, `image/${format}`)),
+                new AbortController().signal,
+            );
+            const texture = (await io.readBinary(output.bytes)).getRoot().listTextures()[0];
+            expect(Buffer.from(texture?.getImage() ?? []).equals(image)).toBe(true);
+        },
+    );
     it('accepts a valid source above 10 MiB and removes padding during optimization', async () => {
         const image = await sharp({
             create: { width: 2, height: 2, channels: 3, background: 'red' },
@@ -50,6 +95,48 @@ describe('optimizeModel', () => {
         const output = await optimizeModel(input, new AbortController().signal);
         expect(output.bytes.length).toBeLessThan(1024 * 1024);
         expect(triangleCount(await (await modelIO()).readBinary(output.bytes))).toBe(1);
+    });
+    it('compresses retained textures only when needed to meet the GLB download limit', async () => {
+        const images: Buffer[] = [];
+        for (const background of ['red', 'green', 'blue']) {
+            images.push(
+                await sharp({ create: { width: 1024, height: 1024, channels: 4, background } })
+                    .png({ compressionLevel: 0 })
+                    .toBuffer(),
+            );
+        }
+        const first = images[0];
+        if (!first) throw new Error('Missing image fixture');
+        const doc = texturedModel(first, 'image/png');
+        const material = doc.getRoot().listMaterials()[0];
+        if (!material) throw new Error('Missing material fixture');
+        material.setNormalTexture(
+            doc
+                .createTexture()
+                .setMimeType('image/png')
+                .setImage(images[1] ?? null),
+        );
+        material.setEmissiveTexture(
+            doc
+                .createTexture()
+                .setMimeType('image/png')
+                .setImage(images[2] ?? null),
+        );
+        const io = await modelIO();
+        const input = await io.writeBinary(doc);
+        expect(input.byteLength).toBeGreaterThan(MODEL_MAX_DOWNLOAD_BYTES);
+        const output = await optimizeModel(input, new AbortController().signal);
+        expect(output.bytes.byteLength).toBeLessThan(MODEL_MAX_DOWNLOAD_BYTES);
+        const decoded = await io.readBinary(output.bytes);
+        expect(triangleCount(decoded)).toBe(1);
+        expect(decoded.getRoot().listTextures()).toHaveLength(3);
+        for (const texture of decoded.getRoot().listTextures()) {
+            expect(await sharp(Buffer.from(texture.getImage() ?? [])).metadata()).toMatchObject({
+                width: 1024,
+                height: 1024,
+                format: 'png',
+            });
+        }
     });
 
     it('rejects source files above 50 MiB before parsing', async () => {

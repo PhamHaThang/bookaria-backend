@@ -57,6 +57,7 @@ export function createOptimizeHandler(
                 thumbnailUrl: await storage.thumbnail(
                     { ...asset, optimized_public_id: publicId },
                     ctx.signal,
+                    model.bytes,
                 ),
                 meta: model.meta,
             };
