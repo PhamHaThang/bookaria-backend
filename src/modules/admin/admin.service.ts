@@ -86,6 +86,7 @@ export const adminService = {
             users: metrics.users,
             publishedBooks: metrics.published_books,
             storageUsedBytes: Number(metrics.storage_used_bytes),
+            libraryStorageUsedBytes: Number(metrics.library_storage_used_bytes),
             failedJobs24h: metrics.failed_jobs_24h,
             openReports: metrics.open_reports,
             publishedPerDay,

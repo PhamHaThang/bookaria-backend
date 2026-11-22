@@ -152,6 +152,7 @@ suite('quản lý người dùng của admin', () => {
             users: expect.any(Number),
             publishedBooks: expect.any(Number),
             storageUsedBytes: expect.any(Number),
+            libraryStorageUsedBytes: expect.any(Number),
             failedJobs24h: expect.any(Number),
             openReports: expect.any(Number),
         });
@@ -167,6 +168,36 @@ suite('quản lý người dùng của admin', () => {
                 expect.objectContaining({ action: 'CREATE_USER', count: expect.any(Number) }),
             ]),
         );
+    });
+
+    it('tách dung lượng thư viện khỏi tài khoản và bỏ qua tài nguyên thư viện đã xóa', async () => {
+        const admin = await createAdmin();
+        const before = await adminService.getDashboard();
+        const owned = await createReadyAsset(admin.userId, 'Tài nguyên cá nhân');
+        const shared = await createReadyAsset(admin.userId, 'Tài nguyên dùng chung');
+        const removed = await createReadyAsset(admin.userId, 'Tài nguyên thư viện đã xóa');
+        const ownedBytes = 7 * 1024 ** 2;
+        const sharedBytes = 2 * 1024 ** 2;
+        await pool.query('UPDATE assets SET size_bytes = $2 WHERE id = $1', [owned, ownedBytes]);
+        await pool.query(
+            `UPDATE assets SET owner_id = NULL, size_bytes = $2,
+                license = 'CC0', author_name = 'Bookaria'
+             WHERE id = ANY($1::uuid[])`,
+            [[shared, removed], sharedBytes],
+        );
+        await pool.query('UPDATE assets SET deleted_at = now() WHERE id = $1', [removed]);
+
+        const response = await request(app).get('/api/v1/admin/dashboard').set(bearer(admin.token));
+        expect(response.status).toBe(200);
+        expect(response.body.data.storageUsedBytes).toBe(before.storageUsedBytes + ownedBytes);
+        expect(response.body.data.libraryStorageUsedBytes).toBe(
+            before.libraryStorageUsedBytes + sharedBytes,
+        );
+
+        await pool.query('UPDATE assets SET deleted_at = now() WHERE id = $1', [shared]);
+        const after = await adminService.getDashboard();
+        expect(after.libraryStorageUsedBytes).toBe(before.libraryStorageUsedBytes);
+        expect(after.storageUsedBytes).toBe(response.body.data.storageUsedBytes);
     });
 
     it('tạo người dùng đăng nhập được, ghi audit và chặn email trùng', async () => {

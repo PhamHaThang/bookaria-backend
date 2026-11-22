@@ -17035,6 +17035,11 @@
                                                     "minimum": 0,
                                                     "maximum": 9007199254740991
                                                 },
+                                                "libraryStorageUsedBytes": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "maximum": 9007199254740991
+                                                },
                                                 "failedJobs24h": {
                                                     "type": "integer",
                                                     "minimum": 0,
@@ -17105,6 +17110,7 @@
                                                 "users",
                                                 "publishedBooks",
                                                 "storageUsedBytes",
+                                                "libraryStorageUsedBytes",
                                                 "failedJobs24h",
                                                 "openReports",
                                                 "publishedPerDay",

@@ -64,6 +64,7 @@ export interface AdminDashboardMetricsRow {
     users: number;
     published_books: number;
     storage_used_bytes: string;
+    library_storage_used_bytes: string;
     failed_jobs_24h: number;
     open_reports: number;
 }

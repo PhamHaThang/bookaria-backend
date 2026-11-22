@@ -37,6 +37,7 @@ export const AdminDashboardSchema = z.object({
     users: z.int().min(0),
     publishedBooks: z.int().min(0),
     storageUsedBytes: BytesSchema,
+    libraryStorageUsedBytes: BytesSchema,
     failedJobs24h: z.int().min(0),
     openReports: z.int().min(0),
     publishedPerDay: z.array(z.object({ date: z.iso.date(), count: z.int().min(0) })),

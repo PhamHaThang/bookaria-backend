@@ -454,6 +454,8 @@ export const adminRepository = {
                     (SELECT count(*)::int FROM books
                      WHERE first_published_at IS NOT NULL AND deleted_at IS NULL) AS published_books,
                     (SELECT coalesce(sum(storage_used_bytes), 0)::text FROM users) AS storage_used_bytes,
+                    (SELECT coalesce(sum(size_bytes), 0)::text FROM assets
+                     WHERE owner_id IS NULL AND deleted_at IS NULL) AS library_storage_used_bytes,
                     (SELECT count(*)::int FROM jobs
                      WHERE status = 'FAILED'
                        AND coalesce(finished_at, created_at) >= now() - interval '24 hours') AS failed_jobs_24h,
