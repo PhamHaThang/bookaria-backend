@@ -35,7 +35,7 @@ Cấu hình bucket, CORS, xử lý media và giới hạn PDF: [R2 storage](docs
 
 ## Tạo mô hình 3D từ ảnh
 
-Studio → **Tài nguyên của tôi → Tạo 3D từ ảnh** dùng worker Hunyuan3D từ dự án `3d_hunyuan_be_test`, qua [RunPod Serverless](https://docs.runpod.io/serverless/endpoints/operation-reference). Worker cần hỗ trợ `action: pipeline` và trả các sự kiện `result` (kiểm tra nội dung), `file_meta`, `file_chunk`, `done`. Không dùng endpoint OpenAI cho tính năng này.
+Studio → **Tài nguyên của tôi → Tạo 3D từ ảnh** dùng worker Hunyuan3D từ submodule `bookaria-3d-generative`, qua [RunPod Serverless](https://docs.runpod.io/serverless/endpoints/operation-reference). Worker cần hỗ trợ `action: pipeline` và trả các sự kiện `result` (kiểm tra nội dung), `file_meta`, `file_chunk`, `done`. Không dùng endpoint OpenAI cho tính năng này.
 
 - Đặt `RUNPOD_MODEL_ENDPOINT_ID` và `RUNPOD_MODEL_API_KEY` trong `.env` của backend; không đưa token vào Studio. Chạy migration và khởi động lại API/worker.
 - Chạy `pnpm dev:worker`, hoặc đặt `RUN_WORKER_IN_PROCESS=true`. Một ảnh JPG/PNG tối đa 6 MiB, 16 megapixel; cần ít nhất 50 MiB dung lượng trống. Mỗi tác giả tạo một mô hình tại một thời điểm, tối đa 6 lượt/giờ.
