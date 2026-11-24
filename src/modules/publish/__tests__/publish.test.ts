@@ -63,7 +63,7 @@ async function createBook(userId: string, withAr = true) {
 
 suite('publish (tích hợp)', () => {
     it('publish-check trả lỗi và tóm tắt; sách người khác bị 404', async () => {
-        const owner = await createAuthor(false);
+        const owner = await createAuthor();
         const other = await createAuthor();
         const bookId = await createBook(owner.userId, false);
 
@@ -74,7 +74,7 @@ suite('publish (tích hợp)', () => {
         expect(result.body.data).toMatchObject({
             canPublish: false,
             summary: { pageCount: 0, arPageCount: 0, downloadBytes: 0 },
-            errors: [{ code: 'EMAIL_NOT_VERIFIED' }, { code: 'NO_AR_PAGE' }],
+            errors: [{ code: 'NO_AR_PAGE' }],
         });
         expect(
             (await request(app).get(`/api/v1/books/${bookId}/publish-check`).set(auth(other.token)))
@@ -85,9 +85,11 @@ suite('publish (tích hợp)', () => {
     it('publish từ chối PRIVATE, email chưa xác nhận và sách không có trang AR', async () => {
         const unverified = await createAuthor(false);
         const bookWithAr = await createBook(unverified.userId);
+        const verified = await createAuthor();
+        const emptyBook = await createBook(verified.userId, false);
         const privateResult = await request(app)
-            .post(`/api/v1/books/${bookWithAr}/publish`)
-            .set(auth(unverified.token))
+            .post(`/api/v1/books/${emptyBook}/publish`)
+            .set(auth(verified.token))
             .send({ visibility: 'PRIVATE' });
         expect(privateResult.status).toBe(400);
 
@@ -98,8 +100,6 @@ suite('publish (tích hợp)', () => {
         expect(emailResult.status).toBe(403);
         expect(emailResult.body.error.code).toBe('EMAIL_NOT_VERIFIED');
 
-        const verified = await createAuthor();
-        const emptyBook = await createBook(verified.userId, false);
         const blocked = await request(app)
             .post(`/api/v1/books/${emptyBook}/publish`)
             .set(auth(verified.token))

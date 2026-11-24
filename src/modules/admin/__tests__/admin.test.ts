@@ -476,7 +476,12 @@ suite('quản lý người dùng của admin', () => {
 
         await expect(
             adminService.updateUser(
-                { userId: actorAdmin.userId, role: 'ADMIN', sessionId: actorAdmin.token },
+                {
+                    userId: actorAdmin.userId,
+                    role: 'ADMIN',
+                    sessionId: actorAdmin.token,
+                    emailVerified: true,
+                },
                 targetAdmin.userId,
                 { role: 'AUTHOR', reason: 'Hạ quyền admin cuối cùng' },
             ),
@@ -484,7 +489,12 @@ suite('quản lý người dùng của admin', () => {
 
         await expect(
             adminService.updateUser(
-                { userId: actorAdmin.userId, role: 'ADMIN', sessionId: actorAdmin.token },
+                {
+                    userId: actorAdmin.userId,
+                    role: 'ADMIN',
+                    sessionId: actorAdmin.token,
+                    emailVerified: true,
+                },
                 targetAdmin.userId,
                 { status: 'LOCKED', reason: 'Khóa admin cuối cùng' },
             ),

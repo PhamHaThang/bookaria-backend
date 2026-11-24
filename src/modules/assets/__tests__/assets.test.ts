@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { type MediaStorage, type StoredFile, setMediaStorage } from '../../../lib';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { toAssetRef } from '../assets.service';
 import type { AssetRow } from '../assets.types';
 
@@ -44,6 +45,7 @@ async function signUp() {
     const res = await request(app)
         .post('/api/v1/auth/register')
         .send({ email: `a${unique()}@example.com`, password: PASSWORD, displayName: 'An' });
+    await verifyFixtureEmail(res.body.data.user.id);
     return { token: res.body.data.accessToken as string, userId: res.body.data.user.id as string };
 }
 

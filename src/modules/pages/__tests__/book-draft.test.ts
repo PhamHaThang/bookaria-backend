@@ -5,6 +5,7 @@ import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { setMediaStorage } from '../../../lib';
 import { PageSettingsSchema, SceneSchema } from '../../../schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp(),
@@ -21,6 +22,7 @@ suite('whole-book draft commits', () => {
                 displayName: 'Draft',
             });
         expect(response.status).toBe(201);
+        await verifyFixtureEmail(response.body.data.user.id);
         return {
             token: response.body.data.accessToken as string,
             id: response.body.data.user.id as string,

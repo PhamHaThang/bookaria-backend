@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { pageWidthMm } from '../../../schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { PAGE_ASPECT } from '../books.constants';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -17,6 +18,7 @@ async function signUp() {
         .post('/api/v1/auth/register')
         .send({ email: `b${unique()}@example.com`, password: PASSWORD, displayName: 'An' });
     expect(res.status, `Register fixture: ${JSON.stringify(res.body.error)}`).toBe(201);
+    await verifyFixtureEmail(res.body.data.user.id);
     return { token: res.body.data.accessToken as string, userId: res.body.data.user.id as string };
 }
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });

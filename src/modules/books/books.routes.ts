@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares';
+import { requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { pagesController } from '../pages/pages.controller';
 import { booksController } from './books.controller';
 
 export const bookRouter = () => {
     const router = Router();
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
     router.get('/:bookId/draft', pagesController.getBookDraft);
     router.put('/:bookId/draft', pagesController.saveBookDraft);
     router.post('/:bookId/draft/image-layout', pagesController.draftImageLayout);

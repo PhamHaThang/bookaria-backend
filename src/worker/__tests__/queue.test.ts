@@ -3,6 +3,7 @@ import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../app';
 import { pool } from '../../db';
+import { verifyFixtureEmail } from '../../test/verified-author';
 import { startQueueWorker } from '../queue';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -18,6 +19,7 @@ suite('queue worker', () => {
                 password: 'Matkhau-123',
             });
         expect(registered.status).toBe(201);
+        await verifyFixtureEmail(registered.body.data.user.id);
         const userId = registered.body.data.user.id as string;
         const token = registered.body.data.accessToken as string;
 

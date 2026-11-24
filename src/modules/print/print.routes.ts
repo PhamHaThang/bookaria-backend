@@ -2,7 +2,7 @@ import { type Request, type Response, Router } from 'express';
 import { pool, withTransaction } from '../../db';
 import { getMediaStorage } from '../../lib';
 import { pageImageDelivery } from '../../lib/page-image';
-import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { IdSchema, PrintLayoutSchema, PrintPdfBodySchema } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { coverQrRect, markerRect, qrRect, validatePrintLayout } from '../../worker/print/layout';
@@ -11,7 +11,7 @@ import { printRepository, readPrintVersion } from './print.repository';
 
 export function printRouter(enabled: boolean) {
     const router = Router({ mergeParams: true });
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
     router.get(
         '/print-layout',
         asyncHandler(async (req: Request, res: Response) => {

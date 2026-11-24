@@ -175,9 +175,14 @@ function commonErrors(route: Route): ErrorCode[] {
     if (route.params || route.query || route.body) codes.push('VALIDATION_ERROR');
     // Chỉ route dùng access token mới luôn có thể bị từ chối vì thiếu hay hết hạn. Route dùng cookie
     // (refresh, logout) tự khai báo lỗi ở `route.errors`: logout không bao giờ trả 401 (idempotent).
-    if (route.access === 'author' || route.access === 'admin') {
+    if (
+        route.access === 'author' ||
+        route.access === 'verifiedAuthor' ||
+        route.access === 'admin'
+    ) {
         codes.push('UNAUTHENTICATED', 'TOKEN_EXPIRED', 'ACCOUNT_LOCKED');
     }
+    if (route.access === 'verifiedAuthor') codes.push('EMAIL_NOT_VERIFIED');
     if (route.access === 'admin') codes.push('FORBIDDEN');
     return codes;
 }
@@ -229,6 +234,7 @@ const SECURITY: Record<Route['access'], Json[]> = {
     public: [],
     cookie: [{ cookieAuth: [] }],
     author: [{ bearerAuth: [] }],
+    verifiedAuthor: [{ bearerAuth: [] }],
     admin: [{ bearerAuth: [] }],
 };
 

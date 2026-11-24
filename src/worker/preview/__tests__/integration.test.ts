@@ -16,6 +16,7 @@ import { JobError, type JobHandler } from '../../../modules/jobs/jobs.types';
 import { publicPreviewRouter } from '../../../modules/previews/preview.routes';
 import { createPreview, createPreviewReader } from '../../../modules/previews/preview.service';
 import { ManifestSchema } from '../../../schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { handlers } from '../../handlers';
 import type { PublishStorage } from '../../publish/storage';
 import { runJob } from '../../runner';
@@ -34,6 +35,7 @@ async function setup(count = 1) {
             displayName: 'Tác giả',
         });
     expect(auth.status).toBe(201);
+    await verifyFixtureEmail(auth.body.data.user.id);
     const owner = auth.body.data.user.id as string,
         token = auth.body.data.accessToken as string,
         bookId = randomUUID();

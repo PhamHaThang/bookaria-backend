@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { type MediaStorage, setMediaStorage } from '../../../lib';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { PAGE_ASPECT } from '../../books/books.constants';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -32,6 +33,7 @@ async function author() {
             displayName: 'An',
         });
     expect(r.status).toBe(201);
+    await verifyFixtureEmail(r.body.data.user.id);
     return { id: r.body.data.user.id as string, token: r.body.data.accessToken as string };
 }
 const auth = (token: string) => ({ Authorization: `Bearer ${token}` });

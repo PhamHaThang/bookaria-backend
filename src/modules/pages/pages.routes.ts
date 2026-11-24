@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { interactionAiController } from '../interaction-ai/interaction-ai.controller';
 import { pagesController } from './pages.controller';
 
 export const bookPagesRouter = () => {
     const router = Router({ mergeParams: true });
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
 
     // [GET] /api/v1/books/:bookId/pages
     router.get('/', pagesController.getBookPages);
@@ -22,7 +22,7 @@ export const bookPagesRouter = () => {
 };
 export const pagesRouter = (options: { rateLimit: boolean }) => {
     const router = Router();
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
 
     router.post(
         '/:pageId/interaction-proposals',

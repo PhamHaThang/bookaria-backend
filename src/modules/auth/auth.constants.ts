@@ -3,8 +3,6 @@ export const RESET_PASSWORD_TTL_MINUTES = 60;
 /** Wrong passwords in a row before the account is locked for a while. */
 export const MAX_FAILED_LOGINS = 5;
 export const LOCK_MINUTES = 15;
-/** At least this long between two "resend verification email" requests. */
-export const RESEND_COOLDOWN_SECONDS = 60;
 /** Forgot-password mails an address may get per hour. */
 export const RESET_MAILS_PER_HOUR = 3;
 /**

@@ -9,6 +9,7 @@ import {
     NARRATION_MAX_BYTES,
     NarrationBodySchema,
 } from '../../../schema/api/narration.schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { generateNarration } from '../narration.service';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -38,6 +39,8 @@ suite('ZeroTTS narration authorization and generation', () => {
             ).body.data;
         const owner = await register(),
             other = await register();
+        await verifyFixtureEmail(owner.user.id);
+        await verifyFixtureEmail(other.user.id);
         token = owner.accessToken;
         userId = owner.user.id;
         otherToken = other.accessToken;

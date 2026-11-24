@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { UPLOAD_REQUEST_PER_MINUTE } from '../../lib';
-import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { modelGenerationController } from '../model-generation/model-generation.controller';
 import { narrationController } from '../narration/narration.controller';
 import { assetCategoriesController, assetController } from './assets.controller';
@@ -9,7 +9,7 @@ const MINUTE = 60 * 1000;
 
 export const assetsRouter = (options: { rateLimit: boolean }) => {
     const router = Router();
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
 
     const enabled = options.rateLimit;
 
@@ -61,7 +61,7 @@ export const assetsRouter = (options: { rateLimit: boolean }) => {
 };
 export const assetCategoriesRouter = () => {
     const router = Router();
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
 
     // [GET] /assets/categories
     router.get('/', assetCategoriesController.getAssetCategories);

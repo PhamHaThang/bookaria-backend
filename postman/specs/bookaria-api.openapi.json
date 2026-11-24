@@ -100,7 +100,26 @@
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/components/schemas/AuthResponse"
+                                            "type": "object",
+                                            "properties": {
+                                                "accessToken": {
+                                                    "type": "string"
+                                                },
+                                                "expiresIn": {
+                                                    "type": "integer",
+                                                    "minimum": 0,
+                                                    "exclusiveMinimum": true,
+                                                    "maximum": 9007199254740991
+                                                },
+                                                "user": {
+                                                    "$ref": "#/components/schemas/AuthUser"
+                                                },
+                                                "verificationEmailSent": {
+                                                    "type": "boolean"
+                                                }
+                                            },
+                                            "required": ["accessToken", "expiresIn", "user"],
+                                            "additionalProperties": false
                                         }
                                     },
                                     "required": ["data"],
@@ -2062,6 +2081,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "423": {
                         "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
                         "content": {
@@ -2309,6 +2349,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -2590,6 +2651,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -2884,6 +2966,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -3426,6 +3529,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -3658,6 +3782,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -3806,6 +3951,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4072,6 +4238,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -4204,6 +4391,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4407,7 +4615,7 @@
                         }
                     },
                     "403": {
-                        "description": "`BOOK_TAKEN_DOWN`: Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.",
+                        "description": "`BOOK_TAKEN_DOWN`: Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.\n`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -4419,6 +4627,15 @@
                                             "error": {
                                                 "code": "BOOK_TAKEN_DOWN",
                                                 "message": "Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4575,6 +4792,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -4752,6 +4990,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -5096,6 +5355,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "423": {
                         "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
                         "content": {
@@ -5378,6 +5658,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -5529,6 +5830,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -5785,6 +6107,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -5985,6 +6328,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -6133,6 +6497,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6337,6 +6722,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -6469,6 +6875,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6690,6 +7117,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -6923,6 +7371,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7166,6 +7635,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "423": {
                         "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
                         "content": {
@@ -7362,6 +7852,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7585,6 +8096,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -7839,6 +8371,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -8028,6 +8581,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -8183,6 +8757,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -8380,6 +8975,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -11170,6 +11786,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -11410,6 +12047,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -11699,6 +12357,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -11949,6 +12628,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -12163,6 +12863,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -12447,6 +13168,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -12750,6 +13492,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "423": {
                         "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
                         "content": {
@@ -12877,6 +13640,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13080,6 +13864,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -13212,6 +14017,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13425,6 +14251,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -13544,6 +14391,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -13722,6 +14590,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14070,6 +14959,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -14256,27 +15166,27 @@
                         }
                     },
                     "403": {
-                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.\n`BOOK_TAKEN_DOWN`: Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.",
+                        "description": "`BOOK_TAKEN_DOWN`: Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.\n`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/ApiError"
                                 },
                                 "examples": {
-                                    "EMAIL_NOT_VERIFIED": {
-                                        "value": {
-                                            "error": {
-                                                "code": "EMAIL_NOT_VERIFIED",
-                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
-                                                "requestId": "req_9d5c4cac5a9d"
-                                            }
-                                        }
-                                    },
                                     "BOOK_TAKEN_DOWN": {
                                         "value": {
                                             "error": {
                                                 "code": "BOOK_TAKEN_DOWN",
                                                 "message": "Sách này đã bị gỡ nên không thể xuất bản hoặc mở công khai.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -14523,6 +15433,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -14690,6 +15621,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -14838,6 +15790,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -15039,6 +16012,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -15377,6 +16371,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -15603,6 +16618,27 @@
                             }
                         }
                     },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     "404": {
                         "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
                         "content": {
@@ -15801,6 +16837,27 @@
                                             "error": {
                                                 "code": "TOKEN_EXPIRED",
                                                 "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`EMAIL_NOT_VERIFIED`: Bạn cần xác nhận email trước khi xuất bản sách.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "EMAIL_NOT_VERIFIED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "EMAIL_NOT_VERIFIED",
+                                                "message": "Bạn cần xác nhận email trước khi xuất bản sách.",
                                                 "requestId": "req_9d5c4cac5a9d"
                                             }
                                         }
@@ -23476,25 +24533,6 @@
                 "required": ["status", "environment", "timestamp"],
                 "additionalProperties": false
             },
-            "AuthResponse": {
-                "type": "object",
-                "properties": {
-                    "accessToken": {
-                        "type": "string"
-                    },
-                    "expiresIn": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "exclusiveMinimum": true,
-                        "maximum": 9007199254740991
-                    },
-                    "user": {
-                        "$ref": "#/components/schemas/AuthUser"
-                    }
-                },
-                "required": ["accessToken", "expiresIn", "user"],
-                "additionalProperties": false
-            },
             "AuthUser": {
                 "type": "object",
                 "properties": {
@@ -23519,6 +24557,25 @@
                     }
                 },
                 "required": ["id", "email", "displayName", "role", "emailVerified"],
+                "additionalProperties": false
+            },
+            "AuthResponse": {
+                "type": "object",
+                "properties": {
+                    "accessToken": {
+                        "type": "string"
+                    },
+                    "expiresIn": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "exclusiveMinimum": true,
+                        "maximum": 9007199254740991
+                    },
+                    "user": {
+                        "$ref": "#/components/schemas/AuthUser"
+                    }
+                },
+                "required": ["accessToken", "expiresIn", "user"],
                 "additionalProperties": false
             },
             "RefreshTokenResult": {

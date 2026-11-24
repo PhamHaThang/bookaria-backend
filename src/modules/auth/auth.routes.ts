@@ -54,6 +54,7 @@ export const authRouter = (options: { rateLimit: boolean }) => {
         enabled,
     });
     const resendLimit = rateLimitMiddleware({
+        skipRateLimitedResponses: true,
         windowMs: HOUR,
         limit: 3,
         enabled,

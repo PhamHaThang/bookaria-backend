@@ -1,10 +1,10 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares';
+import { requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { publishController } from './publish.controller';
 
 export const publishRouter = () => {
     const router = Router({ mergeParams: true });
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
 
     // [GET] /books/:bookId/publish-check
     router.get('/publish-check', publishController.publishCheck);

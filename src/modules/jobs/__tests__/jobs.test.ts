@@ -3,6 +3,7 @@ import request from 'supertest';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
@@ -16,6 +17,7 @@ async function register() {
             password: 'Matkhau-123',
         });
     expect(response.status).toBe(201);
+    await verifyFixtureEmail(response.body.data.user.id);
     return {
         userId: response.body.data.user.id as string,
         token: response.body.data.accessToken as string,

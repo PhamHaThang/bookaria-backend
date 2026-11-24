@@ -83,11 +83,13 @@ export const setMailer = (mailer: Mailer | undefined): void => {
     current = mailer;
 };
 
-/** Gửi thư nhưng không để lỗi gửi làm hỏng request: chỉ ghi log. */
-export async function sendMailSafely(mail: Mail): Promise<void> {
+/** Trả về trạng thái gửi thư để luồng đăng ký có thể giữ phiên khi SMTP lỗi. */
+export async function sendMailSafely(mail: Mail): Promise<boolean> {
     try {
         await getMailer().send(mail);
+        return true;
     } catch (err) {
         logger.error({ err, to: mail.to }, 'sending email failed');
+        return false;
     }
 }

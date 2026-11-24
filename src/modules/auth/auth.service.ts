@@ -9,7 +9,12 @@ import {
     spendPasswordCheckTime,
     verifyPassword,
 } from '../../lib';
-import type { AuthUser, LoginBody, RegisterBody } from '../../schema';
+import {
+    type AuthUser,
+    type LoginBody,
+    RESEND_COOLDOWN_SECONDS,
+    type RegisterBody,
+} from '../../schema';
 import {
     AppError,
     hashToken,
@@ -21,7 +26,6 @@ import {
     LOCK_MINUTES,
     MAX_FAILED_LOGINS,
     REFRESH_GRACE_SECONDS,
-    RESEND_COOLDOWN_SECONDS,
     RESET_MAILS_PER_HOUR,
     RESET_PASSWORD_TTL_MINUTES,
     VERIFY_EMAIL_TTL_HOURS,
@@ -34,7 +38,7 @@ export const authService = {
     async register(
         body: RegisterBody,
         ctx: { userAgent: string | undefined },
-    ): Promise<AuthResult> {
+    ): Promise<AuthResult & { verificationEmailSent: boolean }> {
         if (await authRepository.findUserByEmail(pool, body.email))
             throw new AppError('EMAIL_TAKEN');
 
@@ -71,8 +75,16 @@ export const authService = {
             throw error;
         }
 
-        await sendMailSafely(verifyEmailMail(user.email, user.display_name, verifyToken));
-        return toAuthResponse(user, session, refreshToken);
+        const verificationEmailSent = await sendMailSafely(
+            verifyEmailMail(user.email, user.display_name, verifyToken),
+        );
+        if (!verificationEmailSent)
+            await authRepository.discardUndeliveredVerificationToken(
+                pool,
+                user.id,
+                hashToken(verifyToken),
+            );
+        return { ...toAuthResponse(user, session, refreshToken), verificationEmailSent };
     },
 
     async verifyEmail(token: string): Promise<void> {
@@ -88,32 +100,42 @@ export const authService = {
     },
 
     async resendVerifyEmail(userId: string): Promise<void> {
-        const user = await authRepository.findUserById(pool, userId);
-        if (!user) throw new AppError('UNAUTHENTICATED');
-
-        if (user.email_verified_at) return;
-        const sinceLast = await authRepository.secondsSinceLastAuthToken(
-            pool,
-            userId,
-            'VERIFY_EMAIL',
-        );
-        if (sinceLast !== null && sinceLast < RESEND_COOLDOWN_SECONDS)
-            throw new AppError('RATE_LIMITED', 'Vui lòng đợi trước khi gửi lại email xác thực', {
-                // Làm tròn lên: hợp đồng quy định số nguyên giây (RateLimitedDetailsSchema).
-                retryAfterSeconds: Math.max(1, Math.ceil(RESEND_COOLDOWN_SECONDS - sinceLast)),
-            });
-
         const verifyToken = newToken();
-        await withTransaction(async (client) => {
-            await authRepository.cancelUnusedAuthTokens(client, userId, 'VERIFY_EMAIL');
+        const tokenHash = hashToken(verifyToken);
+        const user = await withTransaction(async (client) => {
+            const account = await authRepository.findUserById(client, userId, true);
+            if (!account) throw new AppError('UNAUTHENTICATED');
+            if (account.email_verified_at) return null;
+            const age = await authRepository.secondsSinceLastAuthToken(
+                client,
+                userId,
+                'VERIFY_EMAIL',
+            );
+            if (age !== null && age < RESEND_COOLDOWN_SECONDS)
+                throw new AppError(
+                    'RATE_LIMITED',
+                    'Vui lòng đợi trước khi gửi lại email xác thực',
+                    {
+                        retryAfterSeconds: Math.ceil(RESEND_COOLDOWN_SECONDS - age),
+                    },
+                );
             await authRepository.insertAuthToken(client, {
                 userId,
                 type: 'VERIFY_EMAIL',
-                tokenHash: hashToken(verifyToken),
+                tokenHash,
                 ttlMinutes: VERIFY_EMAIL_TTL_HOURS * 60,
             });
+            return account;
         });
-        await sendMailSafely(verifyEmailMail(user.email, user.display_name, verifyToken));
+        if (!user) return;
+        if (!(await sendMailSafely(verifyEmailMail(user.email, user.display_name, verifyToken)))) {
+            await authRepository.discardUndeliveredVerificationToken(pool, userId, tokenHash);
+            throw new AppError(
+                'INTERNAL_ERROR',
+                'Chưa gửi được email xác minh. Vui lòng thử lại sau.',
+            );
+        }
+        await authRepository.cancelOlderVerificationTokens(pool, userId, tokenHash);
     },
 
     async login(body: LoginBody, ctx: { userAgent: string | undefined }): Promise<AuthResult> {

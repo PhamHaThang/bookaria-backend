@@ -10,6 +10,7 @@ interface RateLimitOptions {
     key?: (req: Request, res: Response) => string;
     /** Request thành công không bị tính. */
     skipSuccessfulRequests?: boolean;
+    skipRateLimitedResponses?: boolean;
 }
 
 export function rateLimitMiddleware(options: RateLimitOptions) {
@@ -19,6 +20,11 @@ export function rateLimitMiddleware(options: RateLimitOptions) {
         standardHeaders: 'draft-8',
         legacyHeaders: false,
         skipSuccessfulRequests: options.skipSuccessfulRequests ?? false,
+        ...(options.skipRateLimitedResponses && {
+            // Refund only a completed rejection. A disconnected request may still send mail.
+            skipSuccessfulRequests: true,
+            requestWasSuccessful: (_req: Request, res: Response) => res.statusCode === 429,
+        }),
         skip: () => !options.enabled,
         keyGenerator: (req, res) =>
             options.key ? options.key(req, res) : ipKeyGenerator(req.ip ?? ''),

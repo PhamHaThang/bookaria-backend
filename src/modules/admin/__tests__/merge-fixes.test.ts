@@ -1,9 +1,11 @@
 // Regression tests for the merged admin module and existing worker/auth flows.
+
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { createOptimizeHandler } from '../../../worker/optimize';
 import type { ProcessingStorage } from '../../../worker/optimize/storage';
 import { startQueueWorker } from '../../../worker/queue';
@@ -19,6 +21,7 @@ async function user(admin = false) {
         .post('/api/v1/auth/register')
         .send({ email, password, displayName: 'Review' });
     expect(response.status).toBe(201);
+    await verifyFixtureEmail(response.body.data.user.id);
     const id = response.body.data.user.id as string;
     let token = response.body.data.accessToken as string;
     if (admin) {

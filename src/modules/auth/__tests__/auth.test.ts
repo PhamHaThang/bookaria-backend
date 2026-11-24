@@ -10,6 +10,7 @@ const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const PASSWORD = 'Matkhau-123';
 const app = createApp();
 const sent: Mail[] = [];
+let rejectMail = false;
 
 const uniqueEmail = () =>
     `u${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}@example.com`;
@@ -51,6 +52,7 @@ suite('auth (tích hợp)', () => {
     beforeAll(() => {
         setMailer({
             async send(mail) {
+                if (rejectMail) throw new Error('SMTP fixture unavailable');
                 sent.push(mail);
             },
         });
@@ -117,6 +119,32 @@ suite('auth (tích hợp)', () => {
     });
 
     describe('verify-email', () => {
+        it('chặn API Studio và mở lại bằng chính phiên hiện tại sau khi xác minh', async () => {
+            const { email, res } = await register();
+            const token = res.body.data.accessToken as string;
+            const asAuthor = (call: request.Test) => call.auth(token, { type: 'bearer' });
+            const session = await asAuthor(request(app).get('/api/v1/me'));
+            expect(session.body.data.emailVerified).toBe(false);
+
+            const id = '10000000-0000-4000-8000-000000000001';
+            for (const call of [
+                request(app).get('/api/v1/books'),
+                request(app).put(`/api/v1/books/${id}/draft`),
+                request(app).post('/api/v1/assets/upload-signature'),
+                request(app).post('/api/v1/assets/model-generations'),
+                request(app).post(`/api/v1/pages/${id}/interaction-proposals`),
+            ]) {
+                const blocked = await asAuthor(call);
+                expect(blocked.status).toBe(403);
+                expect(blocked.body.error.code).toBe('EMAIL_NOT_VERIFIED');
+            }
+            const verification = tokenIn(await waitForMail(email, /verify-email\?token=/));
+            expect(
+                (await request(app).post('/api/v1/auth/verify-email').send({ token: verification }))
+                    .status,
+            ).toBe(200);
+            expect((await asAuthor(request(app).get('/api/v1/books'))).status).toBe(200);
+        });
         it('xác minh thành công một lần, dùng lại hoặc token rác -> 400 TOKEN_INVALID', async () => {
             const { email } = await register();
             const token = tokenIn(await waitForMail(email, /verify-email\?token=/));
@@ -140,6 +168,67 @@ suite('auth (tích hợp)', () => {
     });
 
     describe('resend-verification', () => {
+        it('bấm sớm không mất lượt gửi, hai lần gửi đồng thời chỉ phát một email', async () => {
+            const limited = createApp({ rateLimit: true });
+            const { res, email } = await register();
+            const resend = () =>
+                request(limited)
+                    .post('/api/v1/auth/resend-verification')
+                    .auth(res.body.data.accessToken, { type: 'bearer' });
+            for (let i = 0; i < 4; i++) {
+                const early = await resend();
+                expect(early.status).toBe(429);
+                expect(early.body.error.details.retryAfterSeconds).toBeLessThanOrEqual(60);
+            }
+            await pool.query(
+                "UPDATE auth_tokens SET created_at = now() - interval '5 minutes' WHERE user_id = $1",
+                [res.body.data.user.id],
+            );
+            const replies = await Promise.all([resend(), resend()]);
+            expect(replies.map((r) => r.status).sort()).toEqual([204, 429]);
+            expect(sent.filter((mail) => mail.to === email)).toHaveLength(2);
+        });
+        it('giữ liên kết cũ khi SMTP không gửi được liên kết thay thế', async () => {
+            const { email, res } = await register();
+            const token = tokenIn(await waitForMail(email, /verify-email\?token=/));
+            await pool.query(
+                "UPDATE auth_tokens SET created_at = now() - interval '5 minutes' WHERE user_id = $1",
+                [res.body.data.user.id],
+            );
+            rejectMail = true;
+            try {
+                const failed = await request(app)
+                    .post('/api/v1/auth/resend-verification')
+                    .auth(res.body.data.accessToken, { type: 'bearer' });
+                expect(failed.status).toBe(500);
+                const verified = await request(app)
+                    .post('/api/v1/auth/verify-email')
+                    .send({ token });
+                expect(verified.status).toBe(200);
+            } finally {
+                rejectMail = false;
+            }
+        });
+        it('báo lỗi SMTP, giữ phiên đăng ký và cho phép gửi lại khi SMTP phục hồi', async () => {
+            rejectMail = true;
+            try {
+                const { email, res } = await register();
+                expect(res.status).toBe(201);
+                expect(res.body.data.verificationEmailSent).toBe(false);
+                const resend = () =>
+                    request(app)
+                        .post('/api/v1/auth/resend-verification')
+                        .auth(res.body.data.accessToken, { type: 'bearer' });
+                const failed = await resend();
+                expect(failed.status).toBe(500);
+                expect(failed.body.error.message).toContain('Chưa gửi được email');
+                rejectMail = false;
+                expect((await resend()).status).toBe(204);
+                expect(await waitForMail(email, /verify-email\?token=/)).toBeDefined();
+            } finally {
+                rejectMail = false;
+            }
+        });
         it('cần access token', async () => {
             const res = await request(app).post('/api/v1/auth/resend-verification');
             expect(res.status).toBe(401);

@@ -4,6 +4,7 @@ import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import type { InteractionAiBody } from '../../../schema/api/interaction-ai.schema';
 import { SceneSchema } from '../../../schema/scene.schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { completeInteraction } from '../provider';
 
 vi.mock('../provider', () => ({ completeInteraction: vi.fn() }));
@@ -54,6 +55,8 @@ suite('AI proposals API authorization and draft isolation', () => {
             ).body.data;
         const owner = await register(),
             other = await register();
+        await verifyFixtureEmail(owner.user.id);
+        await verifyFixtureEmail(other.user.id);
         token = owner.accessToken;
         userId = owner.user.id;
         otherToken = other.accessToken;

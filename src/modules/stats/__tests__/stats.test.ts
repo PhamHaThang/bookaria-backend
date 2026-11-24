@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { BookStatsSchema, StudioReadingStatsSchema } from '../../../schema';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { getSinceDate, statsService } from '../stats.service';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -22,6 +23,7 @@ const signUp = async (): Promise<Person> => {
     const res = await request(app)
         .post('/api/v1/auth/register')
         .send({ displayName: 'Tác giả', email, password: 'Matkhau-123' });
+    await verifyFixtureEmail(res.body.data.user.id);
     return { id: res.body.data.user.id, token: res.body.data.accessToken };
 };
 const as = (p: Person) => ({ Authorization: `Bearer ${p.token}` });

@@ -6,6 +6,7 @@ import { createApp } from '../../../app';
 import { env } from '../../../config';
 import { pool } from '../../../db';
 import { type MediaStorage, type StoredFile, setMediaStorage } from '../../../lib';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 import { createGenerateModelHandler } from '../../../worker/handlers/generate-model';
 import { failJob, runJob } from '../../../worker/runner';
 import { purgeExpiredModelInput } from '../../../worker/storage-maintenance';
@@ -36,6 +37,7 @@ async function author() {
             displayName: 'Tác giả',
         });
     expect(response.status).toBe(201);
+    await verifyFixtureEmail(response.body.data.user.id);
     return {
         id: response.body.data.user.id as string,
         headers: { Authorization: `Bearer ${response.body.data.accessToken}` },

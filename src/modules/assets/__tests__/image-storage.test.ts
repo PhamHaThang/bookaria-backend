@@ -6,6 +6,7 @@ import { createApp } from '../../../app';
 import { pool } from '../../../db';
 import { createR2Storage, derivativeKey, setMediaStorage } from '../../../lib/storage';
 import { account, fakeR2 } from '../../../test/r2';
+import { verifyFixtureEmail } from '../../../test/verified-author';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false }),
@@ -19,6 +20,7 @@ async function author() {
             displayName: 'Test',
         });
     expect(response.status).toBe(201);
+    await verifyFixtureEmail(response.body.data.user.id);
     return response.body.data.accessToken as string;
 }
 async function uploadIntent(token: string, fileName: string, mimeType: string, bytes: Buffer) {
@@ -45,6 +47,7 @@ suite('prepared R2 image uploads', () => {
                     displayName: 'Test',
                 });
             expect(registered.status).toBe(201);
+            await verifyFixtureEmail(registered.body.data.user.id);
             const token = registered.body.data.accessToken as string;
             const original = await sharp({
                 create: { width: 400, height: 200, channels: 3, background: 'red' },

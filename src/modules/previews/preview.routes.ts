@@ -1,5 +1,5 @@
 import { type Request, type Response, Router } from 'express';
-import { getAuth, rateLimitMiddleware, requireAuth } from '../../middlewares';
+import { getAuth, rateLimitMiddleware, requireAuth, requireVerifiedEmail } from '../../middlewares';
 import { CreatePreviewBodySchema, IdSchema } from '../../schema';
 import { AppError, asyncHandler } from '../../utils';
 import { createPreview, previewReader } from './preview.service';
@@ -14,7 +14,7 @@ function noStore(res: Response) {
 
 export function authorPreviewRouter(rateLimitEnabled: boolean) {
     const router = Router({ mergeParams: true });
-    router.use(requireAuth);
+    router.use(requireAuth, requireVerifiedEmail);
     router.use((_req, res, next) => {
         noStore(res);
         next();

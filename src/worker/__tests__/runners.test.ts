@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from '../../app';
 import { pool } from '../../db';
 import { JobError } from '../../modules/jobs/jobs.types';
+import { verifyFixtureEmail } from '../../test/verified-author';
 import { failAbandonedJob, failJob, runJob } from '../runner';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -14,6 +15,7 @@ async function makeBookAndJob() {
     const registered = await request(app)
         .post('/api/v1/auth/register')
         .send({ email, displayName: 'Tác giả', password: 'Matkhau-123' });
+    await verifyFixtureEmail(registered.body.data.user.id);
     const userId = registered.body.data.user.id as string;
     const token = registered.body.data.accessToken as string;
     const created = await request(app)

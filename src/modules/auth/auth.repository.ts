@@ -14,9 +14,9 @@ export const authRepository = {
         return rows[0] ?? null;
     },
 
-    async findUserById(db: Queryable, id: string): Promise<UserRow | null> {
+    async findUserById(db: Queryable, id: string, forUpdate = false): Promise<UserRow | null> {
         const { rows } = await db.query<UserRow>(
-            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`,
+            `SELECT ${USER_COLUMNS} FROM users WHERE id = $1${forUpdate ? ' FOR UPDATE' : ''}`,
             [id],
         );
         return rows[0] ?? null;
@@ -250,6 +250,23 @@ export const authRepository = {
             `UPDATE auth_tokens SET used_at = now()
               WHERE user_id = $1 AND type = $2 AND used_at IS NULL`,
             [userId, type],
+        );
+    },
+
+    async discardUndeliveredVerificationToken(db: Queryable, userId: string, tokenHash: string) {
+        await db.query(
+            "DELETE FROM auth_tokens WHERE user_id = $1 AND type = 'VERIFY_EMAIL' AND token_hash = $2",
+            [userId, tokenHash],
+        );
+    },
+
+    async cancelOlderVerificationTokens(db: Queryable, userId: string, tokenHash: string) {
+        await db.query(
+            `UPDATE auth_tokens SET used_at = now()
+              WHERE user_id = $1 AND type = 'VERIFY_EMAIL' AND used_at IS NULL
+                AND token_hash <> $2
+                AND created_at <= (SELECT created_at FROM auth_tokens WHERE token_hash = $2)`,
+            [userId, tokenHash],
         );
     },
 

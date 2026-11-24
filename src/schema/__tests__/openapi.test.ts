@@ -68,6 +68,13 @@ describe('buildOpenApi', () => {
             if (route.access === 'public') expect(security).toEqual([]);
             if (route.access === 'cookie') expect(security).toEqual([{ cookieAuth: [] }]);
             if (route.access === 'author') expect(security).toEqual([{ bearerAuth: [] }]);
+            const responses = op?.op.responses as Record<string, { description: string }>;
+            if (route.access === 'verifiedAuthor') {
+                expect(security).toEqual([{ bearerAuth: [] }]);
+                expect(responses['403']?.description).toContain('EMAIL_NOT_VERIFIED');
+            } else {
+                expect(responses['403']?.description ?? '').not.toContain('EMAIL_NOT_VERIFIED');
+            }
         }
         expect(Object.keys(doc.components.securitySchemes).sort()).toEqual([
             'bearerAuth',

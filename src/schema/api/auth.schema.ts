@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { IdSchema, LIMITS } from '../common.schema';
 import { UserRoleSchema } from '../enums.schema';
 
+export const RESEND_COOLDOWN_SECONDS = 60;
+
 export const EmailSchema = z
     .string()
     .trim()
@@ -75,6 +77,10 @@ export const AuthResponseSchema = z.object({
     user: AuthUserSchema,
 });
 export type AuthResponse = z.infer<typeof AuthResponseSchema>;
+
+export const RegisterResultSchema = AuthResponseSchema.extend({
+    verificationEmailSent: z.boolean().optional(),
+});
 
 export const RefreshTokenResultSchema = z.object({
     accessToken: z.string(),

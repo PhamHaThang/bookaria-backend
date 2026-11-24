@@ -8,6 +8,7 @@ export interface Auth {
     userId: string;
     role: UserRole;
     sessionId: string;
+    emailVerified: boolean;
 }
 
 export const requireAuth = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -20,9 +21,13 @@ export const requireAuth = asyncHandler(async (req: Request, res: Response, next
         id: string;
         role: UserRole;
         status: string;
+        email_verified: boolean;
         session_active: boolean;
     }>(
-        'SELECT u.id, u.role, u.status, EXISTS(SELECT 1 FROM auth_sessions s WHERE s.id=$2 AND s.user_id = u.id AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()) AS session_active FROM users u WHERE u.id=$1',
+        `SELECT u.id, u.role, u.status, u.email_verified_at IS NOT NULL AS email_verified,
+                EXISTS(SELECT 1 FROM auth_sessions s WHERE s.id=$2 AND s.user_id = u.id
+                       AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()) AS session_active
+           FROM users u WHERE u.id=$1`,
         [claims.sub, claims.sid],
     );
     const user = rows[0];
@@ -34,9 +39,16 @@ export const requireAuth = asyncHandler(async (req: Request, res: Response, next
         userId: user.id,
         role: user.role,
         sessionId: claims.sid,
+        emailVerified: user.email_verified,
     } satisfies Auth;
     next();
 });
+
+export const requireVerifiedEmail: RequestHandler = (_req, res, next) => {
+    if (!getAuth(res).emailVerified)
+        throw new AppError('EMAIL_NOT_VERIFIED', 'Bạn cần xác minh email để sử dụng Studio.');
+    next();
+};
 
 export function requireRole(...role: UserRole[]): RequestHandler {
     return (_req: Request, res: Response, next: NextFunction) => {

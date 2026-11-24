@@ -26,7 +26,7 @@ export const authController = {
     register: asyncHandler(async (req: Request, res: Response) => {
         const body = RegisterBodySchema.parse(req.body);
         const data = await authService.register(body, { userAgent: req.get('user-agent') });
-        respondWithAuthResult(res, 201, data);
+        respondWithAuthResult(res, 201, data, data.verificationEmailSent);
     }),
 
     login: asyncHandler(async (req: Request, res: Response) => {
@@ -84,7 +84,12 @@ export const authController = {
         res.status(204).end();
     }),
 };
-function respondWithAuthResult(res: Response, status: number, authResult: AuthResult) {
+function respondWithAuthResult(
+    res: Response,
+    status: number,
+    authResult: AuthResult,
+    verificationEmailSent?: boolean,
+) {
     if (authResult.refreshToken)
         setRefreshCookie(res, authResult.refreshToken, authResult.cookieMaxAgeMs);
     res.status(status).json({
@@ -92,6 +97,7 @@ function respondWithAuthResult(res: Response, status: number, authResult: AuthRe
             accessToken: authResult.accessToken,
             expiresIn: authResult.expiresIn,
             user: authResult.user,
+            ...(verificationEmailSent === undefined ? {} : { verificationEmailSent }),
         },
     });
 }
