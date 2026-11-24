@@ -2,9 +2,6 @@ import { env, logger } from '../config';
 import { hashPassword } from '../lib';
 import type { Queryable } from './database';
 
-/** Mật khẩu admin mặc định khi chạy seed ở môi trường không phải production. */
-const DEV_ADMIN_PASSWORD = 'admin123';
-
 /**
  * Seed dữ liệu ban đầu.
  * Idempotent: chạy lại nhiều lần không tạo trùng và không ghi đè dữ liệu đã có.
@@ -22,15 +19,9 @@ async function seedAdmin(db: Queryable): Promise<void> {
         return;
     }
 
-    let password = env.SEED_ADMIN_PASSWORD;
+    const password = env.SEED_ADMIN_PASSWORD;
     if (!password) {
-        if (env.NODE_ENV === 'production') {
-            throw new Error(
-                'Thiếu SEED_ADMIN_PASSWORD: production không có mật khẩu admin mặc định',
-            );
-        }
-        password = DEV_ADMIN_PASSWORD;
-        logger.warn('Chưa đặt SEED_ADMIN_PASSWORD, dùng mật khẩu mặc định cho môi trường dev');
+        throw new Error('Thiếu SEED_ADMIN_PASSWORD. Hãy cấu hình biến này để tạo tài khoản admin.');
     }
 
     const passwordHash = await hashPassword(password);

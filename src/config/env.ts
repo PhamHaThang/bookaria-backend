@@ -23,7 +23,10 @@ const envSchema = z
         RUN_WORKER_IN_PROCESS: z.stringbool().default(false),
         // Chỉ dùng cho `pnpm db:seed`.
         SEED_ADMIN_EMAIL: z.email().default('admin@gmail.com'),
-        SEED_ADMIN_PASSWORD: z.string().min(8).max(72).optional(),
+        SEED_ADMIN_PASSWORD: z.preprocess(
+            (value) => (value === '' ? undefined : value),
+            z.string().min(8).max(72).optional(),
+        ),
         BCRYPT_ROUNDS: z.coerce.number().int().min(4).max(31).default(12),
         /** Cookie chứa refresh token. SameSite=None (cần khi Studio và API khác site) bắt buộc phải có Secure. */
         COOKIE_SECURE: z.stringbool().optional(),

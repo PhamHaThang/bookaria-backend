@@ -52,6 +52,11 @@ Kiểm thử phần tích hợp: `pnpm exec vitest run src/modules/model-generat
 
 Chạy trong thư mục backend sau khi cấu hình `.env` và bật Postgres:
 
+Đặt `SEED_ADMIN_PASSWORD` trong `.env` local trước khi tạo tài khoản quản trị đầu tiên.
+Khi triển khai production, khai báo biến này trong kho bí mật của nền tảng triển khai
+và truyền vào bước chạy `pnpm db:seed`. API và worker có thể khởi động khi biến này để trống.
+Nếu tài khoản đã tồn tại, hãy dùng chức năng đặt lại mật khẩu của Bookaria để đổi mật khẩu.
+
 ```bash
 pnpm db:migrate
 pnpm db:seed                # Tạo admin nếu chưa có
