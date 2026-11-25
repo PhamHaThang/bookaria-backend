@@ -33,6 +33,13 @@ pnpm dev:worker          # Worker (hoặc đặt RUN_WORKER_IN_PROCESS=true đ�
 
 Cấu hình bucket, CORS, xử lý media và giới hạn PDF: [R2 storage](docs/R2-STORAGE.md).
 
+## Tạo lời đọc tiếng Việt
+
+Cài môi trường Python theo [hướng dẫn ZeroTTS](https://github.com/PhamHaThang/bookaria-zerotts).
+Khi chạy Bookaria từ repo gốc, submodule `bookaria-zerotts` nằm cạnh backend.
+Chạy `pnpm dev:tts` từ backend để khởi động dịch vụ cục bộ. Đặt `ZEROTTS_URL`
+và `ZEROTTS_API_KEY` trong `.env` của backend theo cấu hình dịch vụ.
+
 ## Tạo mô hình 3D từ ảnh
 
 Studio → **Tài nguyên của tôi → Tạo 3D từ ảnh** dùng worker Hunyuan3D từ submodule `bookaria-3d-generative`, qua [RunPod Serverless](https://docs.runpod.io/serverless/endpoints/operation-reference). Worker cần hỗ trợ `action: pipeline` và trả các sự kiện `result` (kiểm tra nội dung), `file_meta`, `file_chunk`, `done`. Không dùng endpoint OpenAI cho tính năng này.

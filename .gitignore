@@ -26,6 +26,8 @@ coverage/
 # Caches
 .eslintcache
 .cache/
+# Local ZeroTTS environments and model files from before the service moved.
+/services/zerotts/
 
 # OS / editor (giữ .vscode/ để dùng chung cả team)
 .DS_Store

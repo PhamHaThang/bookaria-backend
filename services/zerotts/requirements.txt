@@ -1,2 +1,0 @@
-zerotts==0.1.5
-imageio-ffmpeg==0.6.0

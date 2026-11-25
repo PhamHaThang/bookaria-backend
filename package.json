@@ -7,7 +7,7 @@
     "scripts": {
         "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
         "dev:worker": "tsx watch --env-file-if-exists=.env src/worker/main.ts",
-        "dev:tts": "node --env-file-if-exists=.env services/zerotts/start.mjs",
+        "dev:tts": "node --env-file-if-exists=../bookaria-zerotts/.env --env-file-if-exists=.env ../bookaria-zerotts/start.mjs",
         "build": "tsup",
         "start": "node --env-file-if-exists=.env dist/main.js",
         "typecheck": "tsc",
