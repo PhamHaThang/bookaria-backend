@@ -3,6 +3,7 @@ import { createApp } from './app';
 import { env, logger } from './config';
 import { connectDatabase, disconnectDatabase } from './db';
 import { warmUpPasswordCheck } from './lib';
+import { warmUpNarration } from './modules/narration/narration.service';
 import { startWorker, stopWorker } from './worker';
 
 let server: Server | undefined;
@@ -47,6 +48,7 @@ async function main(): Promise<void> {
     await new Promise<void>((resolve, reject) => {
         server = app.listen(env.PORT, () => {
             logger.info(`Server chạy ở http://localhost:${env.PORT}/api/v1`);
+            void warmUpNarration();
             resolve();
         });
         server.once('error', reject);
