@@ -427,7 +427,12 @@ export const adminRepository = {
         }
         if (query.targetId) {
             params.push(query.targetId);
-            where.push(`a.target_id = $${params.length}`);
+            const id = `$${params.length}::uuid`;
+            where.push(
+                query.targetType === 'JOB'
+                    ? `(a.target_id = ${id} OR (a.action = 'RETRY_JOB' AND a.detail->>'newJobId' = (${id})::text))`
+                    : `a.target_id = ${id}`,
+            );
         }
         const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
         const [logs, count] = await Promise.all([

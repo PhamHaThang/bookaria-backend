@@ -1317,6 +1317,20 @@ suite('jobs và audit của admin', () => {
         );
 
         const logId = audit.body.data[0].id;
+        const retryAudit = await request(app)
+            .get('/api/v1/admin/audit-logs')
+            .query({ targetType: 'JOB', targetId: retryJobId.toUpperCase() })
+            .set(bearer(admin.token));
+        expect(retryAudit.status).toBe(200);
+        expect(retryAudit.body.meta.total).toBe(1);
+        expect(retryAudit.body.data).toEqual(audit.body.data);
+        const unrelatedAudit = await request(app)
+            .get('/api/v1/admin/audit-logs')
+            .query({ targetType: 'JOB', targetId: anotherFailed.rows[0]?.id })
+            .set(bearer(admin.token));
+        expect(unrelatedAudit.status).toBe(200);
+        expect(unrelatedAudit.body.data).toEqual([]);
+
         const single = await request(app)
             .get(`/api/v1/admin/audit-logs/${logId}`)
             .set(bearer(admin.token));
