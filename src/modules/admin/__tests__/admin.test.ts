@@ -505,6 +505,46 @@ suite('quản lý người dùng của admin', () => {
 });
 
 suite('kiểm duyệt của admin', () => {
+    it('tra cứu mọi quyền hiển thị, kể cả sách bị gỡ, và phân trang theo kết quả tìm kiếm', async () => {
+        const admin = await createAdmin();
+        const author = await register('AllVisibilityAuthor');
+        const title = `Kiểm duyệt ${author.userId}`;
+        await pool.query(
+            `INSERT INTO books (owner_id, title, visibility, taken_down_at, taken_down_reason, deleted_at)
+             VALUES ($1, $2, 'PUBLIC', NULL, NULL, NULL),
+                    ($1, $2, 'UNLISTED', NULL, NULL, NULL),
+                    ($1, $2, 'PRIVATE', now(), 'Kiểm duyệt', NULL),
+                    ($1, $2, 'PRIVATE', NULL, NULL, now()),
+                    ($1, 'Sách ngoài tìm kiếm', 'PRIVATE', NULL, NULL, NULL)`,
+            [author.userId, title],
+        );
+        const search = (page: number, visibility?: 'ALL') =>
+            request(app)
+                .get('/api/v1/admin/books')
+                .query({ q: title, page, limit: 2, ...(visibility && { visibility }) })
+                .set(bearer(admin.token));
+        const first = await search(1);
+        const second = await search(2, 'ALL');
+        expect(first.status).toBe(200);
+        expect(second.status).toBe(200);
+        expect(first.body.meta.total).toBe(3);
+        expect(second.body.meta.total).toBe(3);
+        expect(first.body.data).toHaveLength(2);
+        expect(second.body.data).toHaveLength(1);
+        expect([...first.body.data, ...second.body.data]).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ title, visibility: 'PUBLIC' }),
+                expect.objectContaining({ title, visibility: 'UNLISTED' }),
+                expect.objectContaining({ title, visibility: 'PRIVATE', takenDown: true }),
+            ]),
+        );
+        await request(app)
+            .get('/api/v1/admin/books')
+            .query({ visibility: 'ALL', limit: 1 })
+            .set(bearer(admin.token))
+            .expect(200);
+    });
+
     it('trả hàng chờ gộp theo sách, danh sách chủ động và chi tiết trang/báo cáo', async () => {
         const admin = await createAdmin();
         const author = await register('ModerationAuthor');
@@ -523,7 +563,8 @@ suite('kiểm duyệt của admin', () => {
         );
 
         const books = await request(app)
-            .get(`/api/v1/admin/books?q=${encodeURIComponent(title)}`)
+            .get('/api/v1/admin/books')
+            .query({ q: title, visibility: 'PUBLIC' })
             .set(bearer(admin.token));
         expect(books.status).toBe(200);
         expect(books.body.meta.total).toBe(1);

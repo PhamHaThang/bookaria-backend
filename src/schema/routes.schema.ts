@@ -1041,7 +1041,7 @@ export const routes: Route[] = [
         method: 'GET',
         path: '/admin/books',
         access: 'admin',
-        summary: 'Duyệt sách công khai để kiểm duyệt chủ động',
+        summary: 'Tra cứu sách theo quyền hiển thị để kiểm duyệt',
         query: AdminBooksQuerySchema,
         responses: { 200: pagedResponse(AdminBookItemSchema) },
     },

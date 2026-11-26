@@ -106,7 +106,7 @@ export type AdminUpdateUserResult = z.infer<typeof AdminUpdateUserResultSchema>;
 
 export const AdminBooksQuerySchema = PaginationQuerySchema.extend({
     q: z.string().trim().max(100).optional(),
-    visibility: BookVisibilitySchema.default('PUBLIC'),
+    visibility: BookVisibilitySchema.or(z.literal('ALL')).default('ALL'),
 });
 export type AdminBooksQuery = z.infer<typeof AdminBooksQuerySchema>;
 export const AdminBookItemSchema = BookSummarySchema.extend({

@@ -520,8 +520,12 @@ export const adminRepository = {
     },
 
     async getModerationBooks(db: Queryable, query: AdminBooksQuery, offset: number) {
-        const where = [`b.deleted_at IS NULL`, `b.visibility = $1`];
-        const params: unknown[] = [query.visibility];
+        const where = ['b.deleted_at IS NULL'];
+        const params: unknown[] = [];
+        if (query.visibility !== 'ALL') {
+            params.push(query.visibility);
+            where.push('b.visibility = $1');
+        }
         if (query.q) {
             params.push(`%${escapeLike(query.q)}%`);
             where.push(
