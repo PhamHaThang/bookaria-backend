@@ -1024,13 +1024,12 @@ suite('bộ marker Bookaria của admin', () => {
                     imagePublicId: `bookaria/markers/${markerNumber}`,
                     mindPublicId: `bookaria/markers/${markerNumber}.mind`,
                     seed,
-                    markerScore: 5,
                 });
             expect(created.status).toBe(201);
             expect(created.body.data).toMatchObject({
                 number: markerNumber,
                 imageUrl: `https://assets.bookaria.test/bookaria/markers/${markerNumber}`,
-                markerScore: null,
+                assessment: null,
                 isActive: true,
             });
             expect(created.body.data.validatedAt).toBeTruthy();
@@ -1081,6 +1080,57 @@ suite('bộ marker Bookaria của admin', () => {
                 .send({ isActive: true });
             expect(enabled.status).toBe(200);
             expect(enabled.body.data.isActive).toBe(true);
+
+            const assessmentPath = `/api/v1/admin/bookaria-markers/${markerId}/assessment`;
+            const metrics = {
+                policyVersion: 'mindar-pictarize-v1',
+                distribution: 0.47,
+                uniqueness: 0.8,
+                dimension: 1,
+                sourceWidth: 1024,
+                sourceHeight: 1024,
+            };
+            const author = await register('MarkerAssessmentAuthor');
+            const forbidden = await request(app)
+                .put(assessmentPath)
+                .set(bearer(author.token))
+                .send(metrics);
+            expect(forbidden.status).toBe(403);
+
+            const saved = await request(app)
+                .put(assessmentPath)
+                .set(bearer(admin.token))
+                .send(metrics);
+            expect(saved.status).toBe(200);
+            expect(saved.body.data).toMatchObject({
+                id: markerId,
+                isActive: true,
+                assessment: { ...metrics, assessedAt: expect.any(String) },
+            });
+            expect(saved.body.data).not.toHaveProperty('markerScore');
+            const rejected = await request(app)
+                .put(assessmentPath)
+                .set(bearer(admin.token))
+                .send({
+                    ...metrics,
+                    distribution: 2,
+                });
+            expect(rejected.status).toBe(400);
+            const persisted = await pool.query(
+                'SELECT assessment FROM bookaria_markers WHERE id = $1',
+                [markerId],
+            );
+            expect(persisted.rows[0]?.assessment).toEqual(saved.body.data.assessment);
+
+            const reassessed = await request(app)
+                .put(assessmentPath)
+                .set(bearer(admin.token))
+                .send({
+                    ...metrics,
+                    distribution: 0.72,
+                });
+            expect(reassessed.status).toBe(200);
+            expect(reassessed.body.data.assessment.distribution).toBe(0.72);
         } finally {
             env.R2_PUBLIC_URL = previousR2Url;
         }
@@ -1094,6 +1144,8 @@ suite('bộ marker Bookaria của admin', () => {
             'CREATE',
             'SET_ACTIVE',
             'SET_ACTIVE',
+            'ASSESS',
+            'ASSESS',
         ]);
     });
 

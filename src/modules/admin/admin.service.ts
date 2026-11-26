@@ -39,6 +39,7 @@ import {
     type DismissReportsResult,
     DismissReportsResultSchema,
     type LibraryAssetsQuery,
+    type MarkerAnalysisMetrics,
     MarkerReportSchema,
     type MarkerWarning,
     type ModerationItem,
@@ -531,11 +532,7 @@ export const adminService = {
     ): Promise<BookariaMarker> {
         try {
             const marker = await withTransaction(async (db) => {
-                const created = await adminRepository.insertBookariaMarker(db, {
-                    ...body,
-                    // Legacy stars are accepted for compatibility, not stored as a current analysis.
-                    markerScore: null,
-                });
+                const created = await adminRepository.insertBookariaMarker(db, body);
                 await adminRepository.insertAuditLog(
                     db,
                     actor.userId,
@@ -556,6 +553,31 @@ export const adminService = {
             if (isUniqueViolation(error)) throw new AppError('MARKER_DUPLICATE');
             throw error;
         }
+    },
+
+    async saveBookariaMarkerAssessment(
+        actor: Auth,
+        markerId: string,
+        metrics: MarkerAnalysisMetrics,
+    ): Promise<BookariaMarker> {
+        return withTransaction(async (db) => {
+            const assessment = { ...metrics, assessedAt: new Date().toISOString() };
+            const updated = await adminRepository.setBookariaMarkerAssessment(
+                db,
+                markerId,
+                assessment,
+            );
+            if (!updated) throw new AppError('NOT_FOUND', 'Không tìm thấy marker.');
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_MARKER',
+                markerId,
+                { operation: 'ASSESS', number: updated.number, assessment },
+                'MARKER',
+            );
+            return toBookariaMarker(updated);
+        });
     },
 
     async updateBookariaMarker(
@@ -884,7 +906,7 @@ const toBookariaMarker = (marker: BookariaMarkerRow): BookariaMarker =>
         id: marker.id,
         number: marker.number,
         imageUrl: markerImageUrl(marker.image_public_id),
-        markerScore: marker.marker_score,
+        assessment: marker.assessment,
         isActive: marker.is_active,
         validatedAt: marker.validated_at?.toISOString() ?? null,
     });

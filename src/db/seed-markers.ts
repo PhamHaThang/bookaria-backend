@@ -5,6 +5,10 @@ import type pg from 'pg';
 import sharp from 'sharp';
 import { z } from 'zod';
 import type { MediaStorage, StoredFile } from '../lib/storage';
+import {
+    type BookariaMarkerAssessment,
+    BookariaMarkerAssessmentSchema,
+} from '../schema/dto.schema';
 import { decodeSingleMind, MAX_MIND_BYTES } from '../worker/publish/mind';
 
 const hash = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -27,6 +31,7 @@ const ManifestSchema = z.object({
                 mindSha256: checksum,
                 imagePublicId: publicId.optional(),
                 mindPublicId: publicId.optional(),
+                assessment: BookariaMarkerAssessmentSchema.optional(),
             }),
         )
         .min(1)
@@ -46,6 +51,7 @@ export type MarkerSeed = {
     name: string;
     image: MarkerSeedFile;
     mind: MarkerSeedFile;
+    assessment: BookariaMarkerAssessment | null;
 };
 
 /** Read and validate the entire set before any R2 or database mutation. */
@@ -90,6 +96,13 @@ export async function loadMarkerSeedSet(directory: string): Promise<MarkerSeed[]
         const target = decodeSingleMind(mind.bytes);
         if (target.targetImage.width !== target.targetImage.height)
             throw new Error(`${marker.id}: target nhận diện phải vuông.`);
+        if (
+            marker.assessment &&
+            (marker.assessment.sourceWidth !== meta.width ||
+                marker.assessment.sourceHeight !== meta.height)
+        ) {
+            throw new Error(`${marker.id}: kích thước trong kết quả đánh giá không khớp ảnh gốc.`);
+        }
         // Content-addressed IDs remain stable even if the source directory is renamed.
         const imageId = marker.imagePublicId ?? `bookaria/markers/seed/${marker.sha256}/image`;
         const mindId =
@@ -102,6 +115,7 @@ export async function loadMarkerSeedSet(directory: string): Promise<MarkerSeed[]
         minds.add(mindId);
         output.push({
             name: marker.id,
+            assessment: marker.assessment ?? null,
             image: {
                 path: image.absolute,
                 publicId: imageId,
@@ -191,10 +205,10 @@ export async function ensureMarkerSeedFile(
     return 'uploaded';
 }
 
-type Existing = { number: number; image_public_id: string; mind_public_id: string };
+type Existing = { id: string; number: number; image_public_id: string; mind_public_id: string };
 async function findExisting(db: Pick<pg.PoolClient, 'query'>, marker: MarkerSeed) {
     const found = await db.query<Existing>(
-        'SELECT number, image_public_id, mind_public_id FROM bookaria_markers WHERE image_public_id=$1 OR mind_public_id=$2',
+        'SELECT id, number, image_public_id, mind_public_id FROM bookaria_markers WHERE image_public_id=$1 OR mind_public_id=$2',
         [marker.image.publicId, marker.mind.publicId],
     );
     if (
@@ -235,7 +249,17 @@ export async function seedBookariaMarkers(
             const existing = await findExisting(client, marker);
             if (existing) {
                 totals.existing++;
-                report(`${marker.name}: marker số ${existing.number} đã có, giữ nguyên.`);
+                const filled =
+                    marker.assessment &&
+                    (
+                        await client.query(
+                            'UPDATE bookaria_markers SET assessment=$2::jsonb WHERE id=$1 AND assessment IS NULL',
+                            [existing.id, marker.assessment],
+                        )
+                    ).rowCount;
+                report(
+                    `${marker.name}: marker số ${existing.number} đã có${filled ? ', đã bổ sung đánh giá' : ', giữ nguyên'}.`,
+                );
             } else {
                 const {
                     rows: [next],
@@ -252,9 +276,9 @@ export async function seedBookariaMarkers(
                     throw new Error('Kho marker đã hết mã khả dụng.');
                 await client.query(
                     `INSERT INTO bookaria_markers
-                    (number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active)
-                    VALUES ($1,$2,$3,$4,NULL,now(),true)`,
-                    [number, marker.image.publicId, marker.mind.publicId, seed],
+                    (number, image_public_id, mind_public_id, seed, validated_at, is_active, assessment)
+                    VALUES ($1,$2,$3,$4,now(),true,$5::jsonb)`,
+                    [number, marker.image.publicId, marker.mind.publicId, seed, marker.assessment],
                 );
                 totals.created++;
                 report(`${marker.name}: đã đăng ký số ${number}, trạng thái bật.`);

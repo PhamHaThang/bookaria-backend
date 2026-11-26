@@ -18,7 +18,9 @@ try {
         console.info(
             'Mặc định dùng assets/bookaria-markers. Có thể đổi bằng BOOKARIA_MARKER_DIR hoặc tham số thư mục.',
         );
-        console.info('Chạy lại sẽ tái sử dụng tệp và marker đã có; marker mới mặc định bật.');
+        console.info(
+            'Chạy lại sẽ dùng lại tệp và marker đã có, bổ sung kết quả cho marker chưa đánh giá.',
+        );
     } else {
         if (args.length > 1)
             throw new Error('Chỉ truyền một thư mục bộ marker. Dùng --help để xem cách chạy.');
@@ -28,6 +30,9 @@ try {
             fileURLToPath(new URL('../../assets/bookaria-markers/', import.meta.url));
         const markers = await loadMarkerSeedSet(directory);
         console.info(`Đã kiểm tra ${markers.length} cặp ảnh/nhận diện và SHA-256.`);
+        console.info(
+            `Có ${markers.filter((marker) => marker.assessment).length}/${markers.length} marker kèm kết quả đánh giá.`,
+        );
         if (values['dry-run']) {
             console.info('Chạy thử hoàn tất. Không kết nối R2, không ghi database.');
         } else {
@@ -37,7 +42,7 @@ try {
                 console.info(message),
             );
             console.info(
-                `Hoàn tất: ${result.created} marker mới, ${result.existing} marker giữ nguyên; ${result.uploaded} tệp tải lên, ${result.reused} tệp đã có.`,
+                `Hoàn tất: ${result.created} marker mới, ${result.existing} marker đã có; ${result.uploaded} tệp tải lên, ${result.reused} tệp đã có.`,
             );
         }
     }

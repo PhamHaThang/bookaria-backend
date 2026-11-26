@@ -33,6 +33,10 @@ export const adminRouter = () => {
     router.get('/bookaria-markers', adminController.getBookariaMarkers);
     router.post('/bookaria-markers', adminController.createBookariaMarker);
     router.patch('/bookaria-markers/:markerId', adminController.updateBookariaMarker);
+    router.put(
+        '/bookaria-markers/:markerId/assessment',
+        adminController.saveBookariaMarkerAssessment,
+    );
     router.get('/jobs', adminController.getJobs);
     router.post('/jobs/:jobId/retry', adminController.retryJob);
     router.get('/audit-logs', adminController.getAuditLogs);

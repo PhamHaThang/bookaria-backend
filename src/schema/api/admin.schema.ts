@@ -28,7 +28,6 @@ import {
     UserRoleSchema,
     UserStatusSchema,
 } from '../enums.schema';
-import { MarkerScoreSchema } from '../marker.schema';
 import { UploadSignatureSchema } from './assets.schema';
 import { EmailSchema, NewPasswordSchema } from './auth.schema';
 
@@ -244,7 +243,6 @@ export const CreateBookariaMarkerBodySchema = z.object({
     imagePublicId: z.string().min(1).max(300),
     mindPublicId: z.string().min(1).max(300),
     seed: z.int(),
-    markerScore: MarkerScoreSchema.optional(),
 });
 export type CreateBookariaMarkerBody = z.infer<typeof CreateBookariaMarkerBodySchema>;
 

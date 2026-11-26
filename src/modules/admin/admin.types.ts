@@ -3,6 +3,7 @@ import type {
     AssetType,
     AuditAction,
     AuditTargetType,
+    BookariaMarkerAssessment,
     BookStatus,
     BookVisibility,
     JobStatus,
@@ -56,7 +57,7 @@ export interface BookariaMarkerRow {
     seed: string;
     mind_public_id: string;
     validated_at: Date | null;
-    marker_score: number | null;
+    assessment: BookariaMarkerAssessment | null;
     is_active: boolean;
 }
 

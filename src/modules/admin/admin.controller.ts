@@ -13,6 +13,7 @@ import {
     IdSchema,
     ImportBookariaMarkerBodySchema,
     LibraryAssetsQuerySchema,
+    MarkerAnalysisMetricsSchema,
     MarkerUploadBodySchema,
     ModerationNoteBodySchema,
     PaginationQuerySchema,
@@ -169,6 +170,15 @@ export const adminController = {
             getAuth(res),
             markerIdOf(req.params),
             body,
+        );
+        res.json({ data: marker });
+    }),
+
+    saveBookariaMarkerAssessment: asyncHandler(async (req: Request, res: Response) => {
+        const marker = await adminService.saveBookariaMarkerAssessment(
+            getAuth(res),
+            markerIdOf(req.params),
+            MarkerAnalysisMetricsSchema.parse(req.body),
         );
         res.json({ data: marker });
     }),

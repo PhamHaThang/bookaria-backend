@@ -6,6 +6,7 @@ import type {
     AuditAction,
     AuditLogsQuery,
     AuditTargetType,
+    BookariaMarkerAssessment,
     LibraryAssetsQuery,
     PaginationQuery,
     UserRole,
@@ -263,7 +264,7 @@ export const adminRepository = {
         const [markers, count] = await Promise.all([
             db.query<BookariaMarkerRow>(
                 `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
-                        marker_score, is_active
+                        assessment, is_active
                  FROM bookaria_markers
                  ORDER BY number, id
                  LIMIT $1 OFFSET $2`,
@@ -281,22 +282,20 @@ export const adminRepository = {
             imagePublicId: string;
             mindPublicId: string;
             seed: number;
-            markerScore: number | null;
             isActive?: boolean;
         },
     ): Promise<BookariaMarkerRow> {
         const { rows } = await db.query<BookariaMarkerRow>(
             `INSERT INTO bookaria_markers
-                (number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active)
-             VALUES ($1, $2, $3, $4, $5, now(), $6)
+                (number, image_public_id, mind_public_id, seed, validated_at, is_active)
+             VALUES ($1, $2, $3, $4, now(), $5)
              RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
-                       marker_score, is_active`,
+                       assessment, is_active`,
             [
                 marker.number,
                 marker.imagePublicId,
                 marker.mindPublicId,
                 marker.seed,
-                marker.markerScore,
                 marker.isActive ?? true,
             ],
         );
@@ -309,7 +308,7 @@ export const adminRepository = {
     ): Promise<BookariaMarkerRow | undefined> {
         const { rows } = await db.query<BookariaMarkerRow>(
             `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
-                    marker_score, is_active
+                    assessment, is_active
              FROM bookaria_markers WHERE id = $1 FOR UPDATE`,
             [markerId],
         );
@@ -324,10 +323,24 @@ export const adminRepository = {
         const { rows } = await db.query<BookariaMarkerRow>(
             `UPDATE bookaria_markers SET is_active = $2 WHERE id = $1
              RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
-                       marker_score, is_active`,
+                       assessment, is_active`,
             [markerId, isActive],
         );
         return rows[0] as BookariaMarkerRow;
+    },
+
+    async setBookariaMarkerAssessment(
+        db: Queryable,
+        markerId: string,
+        assessment: BookariaMarkerAssessment,
+    ): Promise<BookariaMarkerRow | undefined> {
+        const { rows } = await db.query<BookariaMarkerRow>(
+            `UPDATE bookaria_markers SET assessment = $2::jsonb WHERE id = $1
+             RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
+                       assessment, is_active`,
+            [markerId, JSON.stringify(assessment)],
+        );
+        return rows[0];
     },
 
     async getJobs(db: Queryable, query: AdminJobsQuery, offset: number) {
