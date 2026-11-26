@@ -1,5 +1,11 @@
 import { Router } from 'express';
-import { getAuth, rateLimitMiddleware, requireAuth, requireTrustedOrigin } from '../../middlewares';
+import {
+    emailKeyGenerator,
+    getAuth,
+    rateLimitMiddleware,
+    requireAuth,
+    requireTrustedOrigin,
+} from '../../middlewares';
 import { LoginBodySchema } from '../../schema';
 import { HOUR, MINUTE } from './auth.constants';
 import { authController } from './auth.controller';
@@ -35,12 +41,7 @@ export const authRouter = (options: { rateLimit: boolean }) => {
         windowMs: HOUR,
         limit: 3,
         enabled,
-        key: (req) => {
-            const email = (req.body as { email?: unknown } | undefined)?.email;
-            return typeof email === 'string'
-                ? `forgot_email:${email.trim().toLowerCase()}`
-                : `ip:${req.ip ?? ''}`;
-        },
+        key: (req) => `forgot:${emailKeyGenerator(req)}`,
     });
     const refreshLimit = rateLimitMiddleware({
         windowMs: MINUTE,

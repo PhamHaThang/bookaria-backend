@@ -138,6 +138,21 @@ export const publicService = {
                     objectId: e.type === 'TAP' ? e.objectId : null,
                 });
             }
+            const hasOpen = events.some((e) => e.event === 'OPEN');
+            let newViews = 0;
+            if (hasOpen) {
+                if (batch.sessionId) {
+                    await publicRepository.lockViewSession(db, target.book_id, batch.sessionId);
+                    const alreadyOpened = await publicRepository.hasSessionOpened(
+                        db,
+                        target.book_id,
+                        batch.sessionId,
+                    );
+                    newViews = alreadyOpened ? 0 : 1;
+                } else {
+                    newViews = 1;
+                }
+            }
             await publicRepository.insertViewEvents(db, {
                 bookId: target.book_id,
                 versionId: target.version_id,
@@ -145,11 +160,7 @@ export const publicService = {
                 device: batch.device,
                 events,
             });
-            await publicRepository.addViewCount(
-                db,
-                target.book_id,
-                events.filter((e) => e.event === 'OPEN').length,
-            );
+            await publicRepository.addViewCount(db, target.book_id, newViews);
         });
     },
 

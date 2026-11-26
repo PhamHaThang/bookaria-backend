@@ -34,9 +34,18 @@ export const ASSET_MAX_BYTES: Record<AssetType, number> = {
 const hasExt = (fileName: string, ...exts: string[]) =>
     exts.some((e) => fileName.toLowerCase().endsWith(e));
 
+const MODEL_MIME_BY_EXT = {
+    glb: new Set(['model/gltf-binary', 'application/octet-stream', '']),
+    gltf: new Set(['model/gltf+json', 'application/json', '']),
+};
+const MIND_MIME = new Set(['application/octet-stream', '']);
+
 export function detectAssetType(mimeType: string, fileName: string): AssetType | null {
     const mime = mimeType.toLowerCase();
-    if (ASSET_MIME.MODEL.includes(mime) || hasExt(fileName, '.glb', '.gltf')) return 'MODEL';
+    // Enforce extension-to-MIME pairing for 3D models so HTML/SVG/image payloads cannot masquerade as .glb/.gltf.
+    if (hasExt(fileName, '.glb')) return MODEL_MIME_BY_EXT.glb.has(mime) ? 'MODEL' : null;
+    if (hasExt(fileName, '.gltf')) return MODEL_MIME_BY_EXT.gltf.has(mime) ? 'MODEL' : null;
+    if (ASSET_MIME.MODEL.includes(mime)) return null;
     for (const type of ['IMAGE', 'AUDIO', 'VIDEO'] as const) {
         if (ASSET_MIME[type].includes(mime)) return type;
     }
@@ -97,7 +106,12 @@ export function checkUploadRequest(req: {
                 'IMAGE',
             );
         case 'MARKER_MIND':
-            return sized(hasExt(req.fileName, '.mind'), 5 * MB, 'raw', null);
+            return sized(
+                hasExt(req.fileName, '.mind') && MIND_MIME.has(mime),
+                5 * MB,
+                'raw',
+                null,
+            );
     }
 }
 

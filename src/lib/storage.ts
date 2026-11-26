@@ -4,7 +4,12 @@ import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import sharp, { type Metadata } from 'sharp';
 import { z } from 'zod';
 import { env } from '../config';
-import type { AssetType, StorageResourceType, UploadPurpose } from '../schema';
+import {
+    ASSET_MAX_BYTES,
+    type AssetType,
+    type StorageResourceType,
+    type UploadPurpose,
+} from '../schema';
 import { AppError } from '../utils/api-error';
 import { renderImage } from './image-processing';
 import { probeMedia } from './media-processing';
@@ -30,6 +35,44 @@ export function allowedFormats(purpose: UploadPurpose, type: AssetType | null): 
 }
 export const normalizeFormat = (format: string) =>
     format.toLowerCase() === 'jpeg' ? 'jpg' : format.toLowerCase();
+
+function assertValidModelBytes(input: Buffer, format: 'glb' | 'gltf') {
+    const fail = () =>
+        new AppError(
+            'FILE_TYPE_NOT_ALLOWED',
+            'Mô hình 3D hỏng hoặc không đúng định dạng GLB/glTF 2.0.',
+        );
+    let jsonText: string;
+    if (format === 'glb') {
+        if (input.byteLength < 20) throw fail();
+        const view = new DataView(input.buffer, input.byteOffset, input.byteLength);
+        const magic = view.getUint32(0, true);
+        const version = view.getUint32(4, true);
+        const declaredLength = view.getUint32(8, true);
+        const chunk0Length = view.getUint32(12, true);
+        const chunk0Type = view.getUint32(16, true);
+        if (
+            magic !== 0x46546c67 ||
+            version !== 2 ||
+            declaredLength !== input.byteLength ||
+            chunk0Type !== 0x4e4f534a ||
+            chunk0Length > input.byteLength - 20
+        ) {
+            throw fail();
+        }
+        jsonText = input.subarray(20, 20 + chunk0Length).toString('utf8');
+    } else {
+        jsonText = input.toString('utf8');
+    }
+    try {
+        const parsed = JSON.parse(jsonText) as { asset?: { version?: unknown } } | null;
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw fail();
+        if (typeof parsed.asset?.version !== 'string') throw fail();
+    } catch {
+        throw fail();
+    }
+}
+
 export interface StoredFile {
     publicId: string;
     bytes: number;
@@ -342,7 +385,10 @@ export function createR2Storage(account: R2Account, network: typeof fetch = fetc
             let width: number | null = null,
                 height: number | null = null,
                 durationSec: number | null = null;
-            if (type === 'image' && !['glb', 'gltf'].includes(format)) {
+            if (type === 'image' && (format === 'glb' || format === 'gltf')) {
+                const input = await get(key, ASSET_MAX_BYTES.MODEL);
+                assertValidModelBytes(input, format);
+            } else if (type === 'image') {
                 const input = await get(key, 10 * 1024 * 1024);
                 let metadata: Metadata;
                 try {

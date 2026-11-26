@@ -41,7 +41,7 @@ export const assetsRouter = (options: { rateLimit: boolean }) => {
         windowMs: MINUTE,
         limit: UPLOAD_REQUEST_PER_MINUTE,
         enabled,
-        skipSuccessfulRequests: true,
+        key: (_req, res) => `upload:${getAuth(res).userId}`,
     });
     // [POST] /assets/upload-signature
     router.post('/upload-signature', uploadLimit, assetController.createUploadSignature);

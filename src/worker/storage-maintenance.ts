@@ -128,6 +128,70 @@ export async function purgeExpiredModelInput(
     });
 }
 
+/** Reclaims abandoned upload intents (`ASSET`, `PAGE_IMAGE`, `AVATAR`) and unreferenced expired `MARKER_MIND` files. */
+export async function purgeExpiredUploadIntent(
+    id: string,
+    storage: Pick<Storage, 'destroy'>,
+    signal: AbortSignal,
+) {
+    return withTransaction(async (db) => {
+        const {
+            rows: [intent],
+        } = await db.query<{
+            user_id: string;
+            purpose: string;
+            public_id: string;
+            resource_type: 'image' | 'video' | 'raw';
+        }>(
+            `SELECT user_id, purpose, public_id, resource_type
+             FROM upload_intents
+             WHERE asset_id = $1
+               AND purpose <> 'MODEL_INPUT'
+               AND completed_at IS NULL
+               AND expires_at < clock_timestamp() - interval '24 hours'
+             FOR UPDATE SKIP LOCKED`,
+            [id],
+        );
+        if (!intent) return false;
+
+        const baseKey = `${UPLOAD_FOLDER}/${intent.user_id}/${id}`;
+        const expectedKey = intent.purpose === 'MARKER_MIND' ? `${baseKey}.mind` : baseKey;
+        if (intent.public_id !== expectedKey) {
+            throw new Error('Tệp tải lên tạm nằm ngoài prefix R2 được quản lý.');
+        }
+
+        const encodedKey = encodeURIComponent(intent.public_id);
+        const {
+            rows: [ref],
+        } = await db.query<{ used: boolean }>(
+            `SELECT (
+                EXISTS (SELECT 1 FROM assets WHERE id = $1 OR original_public_id = $2) OR
+                EXISTS (SELECT 1 FROM pages WHERE marker_mind_public_id = $2) OR
+                EXISTS (SELECT 1 FROM bookaria_markers WHERE image_public_id = $2 OR mind_public_id = $2) OR
+                EXISTS (SELECT 1 FROM users WHERE strpos(avatar_url, $2) > 0 OR strpos(avatar_url, $3) > 0) OR
+                EXISTS (SELECT 1 FROM jobs j WHERE j.status IN ('QUEUED', 'RUNNING')
+                    AND ((j.ref_type = 'ASSET' AND j.ref_id = $1) OR strpos(j.payload::text, $2) > 0 OR strpos(j.payload::text, $3) > 0)) OR
+                EXISTS (SELECT 1 FROM preview_links p WHERE p.expires_at > clock_timestamp() - interval '1 hour'
+                    AND (strpos(p.manifest::text, $2) > 0 OR strpos(p.mind_groups::text, $2) > 0 OR strpos(p.manifest::text, $3) > 0)) OR
+                EXISTS (SELECT 1 FROM book_versions v
+                    WHERE strpos(v.mind_groups::text, $2) > 0 OR strpos(v.print_source::text, $2) > 0 OR v.manifest_public_id = $2)
+            ) AS used`,
+            [id, intent.public_id, encodedKey],
+        );
+        if (ref?.used) {
+            if (intent.purpose === 'MARKER_MIND') {
+                // Referenced .mind files remain owned by their pages/versions; clear stale intent tracking.
+                await db.query('DELETE FROM upload_intents WHERE asset_id = $1', [id]);
+            }
+            return false;
+        }
+
+        await storage.destroy(intent.resource_type, intent.public_id, signal);
+        await db.query('DELETE FROM upload_intents WHERE asset_id = $1', [id]);
+        return true;
+    });
+}
+
 export function startStorageMaintenance() {
     const controller = new AbortController();
     const storage = createR2Storage(r2Account());
@@ -170,6 +234,23 @@ export function startStorageMaintenance() {
                 } catch (err) {
                     signal.throwIfAborted();
                     logger.warn({ err, inputId: id }, 'Chưa dọn được ảnh tạm tạo 3D');
+                }
+            }
+            const staleIntents = await pool.query<{ id: string }>(
+                `SELECT asset_id AS id FROM upload_intents
+                 WHERE purpose <> 'MODEL_INPUT'
+                   AND completed_at IS NULL
+                   AND expires_at < clock_timestamp() - interval '24 hours'
+                 ORDER BY expires_at LIMIT $1`,
+                [BATCH],
+            );
+            for (const { id } of staleIntents.rows) {
+                signal.throwIfAborted();
+                try {
+                    await purgeExpiredUploadIntent(id, storage, signal);
+                } catch (err) {
+                    signal.throwIfAborted();
+                    logger.warn({ err, intentAssetId: id }, 'Chưa dọn được tệp tải lên chưa hoàn tất');
                 }
             }
         })()

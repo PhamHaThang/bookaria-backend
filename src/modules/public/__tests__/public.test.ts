@@ -516,16 +516,17 @@ suite('POST /public/events', () => {
         expect(Date.now() - e.created_at.getTime()).toBeLessThan(60_000);
     });
 
-    it('counts every OPEN as a view of the book', async () => {
+    it('counts at most one OPEN view per sessionId across retries and batches', async () => {
         const s = await shelve();
         const other = await shelve();
-        await send(
-            batch(s, [
-                { type: 'OPEN', at },
-                { type: 'OPEN', at },
-                { type: 'SCAN_TIMEOUT', at },
-            ]),
-        );
+        const firstBatch = batch(s, [
+            { type: 'OPEN', at },
+            { type: 'OPEN', at },
+            { type: 'SCAN_TIMEOUT', at },
+        ]);
+        await send(firstBatch);
+        await send({ ...firstBatch, events: [{ type: 'OPEN', at }] });
+        await send(batch(s, [{ type: 'OPEN', at }]));
         expect(
             (await row('SELECT view_count FROM books WHERE id = $1', [s.bookId])).view_count,
         ).toBe('2');

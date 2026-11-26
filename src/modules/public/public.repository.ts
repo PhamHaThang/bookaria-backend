@@ -164,6 +164,20 @@ export const publicRepository = {
         );
     },
 
+    async lockViewSession(db: Queryable, bookId: string, sessionId: string): Promise<void> {
+        await db.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+            `view:${bookId}:${sessionId}`,
+        ]);
+    },
+
+    async hasSessionOpened(db: Queryable, bookId: string, sessionId: string): Promise<boolean> {
+        const { rows } = await db.query(
+            `SELECT 1 FROM view_events WHERE book_id = $1 AND session_id = $2 AND event = 'OPEN' LIMIT 1`,
+            [bookId, sessionId],
+        );
+        return rows.length > 0;
+    },
+
     async addViewCount(db: Queryable, bookId: string, count: number): Promise<void> {
         if (count > 0) {
             await db.query(`UPDATE books SET view_count = view_count + $1 WHERE id = $2`, [

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { pool } from '../../db';
 import { createR2Storage, derivativeKey, derivativePrefix } from '../../lib/storage';
 import { account, fakeR2 } from '../../test/r2';
-import { purgeDeletedAsset } from '../storage-maintenance';
+import { purgeDeletedAsset, purgeExpiredUploadIntent } from '../storage-maintenance';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const signal = () => new AbortController().signal;
@@ -228,5 +228,45 @@ suite('R2 asset garbage collection', () => {
                     new URL((r as Request).url).pathname.endsWith(f.key),
             ),
         ).toHaveLength(1);
+    });
+    it('purges expired uncompleted upload intents and unreferenced MARKER_MIND blobs while keeping referenced .mind files', async () => {
+        const f = await fixture();
+        const orphanId = randomUUID();
+        const orphanMindId = randomUUID();
+        const usedMindId = randomUUID();
+        const orphanKey = `bookaria/${f.owner}/${orphanId}`;
+        const orphanMindKey = `bookaria/${f.owner}/${orphanMindId}.mind`;
+        const usedMindKey = `bookaria/${f.owner}/${usedMindId}.mind`;
+        const bin = { bytes: new Uint8Array(8), type: 'application/octet-stream', format: 'bin' };
+        f.fake.files.set(orphanKey, bin);
+        f.fake.files.set(orphanMindKey, bin);
+        f.fake.files.set(usedMindKey, bin);
+        await pool.query(
+            `INSERT INTO upload_intents(asset_id, user_id, purpose, public_id, resource_type, file_name, mime_type, size_bytes, expires_at)
+             VALUES ($1, $4, 'ASSET', $5, 'image', 'a.png', 'image/png', 8, clock_timestamp() - interval '25 hours'),
+                    ($2, $4, 'MARKER_MIND', $6, 'raw', 'u.mind', 'application/octet-stream', 8, clock_timestamp() - interval '25 hours'),
+                    ($3, $4, 'MARKER_MIND', $7, 'raw', 'k.mind', 'application/octet-stream', 8, clock_timestamp() - interval '25 hours')`,
+            [orphanId, orphanMindId, usedMindId, f.owner, orphanKey, orphanMindKey, usedMindKey],
+        );
+        await pool.query(
+            `INSERT INTO pages(book_id, order_index, image_asset_id, marker_mode, marker_mind_public_id)
+             VALUES ($1, 0, $2, 'CUSTOM_MARKER', $3)`,
+            [f.book, f.id, usedMindKey],
+        );
+
+        expect(await purgeExpiredUploadIntent(orphanId, f.storage, signal())).toBe(true);
+        expect(await purgeExpiredUploadIntent(orphanMindId, f.storage, signal())).toBe(true);
+        expect(await purgeExpiredUploadIntent(usedMindId, f.storage, signal())).toBe(false);
+
+        expect(f.fake.files.has(orphanKey)).toBe(false);
+        expect(f.fake.files.has(orphanMindKey)).toBe(false);
+        expect(f.fake.files.has(usedMindKey)).toBe(true);
+        expect(
+            (
+                await pool.query('SELECT asset_id FROM upload_intents WHERE asset_id = ANY($1::uuid[])', [
+                    [orphanId, orphanMindId, usedMindId],
+                ])
+            ).rows,
+        ).toHaveLength(0);
     });
 });

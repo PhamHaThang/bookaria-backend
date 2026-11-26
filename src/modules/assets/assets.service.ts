@@ -28,6 +28,7 @@ import {
     type PaginationMeta,
     type StorageResourceType,
     type UpdateAssetBody,
+    type UploadPurpose,
     type UploadSignature,
     type UploadSignatureBody,
     UploadSignatureSchema,
@@ -101,12 +102,14 @@ export const assetsService = {
             body.purpose === 'MODEL_INPUT'
                 ? `${UPLOAD_FOLDER}/model-inputs/${userId}/${assetId}`
                 : `${UPLOAD_FOLDER}/${userId}/${assetId}${extension}`;
+        const format = normalizeFormat(body.fileName.split('.').at(-1) ?? '');
+        const contentType = canonicalContentType(body.purpose, check.assetType, format, body.mimeType);
         const signed = await storage.signUpload({
             publicId,
             resourceType: check.resourceType,
             allowedFormats: allowedFormats(body.purpose, check.assetType),
-            contentType: body.mimeType || 'application/octet-stream',
-            format: normalizeFormat(body.fileName.split('.').at(-1) ?? ''),
+            contentType,
+            format,
             sizeBytes: body.sizeBytes,
         });
 
@@ -447,6 +450,17 @@ async function discard(storage: MediaStorage, uploadIntent: UploadIntentRow) {
         );
     }
 }
+function canonicalContentType(
+    purpose: UploadPurpose,
+    assetType: AssetType | null,
+    format: string,
+    mimeType: string,
+): string {
+    if (purpose === 'MARKER_MIND') return 'application/octet-stream';
+    if (assetType === 'MODEL') return format === 'gltf' ? 'model/gltf+json' : 'model/gltf-binary';
+    return mimeType || 'application/octet-stream';
+}
+
 // Kiểm tra lại yêu cầu upload
 function recheckUploadRequest(
     uploadIntent: UploadIntentRow,

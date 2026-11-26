@@ -315,7 +315,10 @@ suite('auth (tích hợp)', () => {
         it('xoay vòng refresh token, cấp access token mới', async () => {
             const { email } = await register();
             const first = cookieOf(await login(email)) as string;
-            const res = await withCookie(request(app).post('/api/v1/auth/refresh'), first);
+            const res = await withCookie(request(app).post('/api/v1/auth/refresh'), first).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(res.status).toBe(200);
             expect(res.body.data.accessToken).toEqual(expect.any(String));
             const second = cookieOf(res);
@@ -324,7 +327,9 @@ suite('auth (tích hợp)', () => {
         });
 
         it('không có cookie -> 401', async () => {
-            const res = await request(app).post('/api/v1/auth/refresh');
+            const res = await request(app)
+                .post('/api/v1/auth/refresh')
+                .set('Origin', 'http://localhost:5173');
             expect(res.status).toBe(401);
             expect(res.body.error.code).toBe('UNAUTHENTICATED');
         });
@@ -332,15 +337,24 @@ suite('auth (tích hợp)', () => {
         it('dùng lại token cũ trong thời gian ân hạn thì cho qua (hai tab refresh cùng lúc)', async () => {
             const { email } = await register();
             const first = cookieOf(await login(email)) as string;
-            await withCookie(request(app).post('/api/v1/auth/refresh'), first);
-            const replay = await withCookie(request(app).post('/api/v1/auth/refresh'), first);
+            await withCookie(request(app).post('/api/v1/auth/refresh'), first).set(
+                'Origin',
+                'http://localhost:5173',
+            );
+            const replay = await withCookie(request(app).post('/api/v1/auth/refresh'), first).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(replay.status).toBe(200);
         });
 
         it('dùng lại token cũ sau thời gian ân hạn -> coi là bị đánh cắp, thu hồi cả phiên', async () => {
             const { email } = await register();
             const first = cookieOf(await login(email)) as string;
-            const rotated = await withCookie(request(app).post('/api/v1/auth/refresh'), first);
+            const rotated = await withCookie(request(app).post('/api/v1/auth/refresh'), first).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             const second = cookieOf(rotated) as string;
 
             await pool.query(
@@ -348,14 +362,20 @@ suite('auth (tích hợp)', () => {
                   WHERE user_id = (SELECT id FROM users WHERE email = $1)`,
                 [email],
             );
-            const replay = await withCookie(request(app).post('/api/v1/auth/refresh'), first);
+            const replay = await withCookie(request(app).post('/api/v1/auth/refresh'), first).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(replay.status).toBe(401);
 
-            const legit = await withCookie(request(app).post('/api/v1/auth/refresh'), second);
+            const legit = await withCookie(request(app).post('/api/v1/auth/refresh'), second).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(legit.status).toBe(401);
         });
 
-        it('Origin lạ -> 403 FORBIDDEN, Origin hợp lệ hoặc không có Origin thì qua', async () => {
+        it('Origin lạ hoặc thiếu Origin -> 403 FORBIDDEN; Origin hợp lệ hoặc Sec-Fetch-Site: same-origin thì qua', async () => {
             const { email } = await register();
             const cookie = cookieOf(await login(email)) as string;
 
@@ -366,10 +386,23 @@ suite('auth (tích hợp)', () => {
             expect(evil.status).toBe(403);
             expect(evil.body.error.code).toBe('FORBIDDEN');
 
-            const good = await withCookie(request(app).post('/api/v1/auth/refresh'), cookie).set(
-                'Origin',
-                'http://localhost:5173',
+            const missingOrigin = await withCookie(
+                request(app).post('/api/v1/auth/refresh'),
+                cookie,
             );
+            expect(missingOrigin.status).toBe(403);
+            expect(missingOrigin.body.error.code).toBe('FORBIDDEN');
+
+            const sameOrigin = await withCookie(request(app).post('/api/v1/auth/refresh'), cookie).set(
+                'Sec-Fetch-Site',
+                'same-origin',
+            );
+            expect(sameOrigin.status).toBe(200);
+
+            const good = await withCookie(
+                request(app).post('/api/v1/auth/refresh'),
+                cookieOf(sameOrigin) as string,
+            ).set('Origin', 'http://localhost:5173');
             expect(good.status).toBe(200);
         });
     });
@@ -379,17 +412,32 @@ suite('auth (tích hợp)', () => {
             const { email } = await register();
             const cookie = cookieOf(await login(email)) as string;
 
-            const out = await withCookie(request(app).post('/api/v1/auth/logout'), cookie);
+            const out = await withCookie(request(app).post('/api/v1/auth/logout'), cookie).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(out.status).toBe(204);
             expect(rawSetCookie(out)).toMatch(new RegExp(`${REFRESH_TOKEN_COOKIE_NAME}=;`));
 
-            const after = await withCookie(request(app).post('/api/v1/auth/refresh'), cookie);
+            const after = await withCookie(request(app).post('/api/v1/auth/refresh'), cookie).set(
+                'Origin',
+                'http://localhost:5173',
+            );
             expect(after.status).toBe(401);
         });
 
         it('idempotent: không có cookie hoặc cookie sai vẫn 204', async () => {
-            expect((await request(app).post('/api/v1/auth/logout')).status).toBe(204);
-            const junk = await withCookie(request(app).post('/api/v1/auth/logout'), 'khong-hop-le');
+            expect(
+                (
+                    await request(app)
+                        .post('/api/v1/auth/logout')
+                        .set('Origin', 'http://localhost:5173')
+                ).status,
+            ).toBe(204);
+            const junk = await withCookie(
+                request(app).post('/api/v1/auth/logout'),
+                'khong-hop-le',
+            ).set('Origin', 'http://localhost:5173');
             expect(junk.status).toBe(204);
         });
     });
@@ -426,7 +474,7 @@ suite('auth (tích hợp)', () => {
             const oldSession = await withCookie(
                 request(app).post('/api/v1/auth/refresh'),
                 liveCookie,
-            );
+            ).set('Origin', 'http://localhost:5173');
             expect(oldSession.status).toBe(401);
             expect((await login(email, PASSWORD)).status).toBe(401);
             expect((await login(email, 'Matkhau-moi-456')).status).toBe(200);

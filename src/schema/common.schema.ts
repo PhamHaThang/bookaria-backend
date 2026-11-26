@@ -10,9 +10,21 @@ export const IdSchema = z.uuid();
 /** ISO 8601 timestamp in UTC, e.g. `2026-10-04T07:30:00Z`. */
 export const IsoDateTimeSchema = z.iso.datetime();
 
-/** Only http(s) links: never allow `javascript:` or `data:` URLs. */
+/** Only http(s) links: never allow `javascript:`, `data:` or embedded `user:pass@` credentials. */
 // HTTP(S) may use a LAN IP or localhost during device testing, not only DNS domains.
-export const HttpUrlSchema = z.url({ protocol: /^https?$/ });
+export const HttpUrlSchema = z.url({ protocol: /^https?$/ }).refine(
+    (value) => {
+        try {
+            const parsed = new URL(value);
+            if (parsed.username || parsed.password) return false;
+            const authority = value.slice(parsed.protocol.length + 2).split(/[/?#]/, 1)[0] ?? '';
+            return !authority.includes('@');
+        } catch {
+            return false;
+        }
+    },
+    { error: 'Liên kết không được chứa thông tin đăng nhập nhúng' },
+);
 
 /** Id of an object or rule inside a scene (not a database id) */
 export const SceneIdSchema = z.string().regex(/^[A-Za-z0-9_-]{1,50}$/, {
