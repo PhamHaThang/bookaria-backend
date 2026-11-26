@@ -103,7 +103,12 @@ export const assetsService = {
                 ? `${UPLOAD_FOLDER}/model-inputs/${userId}/${assetId}`
                 : `${UPLOAD_FOLDER}/${userId}/${assetId}${extension}`;
         const format = normalizeFormat(body.fileName.split('.').at(-1) ?? '');
-        const contentType = canonicalContentType(body.purpose, check.assetType, format, body.mimeType);
+        const contentType = canonicalContentType(
+            body.purpose,
+            check.assetType,
+            format,
+            body.mimeType,
+        );
         const signed = await storage.signUpload({
             publicId,
             resourceType: check.resourceType,

@@ -1,10 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { Document, NodeIO } from '@gltf-transform/core';
 import { encode } from '@msgpack/msgpack';
-import express from 'express';
-import sharp from 'sharp';
 import request from 'supertest';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createApp } from '../../app';
 import { corsOrigins } from '../../config';
 import { pool } from '../../db';
@@ -24,10 +22,10 @@ import { REFRESH_TOKEN_COOKIE_NAME } from '../../modules/auth/auth.constants';
 import { validateCandidate } from '../../modules/interaction-ai/generation';
 import { ModelStream } from '../../modules/model-generation/runpod';
 import { HttpUrlSchema, SceneSchema } from '../../schema';
-import { decodeSingleMind } from '../../worker/publish/mind';
 import { optimizeModel } from '../../worker/optimize/model';
-import { renderPrintPdf } from '../../worker/print/render';
 import { readFont, sampleImages, sampleSource } from '../../worker/print/__tests__/fixtures';
+import { renderPrintPdf } from '../../worker/print/render';
+import { decodeSingleMind } from '../../worker/publish/mind';
 import { verifyFixtureEmail } from '../verified-author';
 
 const dbSuite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
@@ -74,10 +72,7 @@ describe('Security Verification — Worker, Schemas & Storage Guards (Offline)',
         const signal = new AbortController().signal;
 
         // 1. glTF JSON with external metadata / file URI
-        for (const uri of [
-            'http://169.254.169.254/latest/meta-data/',
-            'file:///etc/passwd',
-        ]) {
+        for (const uri of ['http://169.254.169.254/latest/meta-data/', 'file:///etc/passwd']) {
             const gltfJson = Buffer.from(
                 JSON.stringify({
                     asset: { version: '2.0' },
@@ -142,7 +137,9 @@ describe('Security Verification — Worker, Schemas & Storage Guards (Offline)',
     });
 
     it('SEC-WK-03: probeMedia rejects fake video payloads and renderPrintPdf enforces glyph & QR limits', async () => {
-        await expect(probeMedia(Buffer.from('#EXTM3U\nhttp://127.0.0.1/secret'))).rejects.toMatchObject({
+        await expect(
+            probeMedia(Buffer.from('#EXTM3U\nhttp://127.0.0.1/secret')),
+        ).rejects.toMatchObject({
             code: 'FILE_TYPE_NOT_ALLOWED',
         });
 
@@ -334,7 +331,9 @@ describe('Security Verification — Worker, Schemas & Storage Guards (Offline)',
     });
 
     it('SEC-VW-02b [GAP CHECK]: HttpUrlSchema should reject embedded username@password credentials in openUrl/buttonUrl', () => {
-        expect(HttpUrlSchema.safeParse('https://trusted.com@evil.example/login').success).toBe(false);
+        expect(HttpUrlSchema.safeParse('https://trusted.com@evil.example/login').success).toBe(
+            false,
+        );
     });
 });
 
@@ -348,7 +347,7 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
         async prepareImage(publicId, transform) {
             return this.deliveryUrl({ resourceType: 'image', publicId, transform });
         },
-        signUpload: ({ publicId, resourceType, contentType, format }) => ({
+        signUpload: ({ publicId, contentType, format }) => ({
             uploadUrl: `https://fake.r2.cloudflarestorage.com/${publicId}`,
             method: 'PUT',
             objectKey: publicId,
@@ -425,12 +424,14 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
              VALUES ($1, 'IMAGE', 'Ảnh riêng', $2, 'image', 'png', 1024, 'READY', '{}') RETURNING id`,
             [ownerId, `bookaria/${ownerId}/${randomUUID()}`],
         );
-        const assetId = asset.rows[0]!.id;
+        const assetId = asset.rows[0]?.id;
+        if (!assetId) throw new Error('Expected a private asset fixture');
         const book = await pool.query<{ id: string }>(
             `INSERT INTO books (owner_id, title, visibility) VALUES ($1, 'Sách bí mật', 'PRIVATE') RETURNING id`,
             [ownerId],
         );
-        const bookId = book.rows[0]!.id;
+        const bookId = book.rows[0]?.id;
+        if (!bookId) throw new Error('Expected a private book fixture');
         const page = await pool.query<{ id: string }>(
             `INSERT INTO pages (book_id, order_index, image_asset_id, marker_mode) VALUES ($1, 0, $2, 'NONE') RETURNING id`,
             [bookId, assetId],
@@ -439,12 +440,10 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
             `INSERT INTO jobs (type, ref_type, ref_id, created_by) VALUES ('OPTIMIZE_ASSET', 'ASSET', $1, $2) RETURNING id`,
             [assetId, ownerId],
         );
-        return {
-            assetId,
-            bookId,
-            pageId: page.rows[0]!.id,
-            jobId: job.rows[0]!.id,
-        };
+        const pageId = page.rows[0]?.id;
+        const jobId = job.rows[0]?.id;
+        if (!pageId || !jobId) throw new Error('Expected private page and job fixtures');
+        return { assetId, bookId, pageId, jobId };
     }
 
     it('SEC-BE-01: Author B cannot read/modify/delete/preview/export Author A PRIVATE book, page, or job (404)', async () => {
@@ -554,9 +553,7 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
                 .post(`/api/v1/admin/books/${owned.bookId}/takedown`)
                 .set(bearer(author.token))
                 .send({ reason: 'test' }),
-            request(app)
-                .post(`/api/v1/admin/jobs/${owned.jobId}/retry`)
-                .set(bearer(author.token)),
+            request(app).post(`/api/v1/admin/jobs/${owned.jobId}/retry`).set(bearer(author.token)),
             request(app).get('/api/v1/admin/audit-logs').set(bearer(author.token)),
             request(app)
                 .post('/api/v1/admin/bookaria-markers/upload-signature')
@@ -654,7 +651,9 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
             .send({ status: 'LOCKED', reason: 'Vi phạm' });
         expect(lockRes.status).toBe(200);
 
-        expect((await request(app).get('/api/v1/me').set(bearer(gLogin.body.data.accessToken))).status).toBe(423);
+        expect(
+            (await request(app).get('/api/v1/me').set(bearer(gLogin.body.data.accessToken))).status,
+        ).toBe(423);
         const refreshLocked = await request(app)
             .post('/api/v1/auth/refresh')
             .set('Origin', corsOrigins[0] ?? 'http://localhost:5173')
@@ -741,9 +740,7 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
         expect(wildcardSearch.status).toBe(200);
         expect(wildcardSearch.body.data).toHaveLength(0);
 
-        const badUuid = await request(app)
-            .get('/api/v1/books/not-a-uuid')
-            .set(bearer(a.token));
+        const badUuid = await request(app).get('/api/v1/books/not-a-uuid').set(bearer(a.token));
         expect([400, 404]).toContain(badUuid.status);
 
         const traversalSig = await request(app)
@@ -846,41 +843,43 @@ dbSuite('Security Verification — Backend API, Auth, RBAC, IDOR & Rate Limit (L
     it('SEC-VW-06 [GAP CHECK]: POST /public/events should deduplicate multiple OPEN events within the same sessionId', async () => {
         const a = await createAuthor('events');
         const owned = await seedBookWithPageAndAsset(a.userId);
-        const versionId = randomUUID();
-        await pool.query(
-            `INSERT INTO book_versions (id, book_id, version_no, schema_version, manifest_public_id, mind_groups, page_count, ar_page_count, total_size_bytes)
-             VALUES ($1, $2, 1, 1, 'bookaria/m.json', '[]'::jsonb, 1, 0, 100)`,
-            [versionId, owned.bookId],
-        );
-        await pool.query(
-            `UPDATE books SET status='PUBLISHED', visibility='PUBLIC', slug=$2, current_version_id=$3 WHERE id=$1`,
-            [owned.bookId, `evt-${Date.now().toString(36)}`, versionId],
-        );
+        try {
+            const versionId = randomUUID();
+            await pool.query(
+                `INSERT INTO book_versions (id, book_id, version_no, schema_version, manifest_public_id, mind_groups, page_count, ar_page_count, total_size_bytes)
+                 VALUES ($1, $2, 1, 1, 'bookaria/m.json', '[]'::jsonb, 1, 0, 100)`,
+                [versionId, owned.bookId],
+            );
+            await pool.query(
+                `UPDATE books SET status='PUBLISHED', visibility='PUBLIC', slug=$2, current_version_id=$3 WHERE id=$1`,
+                [owned.bookId, `evt-${Date.now().toString(36)}`, versionId],
+            );
 
-        const sessionId = randomUUID();
-        const nowIso = new Date().toISOString();
-        const res = await request(app)
-            .post('/api/v1/public/events')
-            .send({
-                sessionId,
-                bookVersionId: versionId,
-                device: { type: 'desktop', os: 'Linux', browser: 'Chrome' },
-                events: Array.from({ length: 10 }, () => ({ type: 'OPEN', at: nowIso })),
-            });
-        expect(res.status).toBe(202);
+            const sessionId = randomUUID();
+            const nowIso = new Date().toISOString();
+            const res = await request(app)
+                .post('/api/v1/public/events')
+                .send({
+                    sessionId,
+                    bookVersionId: versionId,
+                    device: { type: 'desktop', os: 'Linux', browser: 'Chrome' },
+                    events: Array.from({ length: 10 }, () => ({ type: 'OPEN', at: nowIso })),
+                });
+            expect(res.status).toBe(202);
 
-        const { rows } = await pool.query<{ view_count: number }>(
-            'SELECT view_count FROM books WHERE id = $1',
-            [owned.bookId],
-        );
-        expect(rows[0]?.view_count).toBe('1');
+            const { rows } = await pool.query<{ view_count: number }>(
+                'SELECT view_count FROM books WHERE id = $1',
+                [owned.bookId],
+            );
+            expect(rows[0]?.view_count).toBe('1');
+        } finally {
+            await pool.query('DELETE FROM books WHERE id = $1', [owned.bookId]);
+        }
     });
 
     it('SEC-E2E-02 & SEC-WK-06: CORS rejects untrusted origins, Helmet hides X-Powered-By, and errors never leak stack traces', async () => {
         const trustedOrigin = corsOrigins[0] ?? 'http://localhost:5173';
-        const allowed = await request(app)
-            .get('/api/v1/public/books')
-            .set('Origin', trustedOrigin);
+        const allowed = await request(app).get('/api/v1/public/books').set('Origin', trustedOrigin);
         expect(allowed.status).toBe(200);
         expect(allowed.headers['access-control-allow-origin']).toBe(trustedOrigin);
         expect(allowed.headers['access-control-allow-credentials']).toBe('true');
