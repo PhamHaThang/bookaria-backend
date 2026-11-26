@@ -17,7 +17,7 @@ export function analyzeCompiledMarker(
         signal.throwIfAborted();
         throw new JobError(
             'INVALID_MIND',
-            'Dữ liệu đặc trưng MindAR không hợp lệ. Hãy biên dịch lại ảnh.',
+            'Dữ liệu phân tích ảnh không hợp lệ. Hãy chọn lại ảnh marker rồi thử lại.',
         );
     }
 }

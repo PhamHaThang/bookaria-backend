@@ -41,7 +41,7 @@ export function decodeSingleMind(bytes: Uint8Array): MindTarget {
     } catch {
         throw new JobError(
             'INVALID_MIND',
-            'Cần .mind MessagePack v2, đúng một target, có matchingData/trackingData. Hãy biên dịch lại bằng MindAR 1.2.5.',
+            'Dữ liệu nhận diện ảnh không đúng định dạng. Hãy chọn lại ảnh marker rồi thử lại.',
         );
     }
 }

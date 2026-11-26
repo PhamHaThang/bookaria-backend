@@ -30,7 +30,10 @@ describe('MindAR 1.2.5 MessagePack packaging', () => {
     it('does not register corrupt or stale bytes as a usable marker', () => {
         const seen = new Set<string>();
         expect(() => readPublicationMind(Buffer.from('broken'), undefined, seen)).toThrow(
-            /biên dịch lại/,
+            expect.objectContaining({
+                code: 'INVALID_MIND',
+                message: expect.stringContaining('Hãy chọn lại ảnh marker'),
+            }),
         );
         expect(() => readPublicationMind(real, '0'.repeat(64), seen)).toThrow();
         expect(seen.size).toBe(0);
@@ -47,7 +50,9 @@ describe('MindAR 1.2.5 MessagePack packaging', () => {
         const output = encodeGroup([first, second]);
         expect(decode(output)).toEqual({ v: 2, dataList: [first, second] });
         expect(gunzipSync(compressGroup(output))).toEqual(output);
-        expect(() => decodeSingleMind(output)).toThrow(/một target/);
+        expect(() => decodeSingleMind(output)).toThrow(
+            expect.objectContaining({ code: 'INVALID_MIND' }),
+        );
     });
     it.each([0, 11])('rejects %i targets in a group', (count) => {
         expect(() =>
