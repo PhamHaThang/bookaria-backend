@@ -108,6 +108,7 @@ export interface ModerationBookRow {
 
 export interface ModerationPageRow {
     marker_report: unknown;
+    page_aspect: number;
     id: string;
     order_index: number;
     title: string | null;
@@ -120,6 +121,9 @@ export interface ModerationPageRow {
 
 export interface ModerationReportRow {
     id: string;
+    page_id: string | null;
+    book_version_id: string | null;
+    version_no: number | null;
     reason: ReportReason;
     note: string | null;
     status: ReportStatus;

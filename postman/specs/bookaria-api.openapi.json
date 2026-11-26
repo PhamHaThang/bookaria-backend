@@ -17928,6 +17928,10 @@
                                         "type": "string",
                                         "maxLength": 1000
                                     },
+                                    "versionId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
                                     "pageId": {
                                         "type": "string",
                                         "format": "uuid"
@@ -19772,6 +19776,23 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "name": "preview",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": ["current", "reported"]
+                                },
+                                {
+                                    "type": "string",
+                                    "format": "uuid"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -19915,6 +19936,11 @@
                                                                         "type": "integer",
                                                                         "minimum": 0,
                                                                         "maximum": 9007199254740991
+                                                                    },
+                                                                    "aspect": {
+                                                                        "type": "number",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true
                                                                     }
                                                                 },
                                                                 "required": [
@@ -19953,6 +19979,29 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "pageId": {
+                                                                "nullable": true,
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "version": {
+                                                                "nullable": true,
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "number": {
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true,
+                                                                        "maximum": 9007199254740991
+                                                                    }
+                                                                },
+                                                                "required": ["id", "number"],
+                                                                "additionalProperties": false
+                                                            },
                                                             "id": {
                                                                 "type": "string",
                                                                 "format": "uuid"
@@ -19999,6 +20048,50 @@
                                                         ],
                                                         "additionalProperties": false
                                                     }
+                                                },
+                                                "preview": {
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "source": {
+                                                                    "type": "string",
+                                                                    "enum": ["draft"]
+                                                                }
+                                                            },
+                                                            "required": ["source"],
+                                                            "additionalProperties": false
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "source": {
+                                                                    "type": "string",
+                                                                    "enum": ["published"]
+                                                                },
+                                                                "versionId": {
+                                                                    "type": "string",
+                                                                    "format": "uuid"
+                                                                },
+                                                                "versionNo": {
+                                                                    "type": "integer",
+                                                                    "minimum": 0,
+                                                                    "exclusiveMinimum": true,
+                                                                    "maximum": 9007199254740991
+                                                                },
+                                                                "isCurrent": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "source",
+                                                                "versionId",
+                                                                "versionNo",
+                                                                "isCurrent"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    ]
                                                 }
                                             },
                                             "required": ["book", "reports"],

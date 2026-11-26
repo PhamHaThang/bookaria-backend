@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
     AdminBookDetailSchema,
     AdminBookItemSchema,
+    AdminBookPreviewQuerySchema,
     AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
     AdminDashboardSchema,
@@ -1053,6 +1054,7 @@ export const routes: Route[] = [
         access: 'admin',
         summary: 'Xem sách (chỉ đọc) và các báo cáo',
         params: params.bookId,
+        query: AdminBookPreviewQuerySchema,
         responses: { 200: dataResponse(AdminBookDetailSchema) },
         errors: ['NOT_FOUND'],
     },

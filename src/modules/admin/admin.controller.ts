@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { getAuth } from '../../middlewares';
 import {
+    AdminBookPreviewQuerySchema,
     AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
     AdminJobsQuerySchema,
@@ -83,7 +84,8 @@ export const adminController = {
     }),
 
     getModerationBook: asyncHandler(async (req: Request, res: Response) => {
-        res.json({ data: await adminService.getModerationBook(bookIdOf(req.params)) });
+        const { preview } = AdminBookPreviewQuerySchema.parse(req.query);
+        res.json({ data: await adminService.getModerationBook(bookIdOf(req.params), preview) });
     }),
 
     takeDownBook: asyncHandler(async (req: Request, res: Response) => {

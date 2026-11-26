@@ -9,6 +9,18 @@ import type {
 } from './publish.types';
 
 export const publishRepository = {
+    async findManifestVersion(db: Queryable, bookId: string, versionId: string) {
+        const { rows } = await db.query<{
+            id: string;
+            version_no: number;
+            manifest_public_id: string;
+        }>(
+            `SELECT id, version_no, manifest_public_id FROM book_versions
+             WHERE book_id = $1 AND id = $2`,
+            [bookId, versionId],
+        );
+        return rows[0];
+    },
     // Lấy sách của tác giả để kiểm tra xem sách có thể xuất bản hay không
     async findBookForPublishing(
         db: Queryable,

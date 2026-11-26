@@ -570,9 +570,9 @@ export const adminRepository = {
     async findModerationBook(
         db: Queryable,
         bookId: string,
-    ): Promise<ModerationBookRow | undefined> {
-        const { rows } = await db.query<ModerationBookRow>(
-            `SELECT ${MODERATION_BOOK_COLUMNS}
+    ): Promise<(ModerationBookRow & { current_version_id: string | null }) | undefined> {
+        const { rows } = await db.query<ModerationBookRow & { current_version_id: string | null }>(
+            `SELECT ${MODERATION_BOOK_COLUMNS}, b.current_version_id
              FROM books b ${MODERATION_BOOK_JOINS}
              WHERE b.id = $1 AND b.deleted_at IS NULL`,
             [bookId],
@@ -583,9 +583,11 @@ export const adminRepository = {
     async getModerationPages(db: Queryable, bookId: string): Promise<ModerationPageRow[]> {
         const { rows } = await db.query<ModerationPageRow>(
             `SELECT p.id, p.order_index, p.title, image.thumbnail_url,
+                    b.page_aspect::float AS page_aspect,
                     p.marker_mode, marker.number AS marker_number, p.marker_score, p.marker_report,
                     jsonb_array_length(coalesce(p.scene->'objects', '[]'::jsonb))::int AS object_count
              FROM pages p
+             JOIN books b ON b.id = p.book_id
              JOIN assets image ON image.id = p.image_asset_id
              LEFT JOIN bookaria_markers marker ON marker.id = p.bookaria_marker_id
              WHERE p.book_id = $1
@@ -597,8 +599,10 @@ export const adminRepository = {
 
     async getBookReports(db: Queryable, bookId: string): Promise<ModerationReportRow[]> {
         const { rows } = await db.query<ModerationReportRow>(
-            `SELECT id, reason, note, status, created_at, handled_at
-             FROM reports WHERE book_id = $1 ORDER BY created_at DESC, id`,
+            `SELECT r.id, r.reason, r.note, r.status, r.created_at, r.handled_at,
+                    coalesce(r.reported_page_id, r.page_id) AS page_id, r.book_version_id, v.version_no
+             FROM reports r LEFT JOIN book_versions v ON v.id = r.book_version_id
+             WHERE r.book_id = $1 ORDER BY r.created_at DESC, r.id`,
             [bookId],
         );
         return rows;
