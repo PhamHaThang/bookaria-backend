@@ -32,8 +32,11 @@ COPY package.json pnpm-lock.yaml ./
 # Cài đặt dependencies
 RUN pnpm install --frozen-lockfile
 
+# Thiết lập đường dẫn cố định để Playwright lưu và tìm Chromium ở mọi user runtime
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 # Cài đặt Chromium binary cho Playwright
-RUN pnpm exec playwright install chromium
+RUN pnpm exec playwright install chromium && chmod -R 777 /ms-playwright
 
 # Copy toàn bộ mã nguồn
 COPY . .
