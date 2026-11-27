@@ -6,6 +6,7 @@ import { encode } from '@msgpack/msgpack';
 import sharp from 'sharp';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { MediaStorage, StoredFile } from '../../lib/storage';
+import type { BookariaMarkerAssessment } from '../../schema/dto.schema';
 import { pool } from '..';
 import {
     ensureMarkerSeedFile,
@@ -15,6 +16,15 @@ import {
 } from '../seed-markers';
 
 const hash = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+const seedAssessment: BookariaMarkerAssessment = {
+    policyVersion: 'mindar-pictarize-v1',
+    distribution: 0.7,
+    uniqueness: 0.9,
+    dimension: 0.5,
+    sourceWidth: 128,
+    sourceHeight: 128,
+    assessedAt: '2026-11-26T07:00:00.000Z',
+};
 let directory = '',
     markers: MarkerSeed[] = [];
 let manifest: {
@@ -27,6 +37,7 @@ let manifest: {
         sha256: string;
         mindSha256: string;
         markerScore: number;
+        assessment?: BookariaMarkerAssessment;
     }[];
 };
 beforeAll(async () => {
@@ -62,6 +73,7 @@ beforeAll(async () => {
             sha256: hash(image),
             mindSha256: hash(mind),
             markerScore: 5,
+            ...(i === 1 ? { assessment: seedAssessment } : {}),
         });
     }
     manifest = { version: 1, count: 2, markers: entries };
@@ -128,6 +140,7 @@ describe('marker seed files', () => {
         expect(await loadMarkerSeedSet(directory)).toEqual(markers);
         expect(markers.every((marker) => !('markerScore' in marker))).toBe(true);
         expect(markers[0]?.image.publicId).toContain(manifest.markers[0]?.sha256);
+        expect(markers[0]?.assessment).toEqual(seedAssessment);
         const bad = {
             ...manifest,
             markers: manifest.markers.map((m, i) => (i ? m : { ...m, sha256: '0'.repeat(64) })),
@@ -145,6 +158,22 @@ describe('marker seed files', () => {
         await writeFile(join(directory, 'manifest.json'), JSON.stringify(escaped));
         try {
             await expect(loadMarkerSeedSet(directory)).rejects.toThrow('ngoài bộ marker');
+        } finally {
+            await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest));
+        }
+    });
+    it('rejects assessments that describe different image dimensions', async () => {
+        const mismatch = {
+            ...manifest,
+            markers: manifest.markers.map((marker) =>
+                marker.assessment
+                    ? { ...marker, assessment: { ...marker.assessment, sourceWidth: 256 } }
+                    : marker,
+            ),
+        };
+        await writeFile(join(directory, 'manifest.json'), JSON.stringify(mismatch));
+        try {
+            await expect(loadMarkerSeedSet(directory)).rejects.toThrow('không khớp ảnh gốc');
         } finally {
             await writeFile(join(directory, 'manifest.json'), JSON.stringify(manifest));
         }
@@ -200,7 +229,7 @@ dbSuite('marker seed database integration', () => {
             markers.map((m) => m.image.publicId),
         ]);
     });
-    it('resumes a partially uploaded batch, reruns without uploading/duplicating or resetting activation', async () => {
+    it('resumes a partially uploaded batch and preserves activation and assessment on reseed', async () => {
         const s = storage();
         let failed = false;
         const upload = vi.fn<typeof fetch>(async (url, init) => {
@@ -230,14 +259,25 @@ dbSuite('marker seed database integration', () => {
             )
         ).rows;
         expect(rows).toHaveLength(2);
-        expect(
-            rows.every((r) => r.is_active === true && r.validated_at && r.marker_score === null),
-        ).toBe(true);
-        await pool.query('UPDATE bookaria_markers SET is_active=false WHERE id=$1', [rows[0].id]);
+        expect(rows.every((r) => r.is_active === true && r.validated_at)).toBe(true);
+        expect(rows.map((row) => row.assessment)).toEqual([seedAssessment, null]);
+        const assessment = {
+            ...seedAssessment,
+            distribution: 0.8,
+            assessedAt: '2026-11-26T07:00:00.000Z',
+        };
+        await pool.query('UPDATE bookaria_markers SET is_active=false, assessment=$2 WHERE id=$1', [
+            rows[0].id,
+            assessment,
+        ]);
+        const assessedMarkers = markers.map((marker) => ({
+            ...marker,
+            assessment: seedAssessment,
+        }));
         const count = upload.mock.calls.length;
         const repeats = await Promise.all([
-            seedBookariaMarkers(pool, s.media, markers, undefined, upload),
-            seedBookariaMarkers(pool, s.media, markers, undefined, upload),
+            seedBookariaMarkers(pool, s.media, assessedMarkers, undefined, upload),
+            seedBookariaMarkers(pool, s.media, assessedMarkers, undefined, upload),
         ]);
         expect(repeats).toEqual([
             { created: 0, existing: 2, uploaded: 0, reused: 4 },
@@ -246,7 +286,10 @@ dbSuite('marker seed database integration', () => {
         expect(upload.mock.calls).toHaveLength(count);
         expect(
             (await pool.query('SELECT * FROM bookaria_markers WHERE id=$1', [rows[0].id])).rows[0],
-        ).toEqual({ ...rows[0], is_active: false });
+        ).toEqual({ ...rows[0], is_active: false, assessment });
+        expect(
+            (await pool.query('SELECT * FROM bookaria_markers WHERE id=$1', [rows[1].id])).rows[0],
+        ).toEqual({ ...rows[1], assessment: seedAssessment });
         // Missing remote file is repaired without changing the database marker.
         s.files.delete(`raw:${firstMarker().mind.publicId}`);
         expect(

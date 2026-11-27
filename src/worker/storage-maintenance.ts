@@ -250,7 +250,10 @@ export function startStorageMaintenance() {
                     await purgeExpiredUploadIntent(id, storage, signal);
                 } catch (err) {
                     signal.throwIfAborted();
-                    logger.warn({ err, intentAssetId: id }, 'Chưa dọn được tệp tải lên chưa hoàn tất');
+                    logger.warn(
+                        { err, intentAssetId: id },
+                        'Chưa dọn được tệp tải lên chưa hoàn tất',
+                    );
                 }
             }
         })()

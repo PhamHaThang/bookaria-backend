@@ -1,10 +1,18 @@
 import { createHash, randomUUID } from 'node:crypto';
 import request from 'supertest';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../../../app';
 import { pool, type Queryable } from '../../../db';
 import { type MediaStorage, setMediaStorage } from '../../../lib';
-import { AuthorProfileSchema, PublicBookCardSchema, PublicBookSchema } from '../../../schema';
+import {
+    AuthorProfileSchema,
+    ManifestSchema,
+    PublicBookCardSchema,
+    PublicBookSchema,
+    SCENE_SCHEMA_VERSION,
+} from '../../../schema';
+import { adminService } from '../../admin/admin.service';
+import * as publishedManifest from '../../publish/published-manifest';
 
 const suite = process.env.SKIP_DB_TESTS ? describe.skip : describe;
 const app = createApp({ rateLimit: false });
@@ -700,6 +708,80 @@ suite('POST /public/books/:slug/reports', () => {
         });
         expect(r.reporter_fingerprint).toMatch(/^[0-9a-f]{64}$/);
         expect(r.reporter_fingerprint).not.toContain('thiet-bi-0001');
+    });
+
+    it('keeps the reported release and page after a newer release and draft deletion', async () => {
+        const old = await shelve();
+        const foreign = await shelve();
+        const [{ id: currentVersionId }] = await rows(
+            `INSERT INTO book_versions (book_id, version_no, schema_version, manifest_public_id,
+                                        mind_groups, page_count, ar_page_count, total_size_bytes)
+              VALUES ($1, 2, 1, 'manifests/current.json', '[]', 1, 0, 1000) RETURNING id`,
+            [old.bookId],
+        );
+        await pool.query('UPDATE books SET current_version_id = $2 WHERE id = $1', [
+            old.bookId,
+            currentVersionId,
+        ]);
+        await pool.query('DELETE FROM pages WHERE id = $1', [old.pageId]);
+        const currentPage = randomUUID();
+        const manifest = vi
+            .spyOn(publishedManifest, 'loadPublishedManifest')
+            .mockImplementation(async (bookId, version) =>
+                ManifestSchema.parse({
+                    schemaVersion: 1,
+                    bookId,
+                    version: version.version_no,
+                    title: 'Sách đã xuất bản',
+                    trackerEngine: 'mindar',
+                    generatedAt: new Date().toISOString(),
+                    targetGroups: [],
+                    assets: {},
+                    pages: [
+                        {
+                            pageId: version.version_no === 1 ? old.pageId : currentPage,
+                            aspect: Math.SQRT2,
+                            imageUrl: 'https://media.test/page.jpg',
+                            thumbnailUrl: 'https://media.test/thumb.jpg',
+                            marker: { mode: 'NONE' },
+                            scene: { schemaVersion: SCENE_SCHEMA_VERSION, objects: [] },
+                        },
+                    ],
+                }),
+            );
+        try {
+            expect((await report(old.slug, body({ versionId: foreign.versionId }))).status).toBe(
+                400,
+            );
+            expect(
+                (await report(old.slug, body({ versionId: old.versionId, pageId: currentPage })))
+                    .status,
+            ).toBe(400);
+            expect(
+                (await report(old.slug, body({ versionId: old.versionId, pageId: old.pageId })))
+                    .status,
+            ).toBe(201);
+            expect(await stored()).toMatchObject([
+                {
+                    book_version_id: old.versionId,
+                    page_id: null,
+                    reported_page_id: old.pageId,
+                },
+            ]);
+
+            const reported = await adminService.getModerationBook(old.bookId, 'reported');
+            expect(reported.preview).toMatchObject({ versionNo: 1, isCurrent: false });
+            expect(reported.book.pages).toMatchObject([{ id: old.pageId, aspect: Math.SQRT2 }]);
+            expect(reported.reports[0]).toMatchObject({
+                pageId: old.pageId,
+                version: { id: old.versionId, number: 1 },
+            });
+            const current = await adminService.getModerationBook(old.bookId, 'current');
+            expect(current.preview).toMatchObject({ versionNo: 2, isCurrent: true });
+            expect(current.book.pages).toMatchObject([{ id: currentPage }]);
+        } finally {
+            manifest.mockRestore();
+        }
     });
 
     it('stores no note when there is none, or only blanks', async () => {

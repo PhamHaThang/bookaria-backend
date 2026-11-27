@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
     AdminBookDetailSchema,
     AdminBookItemSchema,
+    AdminBookPreviewQuerySchema,
     AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
     AdminDashboardSchema,
@@ -140,6 +141,7 @@ import {
 } from './dto.schema';
 import type { ErrorCode } from './error.schema';
 import { ManifestSchema } from './manifest.schema';
+import { MarkerAnalysisMetricsSchema } from './marker-analysis.schema';
 
 export type Access = 'public' | 'cookie' | 'author' | 'verifiedAuthor' | 'admin';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -1052,6 +1054,7 @@ export const routes: Route[] = [
         access: 'admin',
         summary: 'Xem sách (chỉ đọc) và các báo cáo',
         params: params.bookId,
+        query: AdminBookPreviewQuerySchema,
         responses: { 200: dataResponse(AdminBookDetailSchema) },
         errors: ['NOT_FOUND'],
     },
@@ -1165,7 +1168,7 @@ export const routes: Route[] = [
         method: 'GET',
         path: '/admin/bookaria-markers',
         access: 'admin',
-        summary: 'Bộ marker Bookaria',
+        summary: 'Danh sách marker Bookaria',
         query: PaginationQuerySchema,
         responses: { 200: pagedResponse(BookariaMarkerSchema) },
     },
@@ -1215,6 +1218,17 @@ export const routes: Route[] = [
         summary: 'Ngừng hoặc bật lại một marker',
         params: params.markerId,
         body: UpdateBookariaMarkerBodySchema,
+        responses: { 200: dataResponse(BookariaMarkerSchema) },
+        errors: ['NOT_FOUND'],
+    },
+    {
+        id: 'putAdminBookariaMarkerAssessment',
+        method: 'PUT',
+        path: '/admin/bookaria-markers/:markerId/assessment',
+        access: 'admin',
+        summary: 'Lưu kết quả đánh giá gần nhất của marker',
+        params: params.markerId,
+        body: MarkerAnalysisMetricsSchema,
         responses: { 200: dataResponse(BookariaMarkerSchema) },
         errors: ['NOT_FOUND'],
     },

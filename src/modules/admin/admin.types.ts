@@ -3,6 +3,7 @@ import type {
     AssetType,
     AuditAction,
     AuditTargetType,
+    BookariaMarkerAssessment,
     BookStatus,
     BookVisibility,
     JobStatus,
@@ -56,7 +57,7 @@ export interface BookariaMarkerRow {
     seed: string;
     mind_public_id: string;
     validated_at: Date | null;
-    marker_score: number | null;
+    assessment: BookariaMarkerAssessment | null;
     is_active: boolean;
 }
 
@@ -107,6 +108,7 @@ export interface ModerationBookRow {
 
 export interface ModerationPageRow {
     marker_report: unknown;
+    page_aspect: number;
     id: string;
     order_index: number;
     title: string | null;
@@ -119,6 +121,9 @@ export interface ModerationPageRow {
 
 export interface ModerationReportRow {
     id: string;
+    page_id: string | null;
+    book_version_id: string | null;
+    version_no: number | null;
     reason: ReportReason;
     note: string | null;
     status: ReportStatus;

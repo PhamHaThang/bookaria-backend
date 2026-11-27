@@ -6,6 +6,7 @@ import type {
     AuditAction,
     AuditLogsQuery,
     AuditTargetType,
+    BookariaMarkerAssessment,
     LibraryAssetsQuery,
     PaginationQuery,
     UserRole,
@@ -263,7 +264,7 @@ export const adminRepository = {
         const [markers, count] = await Promise.all([
             db.query<BookariaMarkerRow>(
                 `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
-                        marker_score, is_active
+                        assessment, is_active
                  FROM bookaria_markers
                  ORDER BY number, id
                  LIMIT $1 OFFSET $2`,
@@ -281,22 +282,20 @@ export const adminRepository = {
             imagePublicId: string;
             mindPublicId: string;
             seed: number;
-            markerScore: number | null;
             isActive?: boolean;
         },
     ): Promise<BookariaMarkerRow> {
         const { rows } = await db.query<BookariaMarkerRow>(
             `INSERT INTO bookaria_markers
-                (number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active)
-             VALUES ($1, $2, $3, $4, $5, now(), $6)
+                (number, image_public_id, mind_public_id, seed, validated_at, is_active)
+             VALUES ($1, $2, $3, $4, now(), $5)
              RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
-                       marker_score, is_active`,
+                       assessment, is_active`,
             [
                 marker.number,
                 marker.imagePublicId,
                 marker.mindPublicId,
                 marker.seed,
-                marker.markerScore,
                 marker.isActive ?? true,
             ],
         );
@@ -309,7 +308,7 @@ export const adminRepository = {
     ): Promise<BookariaMarkerRow | undefined> {
         const { rows } = await db.query<BookariaMarkerRow>(
             `SELECT id, number, image_public_id, seed, mind_public_id, validated_at,
-                    marker_score, is_active
+                    assessment, is_active
              FROM bookaria_markers WHERE id = $1 FOR UPDATE`,
             [markerId],
         );
@@ -324,10 +323,24 @@ export const adminRepository = {
         const { rows } = await db.query<BookariaMarkerRow>(
             `UPDATE bookaria_markers SET is_active = $2 WHERE id = $1
              RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
-                       marker_score, is_active`,
+                       assessment, is_active`,
             [markerId, isActive],
         );
         return rows[0] as BookariaMarkerRow;
+    },
+
+    async setBookariaMarkerAssessment(
+        db: Queryable,
+        markerId: string,
+        assessment: BookariaMarkerAssessment,
+    ): Promise<BookariaMarkerRow | undefined> {
+        const { rows } = await db.query<BookariaMarkerRow>(
+            `UPDATE bookaria_markers SET assessment = $2::jsonb WHERE id = $1
+             RETURNING id, number, image_public_id, seed, mind_public_id, validated_at,
+                       assessment, is_active`,
+            [markerId, JSON.stringify(assessment)],
+        );
+        return rows[0];
     },
 
     async getJobs(db: Queryable, query: AdminJobsQuery, offset: number) {
@@ -414,7 +427,12 @@ export const adminRepository = {
         }
         if (query.targetId) {
             params.push(query.targetId);
-            where.push(`a.target_id = $${params.length}`);
+            const id = `$${params.length}::uuid`;
+            where.push(
+                query.targetType === 'JOB'
+                    ? `(a.target_id = ${id} OR (a.action = 'RETRY_JOB' AND a.detail->>'newJobId' = (${id})::text))`
+                    : `a.target_id = ${id}`,
+            );
         }
         const clause = where.length ? `WHERE ${where.join(' AND ')}` : '';
         const [logs, count] = await Promise.all([
@@ -552,9 +570,9 @@ export const adminRepository = {
     async findModerationBook(
         db: Queryable,
         bookId: string,
-    ): Promise<ModerationBookRow | undefined> {
-        const { rows } = await db.query<ModerationBookRow>(
-            `SELECT ${MODERATION_BOOK_COLUMNS}
+    ): Promise<(ModerationBookRow & { current_version_id: string | null }) | undefined> {
+        const { rows } = await db.query<ModerationBookRow & { current_version_id: string | null }>(
+            `SELECT ${MODERATION_BOOK_COLUMNS}, b.current_version_id
              FROM books b ${MODERATION_BOOK_JOINS}
              WHERE b.id = $1 AND b.deleted_at IS NULL`,
             [bookId],
@@ -565,9 +583,11 @@ export const adminRepository = {
     async getModerationPages(db: Queryable, bookId: string): Promise<ModerationPageRow[]> {
         const { rows } = await db.query<ModerationPageRow>(
             `SELECT p.id, p.order_index, p.title, image.thumbnail_url,
+                    b.page_aspect::float AS page_aspect,
                     p.marker_mode, marker.number AS marker_number, p.marker_score, p.marker_report,
                     jsonb_array_length(coalesce(p.scene->'objects', '[]'::jsonb))::int AS object_count
              FROM pages p
+             JOIN books b ON b.id = p.book_id
              JOIN assets image ON image.id = p.image_asset_id
              LEFT JOIN bookaria_markers marker ON marker.id = p.bookaria_marker_id
              WHERE p.book_id = $1
@@ -579,8 +599,10 @@ export const adminRepository = {
 
     async getBookReports(db: Queryable, bookId: string): Promise<ModerationReportRow[]> {
         const { rows } = await db.query<ModerationReportRow>(
-            `SELECT id, reason, note, status, created_at, handled_at
-             FROM reports WHERE book_id = $1 ORDER BY created_at DESC, id`,
+            `SELECT r.id, r.reason, r.note, r.status, r.created_at, r.handled_at,
+                    coalesce(r.reported_page_id, r.page_id) AS page_id, r.book_version_id, v.version_no
+             FROM reports r LEFT JOIN book_versions v ON v.id = r.book_version_id
+             WHERE r.book_id = $1 ORDER BY r.created_at DESC, r.id`,
             [bookId],
         );
         return rows;

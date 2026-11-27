@@ -39,6 +39,7 @@ import {
     type DismissReportsResult,
     DismissReportsResultSchema,
     type LibraryAssetsQuery,
+    type MarkerAnalysisMetrics,
     MarkerReportSchema,
     type MarkerWarning,
     type ModerationItem,
@@ -57,6 +58,8 @@ import {
 import { AppError, buildPaginationMeta, lockedByAdminError, toOffset } from '../../utils';
 import { parseAssetMeta } from '../assets/assets.meta';
 import { assetsRepository } from '../assets/assets.repository';
+import { publishRepository } from '../publish/publish.repository';
+import { loadPublishedManifest } from '../publish/published-manifest';
 import { adminRepository } from './admin.repository';
 import { retryFailedJob } from './admin.retry';
 import type {
@@ -139,33 +142,44 @@ export const adminService = {
         };
     },
 
-    async getModerationBook(bookId: string): Promise<AdminBookDetail> {
+    async getModerationBook(bookId: string, preview?: string): Promise<AdminBookDetail> {
         const book = await adminRepository.findModerationBook(pool, bookId);
         if (!book) throw new AppError('NOT_FOUND', 'Không tìm thấy sách.');
-        const [pages, reports] = await Promise.all([
-            adminRepository.getModerationPages(pool, bookId),
-            adminRepository.getBookReports(pool, bookId),
-        ]);
+        const reports = await adminRepository.getBookReports(pool, bookId);
+        const firstOpenReport = reports.find((report) => report.status === 'OPEN');
+        const versionId =
+            preview === 'reported'
+                ? (firstOpenReport?.book_version_id ?? book.current_version_id)
+                : preview === 'current'
+                  ? book.current_version_id
+                  : preview;
+        const content = versionId
+            ? await moderationPublishedPages(bookId, versionId)
+            : await moderationDraftPages(bookId);
         return AdminBookDetailSchema.parse({
             book: {
                 ...toModerationBookSummary(book),
                 author: { id: book.author_id, displayName: book.author_display_name },
                 description: book.description,
                 takenDownReason: book.taken_down_reason,
-                pages: pages.map((page) => ({
-                    id: page.id,
-                    orderIndex: page.order_index,
-                    title: page.title,
-                    thumbnailUrl: page.thumbnail_url,
-                    markerMode: page.marker_mode,
-                    markerNumber: page.marker_number,
-                    markerScore: page.marker_score,
-                    markerWarnings: moderationMarkerWarnings(page.marker_mode, page.marker_report),
-                    objectCount: page.object_count,
-                })),
+                pageCount: content.pages.length,
+                pages: content.pages,
             },
+            preview: content.version
+                ? {
+                      source: 'published',
+                      versionId: content.version.id,
+                      versionNo: content.version.version_no,
+                      isCurrent: content.version.id === book.current_version_id,
+                  }
+                : { source: 'draft' },
             reports: reports.map((report) => ({
                 id: report.id,
+                pageId: report.page_id,
+                version:
+                    report.book_version_id && report.version_no
+                        ? { id: report.book_version_id, number: report.version_no }
+                        : null,
                 reason: report.reason,
                 note: report.note,
                 status: report.status,
@@ -531,11 +545,7 @@ export const adminService = {
     ): Promise<BookariaMarker> {
         try {
             const marker = await withTransaction(async (db) => {
-                const created = await adminRepository.insertBookariaMarker(db, {
-                    ...body,
-                    // Legacy stars are accepted for compatibility, not stored as a current analysis.
-                    markerScore: null,
-                });
+                const created = await adminRepository.insertBookariaMarker(db, body);
                 await adminRepository.insertAuditLog(
                     db,
                     actor.userId,
@@ -556,6 +566,31 @@ export const adminService = {
             if (isUniqueViolation(error)) throw new AppError('MARKER_DUPLICATE');
             throw error;
         }
+    },
+
+    async saveBookariaMarkerAssessment(
+        actor: Auth,
+        markerId: string,
+        metrics: MarkerAnalysisMetrics,
+    ): Promise<BookariaMarker> {
+        return withTransaction(async (db) => {
+            const assessment = { ...metrics, assessedAt: new Date().toISOString() };
+            const updated = await adminRepository.setBookariaMarkerAssessment(
+                db,
+                markerId,
+                assessment,
+            );
+            if (!updated) throw new AppError('NOT_FOUND', 'Không tìm thấy marker.');
+            await adminRepository.insertAuditLog(
+                db,
+                actor.userId,
+                'MANAGE_MARKER',
+                markerId,
+                { operation: 'ASSESS', number: updated.number, assessment },
+                'MARKER',
+            );
+            return toBookariaMarker(updated);
+        });
     },
 
     async updateBookariaMarker(
@@ -793,6 +828,46 @@ const toBookSummary = (book: AdminBookRow): BookSummary =>
         updatedAt: book.updated_at.toISOString(),
     });
 
+async function moderationPublishedPages(bookId: string, versionId: string) {
+    const version = await publishRepository.findManifestVersion(pool, bookId, versionId);
+    if (!version) throw new AppError('NOT_FOUND', 'Không tìm thấy phiên bản sách.');
+    const manifest = await loadPublishedManifest(bookId, version);
+    return {
+        version,
+        pages: manifest.pages.map((page, orderIndex) => ({
+            id: page.pageId,
+            orderIndex,
+            title: page.title,
+            aspect: page.aspect,
+            thumbnailUrl: page.thumbnailUrl,
+            markerMode: page.marker.mode,
+            markerNumber: page.marker.number ?? null,
+            markerScore: null,
+            markerWarnings: [],
+            objectCount: page.scene.objects.length,
+        })),
+    };
+}
+
+async function moderationDraftPages(bookId: string) {
+    const rows = await adminRepository.getModerationPages(pool, bookId);
+    return {
+        version: null,
+        pages: rows.map((page) => ({
+            id: page.id,
+            orderIndex: page.order_index,
+            title: page.title,
+            aspect: page.page_aspect,
+            thumbnailUrl: page.thumbnail_url,
+            markerMode: page.marker_mode,
+            markerNumber: page.marker_number,
+            markerScore: page.marker_score,
+            markerWarnings: moderationMarkerWarnings(page.marker_mode, page.marker_report),
+            objectCount: page.object_count,
+        })),
+    };
+}
+
 const toModerationBookSummary = (book: ModerationBookRow) => ({
     id: book.id,
     title: book.title,
@@ -884,7 +959,7 @@ const toBookariaMarker = (marker: BookariaMarkerRow): BookariaMarker =>
         id: marker.id,
         number: marker.number,
         imageUrl: markerImageUrl(marker.image_public_id),
-        markerScore: marker.marker_score,
+        assessment: marker.assessment,
         isActive: marker.is_active,
         validatedAt: marker.validated_at?.toISOString() ?? null,
     });

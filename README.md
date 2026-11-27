@@ -71,14 +71,16 @@ pnpm db:seed:markers --dry-run  # Kiểm tra bộ marker, không upload/ghi DB
 pnpm db:seed:markers        # Tải tệp còn thiếu và đăng ký marker
 ```
 
-Bộ 20 marker đi kèm nằm ở `assets/bookaria-markers/`: `png/` chứa ảnh gốc,
-`mind/` chứa nhận diện đã biên dịch và `manifest.json` lưu checksum/điểm từng mẫu.
-Seed giữ nguyên cặp ảnh/nhận diện, không biên dịch lại trên backend.
+Bộ 20 marker đi kèm nằm ở `assets/bookaria-markers/`. Thư mục `png/` chứa ảnh gốc,
+`mind/` chứa dữ liệu nhận diện đã biên dịch và `manifest.json` ghi đường dẫn cùng
+checksum SHA-256 của từng cặp, cùng kết quả đánh giá ba tiêu chí của ảnh gốc.
+Seed dùng trực tiếp các tệp này.
 
 Seed marker dùng `DATABASE_URL` và các biến `R2_*` trong `.env`. Tệp đã có trên
 R2 với cùng object key sẽ không được upload lại; marker đã có trong DB
-được giữ nguyên, kể cả trạng thái bật/tắt. Marker mới mặc định **bật** và có thể được cấp cho trang mới.
-Có thể bật/tắt từng marker trong **Quản trị → Bộ marker Bookaria**.
+giữ trạng thái bật/tắt và kết quả đánh giá đã lưu. Nếu marker chưa có kết quả,
+seed bổ sung từ manifest khi có. Marker mới mặc định **bật** và nhận kết quả
+đánh giá từ manifest. Có thể đánh giá lại trong **Quản trị → Quản lý marker → Chi tiết**.
 
 Để dùng bộ khác, truyền thư mục chứa `manifest.json` vào `pnpm db:seed:markers "<thư mục>"`
 hoặc đặt `BOOKARIA_MARKER_DIR` trong `.env`. Tham số thư mục được ưu tiên hơn biến môi trường.

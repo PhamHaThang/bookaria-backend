@@ -32,6 +32,7 @@ export async function readPublishSnapshot(
             [bookId],
         );
     }
+    // Keep pre-migration publication hashes stable and exclude admin-only assessments.
     const { rows } = await db.query<{ snapshot: PublishSnapshot }>(
         `SELECT jsonb_build_object(
             'book', to_jsonb(b) - 'updated_at' - 'view_count',
@@ -44,7 +45,9 @@ export async function readPublishSnapshot(
                 SELECT b.cover_asset_id UNION
                 SELECT pa.asset_id FROM page_assets pa JOIN pages p ON p.id=pa.page_id WHERE p.book_id=b.id
             )),'[]'::jsonb),
-            'markers', COALESCE((SELECT jsonb_agg(to_jsonb(m) ORDER BY m.id) FROM bookaria_markers m
+            'markers', COALESCE((SELECT jsonb_agg(
+                (to_jsonb(m)-'assessment') || '{"marker_score":null}'::jsonb ORDER BY m.id)
+                FROM bookaria_markers m
                 WHERE m.id IN (SELECT bookaria_marker_id FROM pages WHERE book_id=b.id)),'[]'::jsonb)
         ) AS snapshot FROM books b JOIN users u ON u.id=b.owner_id WHERE b.id=$1 AND b.owner_id=$2`,
         [bookId, ownerId],

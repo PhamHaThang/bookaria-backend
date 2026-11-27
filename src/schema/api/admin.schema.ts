@@ -28,7 +28,6 @@ import {
     UserRoleSchema,
     UserStatusSchema,
 } from '../enums.schema';
-import { MarkerScoreSchema } from '../marker.schema';
 import { UploadSignatureSchema } from './assets.schema';
 import { EmailSchema, NewPasswordSchema } from './auth.schema';
 
@@ -114,7 +113,13 @@ export const AdminBookItemSchema = BookSummarySchema.extend({
     reportCount: z.int().min(0),
 });
 export type AdminBookItem = z.infer<typeof AdminBookItemSchema>;
+export const AdminBookPreviewQuerySchema = z.object({
+    preview: z.union([z.enum(['current', 'reported']), IdSchema]).optional(),
+});
+
 export const ReportItemSchema = z.object({
+    pageId: IdSchema.nullable().optional(),
+    version: z.object({ id: IdSchema, number: z.int().positive() }).nullable().optional(),
     id: IdSchema,
     reason: ReportReasonSchema,
     note: z.string().nullable(),
@@ -126,6 +131,7 @@ export type ReportItem = z.infer<typeof ReportItemSchema>;
 
 export const AdminPageSummarySchema = PageSummarySchema.extend({
     thumbnailUrl: HttpUrlSchema.nullable(),
+    aspect: z.number().positive().optional(),
 });
 
 export const AdminBookDetailSchema = z.object({
@@ -136,6 +142,17 @@ export const AdminBookDetailSchema = z.object({
         pages: z.array(AdminPageSummarySchema),
     }),
     reports: z.array(ReportItemSchema),
+    preview: z
+        .discriminatedUnion('source', [
+            z.object({ source: z.literal('draft') }),
+            z.object({
+                source: z.literal('published'),
+                versionId: IdSchema,
+                versionNo: z.int().positive(),
+                isCurrent: z.boolean(),
+            }),
+        ])
+        .optional(),
 });
 export type AdminBookDetail = z.infer<typeof AdminBookDetailSchema>;
 
@@ -244,7 +261,6 @@ export const CreateBookariaMarkerBodySchema = z.object({
     imagePublicId: z.string().min(1).max(300),
     mindPublicId: z.string().min(1).max(300),
     seed: z.int(),
-    markerScore: MarkerScoreSchema.optional(),
 });
 export type CreateBookariaMarkerBody = z.infer<typeof CreateBookariaMarkerBodySchema>;
 

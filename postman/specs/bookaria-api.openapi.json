@@ -17928,6 +17928,10 @@
                                         "type": "string",
                                         "maxLength": 1000
                                     },
+                                    "versionId": {
+                                        "type": "string",
+                                        "format": "uuid"
+                                    },
                                     "pageId": {
                                         "type": "string",
                                         "format": "uuid"
@@ -19772,6 +19776,23 @@
                             "type": "string",
                             "format": "uuid"
                         }
+                    },
+                    {
+                        "name": "preview",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "anyOf": [
+                                {
+                                    "type": "string",
+                                    "enum": ["current", "reported"]
+                                },
+                                {
+                                    "type": "string",
+                                    "format": "uuid"
+                                }
+                            ]
+                        }
                     }
                 ],
                 "responses": {
@@ -19915,6 +19936,11 @@
                                                                         "type": "integer",
                                                                         "minimum": 0,
                                                                         "maximum": 9007199254740991
+                                                                    },
+                                                                    "aspect": {
+                                                                        "type": "number",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true
                                                                     }
                                                                 },
                                                                 "required": [
@@ -19953,6 +19979,29 @@
                                                     "items": {
                                                         "type": "object",
                                                         "properties": {
+                                                            "pageId": {
+                                                                "nullable": true,
+                                                                "type": "string",
+                                                                "format": "uuid"
+                                                            },
+                                                            "version": {
+                                                                "nullable": true,
+                                                                "type": "object",
+                                                                "properties": {
+                                                                    "id": {
+                                                                        "type": "string",
+                                                                        "format": "uuid"
+                                                                    },
+                                                                    "number": {
+                                                                        "type": "integer",
+                                                                        "minimum": 0,
+                                                                        "exclusiveMinimum": true,
+                                                                        "maximum": 9007199254740991
+                                                                    }
+                                                                },
+                                                                "required": ["id", "number"],
+                                                                "additionalProperties": false
+                                                            },
                                                             "id": {
                                                                 "type": "string",
                                                                 "format": "uuid"
@@ -19999,6 +20048,50 @@
                                                         ],
                                                         "additionalProperties": false
                                                     }
+                                                },
+                                                "preview": {
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "source": {
+                                                                    "type": "string",
+                                                                    "enum": ["draft"]
+                                                                }
+                                                            },
+                                                            "required": ["source"],
+                                                            "additionalProperties": false
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "properties": {
+                                                                "source": {
+                                                                    "type": "string",
+                                                                    "enum": ["published"]
+                                                                },
+                                                                "versionId": {
+                                                                    "type": "string",
+                                                                    "format": "uuid"
+                                                                },
+                                                                "versionNo": {
+                                                                    "type": "integer",
+                                                                    "minimum": 0,
+                                                                    "exclusiveMinimum": true,
+                                                                    "maximum": 9007199254740991
+                                                                },
+                                                                "isCurrent": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "source",
+                                                                "versionId",
+                                                                "versionNo",
+                                                                "isCurrent"
+                                                            ],
+                                                            "additionalProperties": false
+                                                        }
+                                                    ]
                                                 }
                                             },
                                             "required": ["book", "reports"],
@@ -22223,7 +22316,7 @@
             "get": {
                 "operationId": "getAdminBookariaMarkers",
                 "tags": ["admin"],
-                "summary": "Bộ marker Bookaria",
+                "summary": "Danh sách marker Bookaria",
                 "security": [
                     {
                         "bearerAuth": []
@@ -22453,11 +22546,6 @@
                                         "type": "integer",
                                         "minimum": -9007199254740991,
                                         "maximum": 9007199254740991
-                                    },
-                                    "markerScore": {
-                                        "type": "integer",
-                                        "minimum": 0,
-                                        "maximum": 5
                                     }
                                 },
                                 "required": ["number", "imagePublicId", "mindPublicId", "seed"]
@@ -23397,6 +23485,234 @@
                                     }
                                 },
                                 "required": ["isActive"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Thành công",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/BookariaMarker"
+                                        }
+                                    },
+                                    "required": ["data"],
+                                    "additionalProperties": false
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "`VALIDATION_ERROR`: Dữ liệu gửi lên không hợp lệ.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "VALIDATION_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "VALIDATION_ERROR",
+                                                "message": "Dữ liệu gửi lên không hợp lệ.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "`UNAUTHENTICATED`: Bạn cần đăng nhập để tiếp tục.\n`TOKEN_EXPIRED`: Phiên đăng nhập đã hết hạn.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "UNAUTHENTICATED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "UNAUTHENTICATED",
+                                                "message": "Bạn cần đăng nhập để tiếp tục.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    },
+                                    "TOKEN_EXPIRED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "TOKEN_EXPIRED",
+                                                "message": "Phiên đăng nhập đã hết hạn.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "`FORBIDDEN`: Bạn không có quyền thực hiện thao tác này.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "FORBIDDEN": {
+                                        "value": {
+                                            "error": {
+                                                "code": "FORBIDDEN",
+                                                "message": "Bạn không có quyền thực hiện thao tác này.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "`NOT_FOUND`: Không tìm thấy nội dung được yêu cầu.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "NOT_FOUND": {
+                                        "value": {
+                                            "error": {
+                                                "code": "NOT_FOUND",
+                                                "message": "Không tìm thấy nội dung được yêu cầu.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "423": {
+                        "description": "`ACCOUNT_LOCKED`: Tài khoản đang bị khoá.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "ACCOUNT_LOCKED": {
+                                        "value": {
+                                            "error": {
+                                                "code": "ACCOUNT_LOCKED",
+                                                "message": "Tài khoản đang bị khoá.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "`INTERNAL_ERROR`: Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ApiError"
+                                },
+                                "examples": {
+                                    "INTERNAL_ERROR": {
+                                        "value": {
+                                            "error": {
+                                                "code": "INTERNAL_ERROR",
+                                                "message": "Đã có lỗi xảy ra, vui lòng thử lại sau.",
+                                                "requestId": "req_9d5c4cac5a9d"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/bookaria-markers/{markerId}/assessment": {
+            "put": {
+                "operationId": "putAdminBookariaMarkerAssessment",
+                "tags": ["admin"],
+                "summary": "Lưu kết quả đánh giá gần nhất của marker",
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "markerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "policyVersion": {
+                                        "type": "string",
+                                        "enum": ["mindar-pictarize-v1"]
+                                    },
+                                    "distribution": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    },
+                                    "uniqueness": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    },
+                                    "dimension": {
+                                        "type": "number",
+                                        "minimum": 0,
+                                        "maximum": 1
+                                    },
+                                    "sourceWidth": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": true,
+                                        "maximum": 16384
+                                    },
+                                    "sourceHeight": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "exclusiveMinimum": true,
+                                        "maximum": 16384
+                                    }
+                                },
+                                "required": [
+                                    "policyVersion",
+                                    "distribution",
+                                    "uniqueness",
+                                    "dimension",
+                                    "sourceWidth",
+                                    "sourceHeight"
+                                ]
                             }
                         }
                     }
@@ -29010,11 +29326,58 @@
                         "type": "string",
                         "format": "uri"
                     },
-                    "markerScore": {
+                    "assessment": {
+                        "default": null,
                         "nullable": true,
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 5
+                        "type": "object",
+                        "properties": {
+                            "policyVersion": {
+                                "type": "string",
+                                "enum": ["mindar-pictarize-v1"]
+                            },
+                            "distribution": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "uniqueness": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "dimension": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "sourceWidth": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true,
+                                "maximum": 16384
+                            },
+                            "sourceHeight": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "exclusiveMinimum": true,
+                                "maximum": 16384
+                            },
+                            "assessedAt": {
+                                "type": "string",
+                                "format": "date-time",
+                                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
+                            }
+                        },
+                        "required": [
+                            "policyVersion",
+                            "distribution",
+                            "uniqueness",
+                            "dimension",
+                            "sourceWidth",
+                            "sourceHeight",
+                            "assessedAt"
+                        ],
+                        "additionalProperties": false
                     },
                     "isActive": {
                         "type": "boolean"
@@ -29026,7 +29389,7 @@
                         "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z))$"
                     }
                 },
-                "required": ["id", "number", "imageUrl", "markerScore", "isActive", "validatedAt"],
+                "required": ["id", "number", "imageUrl", "assessment", "isActive", "validatedAt"],
                 "additionalProperties": false
             },
             "AuditLog": {

@@ -393,10 +393,10 @@ suite('auth (tích hợp)', () => {
             expect(missingOrigin.status).toBe(403);
             expect(missingOrigin.body.error.code).toBe('FORBIDDEN');
 
-            const sameOrigin = await withCookie(request(app).post('/api/v1/auth/refresh'), cookie).set(
-                'Sec-Fetch-Site',
-                'same-origin',
-            );
+            const sameOrigin = await withCookie(
+                request(app).post('/api/v1/auth/refresh'),
+                cookie,
+            ).set('Sec-Fetch-Site', 'same-origin');
             expect(sameOrigin.status).toBe(200);
 
             const good = await withCookie(

@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { getAuth } from '../../middlewares';
 import {
+    AdminBookPreviewQuerySchema,
     AdminBooksQuerySchema,
     AdminCreateUserBodySchema,
     AdminJobsQuerySchema,
@@ -13,6 +14,7 @@ import {
     IdSchema,
     ImportBookariaMarkerBodySchema,
     LibraryAssetsQuerySchema,
+    MarkerAnalysisMetricsSchema,
     MarkerUploadBodySchema,
     ModerationNoteBodySchema,
     PaginationQuerySchema,
@@ -82,7 +84,8 @@ export const adminController = {
     }),
 
     getModerationBook: asyncHandler(async (req: Request, res: Response) => {
-        res.json({ data: await adminService.getModerationBook(bookIdOf(req.params)) });
+        const { preview } = AdminBookPreviewQuerySchema.parse(req.query);
+        res.json({ data: await adminService.getModerationBook(bookIdOf(req.params), preview) });
     }),
 
     takeDownBook: asyncHandler(async (req: Request, res: Response) => {
@@ -169,6 +172,15 @@ export const adminController = {
             getAuth(res),
             markerIdOf(req.params),
             body,
+        );
+        res.json({ data: marker });
+    }),
+
+    saveBookariaMarkerAssessment: asyncHandler(async (req: Request, res: Response) => {
+        const marker = await adminService.saveBookariaMarkerAssessment(
+            getAuth(res),
+            markerIdOf(req.params),
+            MarkerAnalysisMetricsSchema.parse(req.body),
         );
         res.json({ data: marker });
     }),

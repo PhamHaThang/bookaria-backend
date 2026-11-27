@@ -263,9 +263,10 @@ suite('R2 asset garbage collection', () => {
         expect(f.fake.files.has(usedMindKey)).toBe(true);
         expect(
             (
-                await pool.query('SELECT asset_id FROM upload_intents WHERE asset_id = ANY($1::uuid[])', [
-                    [orphanId, orphanMindId, usedMindId],
-                ])
+                await pool.query(
+                    'SELECT asset_id FROM upload_intents WHERE asset_id = ANY($1::uuid[])',
+                    [[orphanId, orphanMindId, usedMindId]],
+                )
             ).rows,
         ).toHaveLength(0);
     });

@@ -213,15 +213,16 @@ export const publicRepository = {
         o: {
             bookId: string;
             pageId: string | null;
+            versionId: string | null;
             reason: string;
             note: string | null;
             fingerprint: string;
         },
     ): Promise<void> {
         await db.query(
-            `INSERT INTO reports (book_id, page_id, reason, note, reporter_fingerprint)
-            VALUES ($1, $2, $3::report_reason, $4, $5)`,
-            [o.bookId, o.pageId, o.reason, o.note, o.fingerprint],
+            `INSERT INTO reports (book_id, page_id, reported_page_id, book_version_id, reason, note, reporter_fingerprint)
+            VALUES ($1, (SELECT id FROM pages WHERE book_id = $1 AND id = $2), $2, $3, $4::report_reason, $5, $6)`,
+            [o.bookId, o.pageId, o.versionId, o.reason, o.note, o.fingerprint],
         );
     },
 };

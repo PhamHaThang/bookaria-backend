@@ -131,7 +131,7 @@ suite('admin marker file registration', () => {
         expect(a.status).toBe(201);
         expect(b.status).toBe(201);
         expect(a.body.data.id).toBe(b.body.data.id);
-        expect(a.body.data).toMatchObject({ isActive: false, markerScore: null });
+        expect(a.body.data).toMatchObject({ isActive: false, assessment: null });
         expect(a.body.data.number).toBeGreaterThan(0);
         const audit = await pool.query(
             "SELECT count(*)::int AS n FROM audit_logs WHERE target_id=$1 AND action='MANAGE_MARKER'",

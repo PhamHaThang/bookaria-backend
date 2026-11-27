@@ -16,6 +16,8 @@ import {
 import type { PublicBooksQuery, ReportBookBody } from './../../schema/api/public.schema';
 import { AppError, buildPaginationMeta, fieldError, toOffset } from '../../utils';
 import { assetsService } from '../assets/assets.service';
+import { publishRepository } from '../publish/publish.repository';
+import { loadPublishedManifest } from '../publish/published-manifest';
 import { publicRepository } from './public.repository';
 import type { CardBookRow, NewEvent, PublicBookRow } from './public.types';
 
@@ -168,8 +170,24 @@ export const publicService = {
     async reportBook(slug: string, body: ReportBookBody): Promise<void> {
         const book = await this.getAvailableBook(slug);
         const fingerprint = createHash('sha256').update(body.deviceId).digest('hex');
+        const version = body.versionId
+            ? await publishRepository.findManifestVersion(pool, book.id, body.versionId)
+            : undefined;
+        if (body.versionId && !version) {
+            throw fieldError('versionId', 'Phiên bản không thuộc sách này.');
+        }
+        if (version && body.pageId) {
+            const manifest = await loadPublishedManifest(book.id, version);
+            if (!manifest.pages.some((page) => page.pageId === body.pageId)) {
+                throw fieldError('pageId', 'Trang không thuộc phiên bản này.');
+            }
+        }
         await withTransaction(async (db) => {
-            if (body.pageId && !(await publicRepository.isPageInBook(db, book.id, body.pageId))) {
+            if (
+                !version &&
+                body.pageId &&
+                !(await publicRepository.isPageInBook(db, book.id, body.pageId))
+            ) {
                 throw fieldError('pageId', 'Trang không thuộc sách này');
             }
             await publicRepository.lockReporter(db, book.id, fingerprint);
@@ -195,6 +213,7 @@ export const publicService = {
                 bookId: book.id,
                 fingerprint,
                 pageId: body.pageId ?? null,
+                versionId: version?.id ?? null,
                 reason: body.reason,
                 note: body.note ? body.note : null,
             });

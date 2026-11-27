@@ -129,14 +129,14 @@ export async function verifyMarkerUpload(
     }
 }
 const columns =
-    'id, number, image_public_id, mind_public_id, seed, marker_score, validated_at, is_active';
+    'id, number, image_public_id, mind_public_id, seed, assessment, validated_at, is_active';
 function dto(row: BookariaMarkerRow) {
     return BookariaMarkerSchema.parse({
         id: row.id,
         number: row.number,
         imageUrl: storage().deliveryUrl({ resourceType: 'image', publicId: row.image_public_id }),
         seed: Number(row.seed),
-        markerScore: row.marker_score,
+        assessment: row.assessment,
         isActive: row.is_active,
         validatedAt:
             row.validated_at instanceof Date ? row.validated_at.toISOString() : row.validated_at,
@@ -169,7 +169,6 @@ export async function importUploadedMarker(actor: Auth, body: ImportBookariaMark
             ...body,
             number,
             seed,
-            markerScore: null,
         });
         await adminRepository.insertAuditLog(
             db,
