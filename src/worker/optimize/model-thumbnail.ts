@@ -49,7 +49,12 @@ export async function modelThumbnail(input: Uint8Array, signal: AbortSignal) {
     signal.throwIfAborted();
     const browser = await chromium.launch({
         headless: true,
-        args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--use-angle=swiftshader',
+            '--enable-unsafe-swiftshader',
+        ],
     });
     const abort = () => {
         void browser.close();
