@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 on:
   push:
     branches: [main]
@@ -6,6 +6,7 @@ on:
 
 jobs:
   check:
+    name: Lint, Test & Build Checks
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://bookaria:bookaria@localhost:5432/bookaria
@@ -24,9 +25,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
+        with:
+          version: 10.34.6
+      - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -46,3 +49,21 @@ jobs:
           export SEED_ADMIN_PASSWORD
           pnpm db:seed
           pnpm db:seed
+
+  deploy:
+    name: Deploy to Railway
+    needs: check
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          echo "Deploying to Railway Service 9655faff-498d-4709-9f5a-434b617f2eb6..."
+          railway up --service 9655faff-498d-4709-9f5a-434b617f2eb6 --detach
